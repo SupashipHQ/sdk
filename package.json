@@ -1,0 +1,32 @@
+{
+  "name": "@darkfeature/sdk",
+  "private": true,
+  "version": "0.1.0",
+  "description": "DarkFeature SDK for client, server and mobile apps",
+  "scripts": {
+    "build": "pnpm --filter \"@darkfeature/sdk-*\" build",
+    "dev": "pnpm --filter \"./packages/**\" --filter \"!./packages/core\" dev",
+    "clean": "pnpm --filter \"@darkfeature/sdk-*\" clean",
+    "lint": "pnpm --filter \"@darkfeature/sdk-*\" lint",
+    "test": "pnpm --filter \"@darkfeature/sdk-*\" test",
+    "version": "node scripts/version-bump.js",
+    "bump": "lerna version && lerna run build"
+  },
+  "keywords": [
+    "feature-flags",
+    "feature-toggles",
+    "sdk"
+  ],
+  "author": "DarkFeature",
+  "license": "MIT",
+  "engines": {
+    "node": ">=16",
+    "pnpm": ">=8"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0",
+    "lerna": "^7.1.4",
+    "rimraf": "^6.0.1"
+  }
+}
