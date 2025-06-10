@@ -1,3 +1,64 @@
 # DarkFeature SDK
 
-DarkFeature SDK for client, server and mobile applications
+A collection of SDKs for DarkFeature that provides feature flag management for various platforms and frameworks. This monorepo is designed to house multiple SDKs, with more packages planned for the future.
+
+## Packages
+
+This monorepo contains the following packages:
+
+- [@darkfeature/sdk-javascript](./packages/javascript/README.md) - Core JavaScript SDK for feature flag management
+
+More packages will be added in the future to support additional platforms and frameworks.
+
+## Quick Start
+
+### JavaScript SDK
+
+```javascript
+import { DarkFeatureClient } from '@darkfeature/sdk-javascript'
+
+const client = new DarkFeatureClient({
+  apiKey: 'environment-api-key',
+  context: {
+    userId: '123',
+    version: '1.0.1',
+  },
+})
+
+// Get a feature flag
+const isEnabled = await client.getFeature('my-feature', { fallback: false })
+
+// Get multiple feature flags
+const features = await client.getFeatures({
+  features: {
+    feature1: false,
+    feature2: true,
+  },
+  context: {
+    userId: '123',
+  },
+})
+```
+
+For framework-specific examples and detailed documentation, please refer to the individual SDK documentation:
+
+- [React SDK Documentation](./packages/react/README.md)
+- [Vue SDK Documentation](./packages/vue/README.md)
+- [Angular SDK Documentation](./packages/angular/README.md)
+
+## Development
+
+For development setup, workflow, and contribution guidelines, please refer to our [Contributing Guide](./CONTRIBUTING.md).
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
+
+## Support
+
+- [Documentation](https://darkfeature.com/docs)
+- [GitHub Issues](https://github.com/darkfeature/sdk/issues)
+
+## Security
+
+If you discover a security vulnerability, please email security@darkfeature.com. We take security seriously and will respond promptly.
