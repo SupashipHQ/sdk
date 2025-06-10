@@ -1,0 +1,11 @@
+dist/
+!dist
+src/
+tsconfig.json
+tsconfig.build.json
+tsconfig-dts.json
+*.tsbuildinfo
+node_modules/
+__tests__/
+*.test.ts
+*.spec.ts 
