@@ -1,7 +1,8 @@
 import React from 'react'
-import { renderHook, waitFor } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
+import '@testing-library/jest-dom'
 import { useFeature } from '../useFeature'
-import { DarkFeatureProvider } from '../DarkFeatureProvider'
+import { DarkFeatureProvider } from '../provider'
 
 // Mock the DarkFeatureClient
 const mockGetFeature = jest.fn()
@@ -11,43 +12,66 @@ jest.mock('@darkfeature/sdk-javascript', () => ({
   })),
 }))
 
+const TestComponent = ({
+  featureKey,
+  defaultValue,
+}: {
+  featureKey: string
+  defaultValue?: boolean
+}): JSX.Element => {
+  const featureValue = useFeature(featureKey, defaultValue)
+  return <div data-testid="feature-value">{featureValue.toString()}</div>
+}
+
+const config = {
+  apiKey: 'test-api-key',
+  baseUrl: 'https://api.test.com',
+}
+
 describe('useFeature', () => {
-  const apiKey = 'test-api-key'
-  const featureKey = 'test-feature'
-
-  const wrapper = ({ children }: { children: React.ReactNode }): JSX.Element => (
-    <DarkFeatureProvider apiKey={apiKey}>{children}</DarkFeatureProvider>
-  )
-
   beforeEach(() => {
     jest.clearAllMocks()
-    mockGetFeature.mockClear()
   })
 
-  it('should return default value when client is not initialized', () => {
-    const { result } = renderHook(() => useFeature(featureKey, false), { wrapper })
-    expect(result.current).toBe(false)
+  it('should return default value initially', () => {
+    render(
+      <DarkFeatureProvider config={config}>
+        <TestComponent featureKey="test-feature" defaultValue={true} />
+      </DarkFeatureProvider>
+    )
+
+    expect(screen.getByTestId('feature-value')).toHaveTextContent('true')
   })
 
-  it('should return feature value from client', async () => {
-    mockGetFeature.mockResolvedValue(true)
+  it('should fetch feature value from client', async () => {
+    mockGetFeature.mockResolvedValue(false)
 
-    const { result } = renderHook(() => useFeature(featureKey, false), { wrapper })
+    render(
+      <DarkFeatureProvider config={config}>
+        <TestComponent featureKey="test-feature" defaultValue={true} />
+      </DarkFeatureProvider>
+    )
 
     await waitFor(() => {
-      expect(result.current).toBe(true)
+      expect(mockGetFeature).toHaveBeenCalledWith('test-feature', { fallback: true })
     })
-    expect(mockGetFeature).toHaveBeenCalledWith(featureKey, false)
-  })
-
-  it('should return default value on error', async () => {
-    mockGetFeature.mockRejectedValue(new Error('API Error'))
-
-    const { result } = renderHook(() => useFeature(featureKey, true), { wrapper })
 
     await waitFor(() => {
-      expect(result.current).toBe(true)
+      expect(screen.getByTestId('feature-value')).toHaveTextContent('false')
     })
-    expect(mockGetFeature).toHaveBeenCalledWith(featureKey, true)
+  })
+
+  it('should handle errors and use default value', async () => {
+    mockGetFeature.mockRejectedValue(new Error('Network error'))
+
+    render(
+      <DarkFeatureProvider config={config}>
+        <TestComponent featureKey="test-feature" defaultValue={true} />
+      </DarkFeatureProvider>
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('feature-value')).toHaveTextContent('true')
+    })
   })
 })

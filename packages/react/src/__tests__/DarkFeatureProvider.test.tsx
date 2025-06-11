@@ -1,6 +1,6 @@
 import React from 'react'
 import { render } from '@testing-library/react'
-import { DarkFeatureProvider, useDarkFeature } from '../DarkFeatureProvider'
+import { DarkFeatureProvider, useDarkFeature } from '../provider'
 import { DarkFeatureClient } from '@darkfeature/sdk-javascript'
 
 // Mock the DarkFeatureClient
@@ -11,26 +11,57 @@ jest.mock('@darkfeature/sdk-javascript', () => ({
 }))
 
 describe('DarkFeatureProvider', () => {
-  const apiKey = 'test-api-key'
+  const config = {
+    apiKey: 'test-api-key',
+    baseUrl: 'https://api.test.com',
+  }
 
   beforeEach(() => {
     jest.clearAllMocks()
   })
 
-  it('should initialize client with apiKey', () => {
+  it('should initialize client with config', () => {
     render(
-      <DarkFeatureProvider apiKey={apiKey}>
+      <DarkFeatureProvider config={config}>
         <div>Test</div>
       </DarkFeatureProvider>
     )
 
     expect(DarkFeatureClient).toHaveBeenCalledWith({
-      apiKey,
-      retry: {
-        enabled: true,
-        maxAttempts: 3,
-        backoff: 1000,
-      },
+      ...config,
+      plugins: [],
+    })
+  })
+
+  it('should initialize client with config and plugins', () => {
+    const mockPlugin = { name: 'test-plugin' }
+
+    render(
+      <DarkFeatureProvider config={config} plugins={[mockPlugin]}>
+        <div>Test</div>
+      </DarkFeatureProvider>
+    )
+
+    expect(DarkFeatureClient).toHaveBeenCalledWith({
+      ...config,
+      plugins: [mockPlugin],
+    })
+  })
+
+  it('should merge plugins from config and props', () => {
+    const configPlugin = { name: 'config-plugin' }
+    const propPlugin = { name: 'prop-plugin' }
+    const configWithPlugins = { ...config, plugins: [configPlugin] }
+
+    render(
+      <DarkFeatureProvider config={configWithPlugins} plugins={[propPlugin]}>
+        <div>Test</div>
+      </DarkFeatureProvider>
+    )
+
+    expect(DarkFeatureClient).toHaveBeenCalledWith({
+      ...configWithPlugins,
+      plugins: [configPlugin, propPlugin],
     })
   })
 
