@@ -17,9 +17,8 @@ on:
           - prepatch
           - prerelease
       prerelease_id:
-        description: 'Prerelease identifier'
+        description: 'Prerelease identifier (only used for prerelease versions)'
         required: false
-        default: 'beta'
         type: choice
         options:
           - alpha
@@ -75,6 +74,11 @@ jobs:
 
           # Handle prerelease versions
           if [[ "$VERSION_TYPE" == pre* ]]; then
+            # Use default 'beta' if no prerelease_id is provided for prerelease versions
+            if [[ -z "$PRERELEASE_ID" ]]; then
+              PRERELEASE_ID="beta"
+              echo "⚠️  No prerelease identifier provided, defaulting to 'beta'"
+            fi
             NEW_VERSION=$(npm version "$VERSION_TYPE" --preid="$PRERELEASE_ID" --no-git-tag-version)
             echo "🧪 Creating prerelease version with identifier: $PRERELEASE_ID"
             echo "is_prerelease=true" >> $GITHUB_OUTPUT
@@ -90,20 +94,15 @@ jobs:
       - name: Bump version in all packages
         run: |
           NEW_VERSION="${{ steps.version-root.outputs.new_version }}"
-          VERSION_TYPE="${{ github.event.inputs.version_type }}"
-          PRERELEASE_ID="${{ github.event.inputs.prerelease_id }}"
 
           for package in packages/*; do
             if [ -d "$package" ] && [ -f "$package/package.json" ]; then
               echo "Updating version in $package to $NEW_VERSION"
               cd "$package"
               
-              # Use the same versioning strategy for all packages
-              if [[ "$VERSION_TYPE" == pre* ]]; then
-                npm version "$VERSION_TYPE" --preid="$PRERELEASE_ID" --no-git-tag-version
-              else
-                npm version "$VERSION_TYPE" --no-git-tag-version
-              fi
+              # Set the exact version from root (without the 'v' prefix)
+              VERSION_NUMBER="${NEW_VERSION#v}"
+              npm version "$VERSION_NUMBER" --no-git-tag-version
               
               cd ../..
             fi

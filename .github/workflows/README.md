@@ -29,7 +29,7 @@ This directory contains the GitHub Actions workflows for the DarkFeature SDK pro
 **Inputs**:
 
 - `version_type`: Choose from major, minor, patch, premajor, preminor, prepatch, or prerelease
-- `prerelease_id`: For prerelease versions, choose from: alpha, beta, rc, dev, canary, next (default: beta)
+- `prerelease_id`: For prerelease versions, choose from: alpha, beta, rc, dev, canary, next (defaults to beta if not specified)
 
 **Steps**:
 
@@ -111,7 +111,7 @@ The workflows need these permissions (automatically granted):
 1. Go to **Actions** → **Version Bump and Release**
 2. Click **Run workflow**
 3. Select version type: `prepatch`, `preminor`, `premajor`, or `prerelease`
-4. Choose prerelease identifier: `alpha`, `beta`, `rc`, `dev`, `canary`, or `next`
+4. Choose prerelease identifier: `alpha`, `beta`, `rc`, `dev`, `canary`, or `next` (optional - defaults to `beta`)
 5. Click **Run workflow**
 6. This creates a prerelease and automatically publishes to npm with the appropriate tag
 
