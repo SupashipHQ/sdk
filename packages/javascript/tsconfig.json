@@ -8,6 +8,9 @@
     "moduleResolution": "node",
     "declaration": true,
     "declarationMap": true,
+    "composite": false,
+    "baseUrl": "./src",
+    "paths": {},
     "types": ["node"]
   },
   "include": ["src"],

@@ -7,7 +7,11 @@
     "module": "UMD",
     "moduleResolution": "node",
     "declaration": true,
-    "declarationMap": true
+    "declarationMap": true,
+    "composite": false,
+    "baseUrl": "./src",
+    "paths": {},
+    "types": ["node"]
   },
   "include": ["src"],
   "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/**/__tests__/**/*"]
