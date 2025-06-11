@@ -50,6 +50,33 @@ For framework-specific examples and detailed documentation, please refer to the 
 
 For development setup, workflow, and contribution guidelines, please refer to our [Contributing Guide](./CONTRIBUTING.md).
 
+### Commit Message Convention
+
+This project uses [Conventional Commits](https://www.conventionalcommits.org/) with automatic validation:
+
+```bash
+# Examples of valid commit messages
+feat: add new feature
+fix(api): resolve authentication issue
+docs: update installation guide
+test: add unit tests for client
+
+# Test your commit message
+echo "feat: your message" | npx commitlint
+```
+
+See [.github/COMMIT_CONVENTION.md](./.github/COMMIT_CONVENTION.md) for detailed commit message guidelines.
+
+### Continuous Integration
+
+This repository uses GitHub Actions for automated testing, building, and publishing:
+
+- **CI Pipeline**: Automatically tests and builds packages on pull requests
+- **Release Pipeline**: Publishes packages to npm when releases are created
+- **Multiple Node.js versions**: Tests against Node.js 18 and 20
+
+See [.github/workflows/README.md](./.github/workflows/README.md) for detailed workflow documentation.
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.

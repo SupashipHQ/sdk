@@ -1,0 +1,101 @@
+name: Publish to NPM
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    name: Publish Packages
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm build
+
+      - name: Publish to NPM
+        run: |
+          # Configure npm authentication
+          echo "//registry.npmjs.org/:_authToken=$NPM_ACCESS_TOKEN" > ~/.npmrc
+
+          # Determine release type and extract prerelease identifier
+          TAG_NAME="${{ github.ref_name }}"
+
+          # Extract prerelease identifier (alpha, beta, rc, etc.) from version tag
+          if [[ "$TAG_NAME" =~ v[0-9]+\.[0-9]+\.[0-9]+-(alpha|beta|rc|dev|canary|next)(\.[0-9]+)?$ ]]; then
+            PRERELEASE_ID="${BASH_REMATCH[1]}"
+            echo "🧪 Detected prerelease: $TAG_NAME (identifier: $PRERELEASE_ID)"
+            PUBLISH_TAG="$PRERELEASE_ID"
+            RELEASE_TYPE="prerelease"
+          else
+            echo "🚀 Detected stable release: $TAG_NAME"
+            PUBLISH_TAG="latest"
+            RELEASE_TYPE="stable"
+          fi
+
+          # Publish each package
+          for package in packages/*; do
+            if [ -d "$package" ] && [ -f "$package/package.json" ]; then
+              echo "Publishing $package..."
+              cd "$package"
+              
+              PACKAGE_NAME=$(node -p "require('./package.json').name")
+              PACKAGE_VERSION=$(node -p "require('./package.json').version")
+              
+              # Check if this version is already published
+              if npm view "$PACKAGE_NAME@$PACKAGE_VERSION" version 2>/dev/null; then
+                echo "⚠️  Version $PACKAGE_VERSION of $PACKAGE_NAME is already published, skipping..."
+              else
+                if [ "$RELEASE_TYPE" = "prerelease" ]; then
+                  echo "🧪 Publishing $PACKAGE_NAME@$PACKAGE_VERSION as prerelease with @$PUBLISH_TAG tag..."
+                  npm publish --access public --tag "$PUBLISH_TAG"
+                else
+                  echo "📦 Publishing $PACKAGE_NAME@$PACKAGE_VERSION as stable release..."
+                  npm publish --access public
+                fi
+                echo "✅ Successfully published $PACKAGE_NAME@$PACKAGE_VERSION ($RELEASE_TYPE)"
+              fi
+              
+              cd ../..
+            fi
+          done
+        env:
+          NPM_ACCESS_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
+
+      - name: Publication Summary
+        run: |
+          echo "## 📦 Publication Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Published packages for tag: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          for package in packages/*; do
+            if [ -d "$package" ] && [ -f "$package/package.json" ]; then
+              cd "$package"
+              PACKAGE_NAME=$(node -p "require('./package.json').name")
+              PACKAGE_VERSION=$(node -p "require('./package.json').version")
+              echo "- **$PACKAGE_NAME**: $PACKAGE_VERSION" >> $GITHUB_STEP_SUMMARY
+              cd ../..
+            fi
+          done

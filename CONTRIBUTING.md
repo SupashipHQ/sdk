@@ -116,6 +116,48 @@ Example:
 feat(javascript): add getFeatures method for multiple feature flags
 ```
 
+### Commit Message Validation
+
+This project uses **automatic commit message validation** via commitlint:
+
+- ✅ **Automatic validation**: Your commit messages are automatically checked when you commit
+- ✅ **Clear error messages**: If your commit message doesn't follow the format, you'll get helpful feedback
+- ✅ **Test your messages**: Use `pnpm commitlint:test` to test the validation
+
+**Testing commit messages**:
+
+```bash
+# Test if a commit message is valid
+echo "feat: add new feature" | pnpm commitlint
+
+# Test the validation setup
+pnpm commitlint:test
+```
+
+**Common validation errors and fixes**:
+
+```bash
+# ❌ Missing type
+"add new feature"
+# ✅ Fixed
+"feat: add new feature"
+
+# ❌ Invalid type
+"update: fix bug"
+# ✅ Fixed
+"fix: resolve authentication issue"
+
+# ❌ Subject ends with period
+"feat: add new feature."
+# ✅ Fixed
+"feat: add new feature"
+
+# ❌ Subject too long (>72 chars)
+"feat: add a really long feature description that exceeds the maximum character limit"
+# ✅ Fixed
+"feat: add comprehensive feature with multiple capabilities"
+```
+
 ## Release Process
 
 1. Update version numbers:
