@@ -14,7 +14,9 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json && tsc-alias",
@@ -34,6 +36,15 @@
   ],
   "author": "DarkFeature",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/darkfeature/sdk.git",
+    "directory": "packages/javascript"
+  },
+  "bugs": {
+    "url": "https://github.com/darkfeature/sdk/issues"
+  },
+  "homepage": "https://github.com/darkfeature/sdk/tree/main/packages/javascript#readme",
   "devDependencies": {
     "@types/jest": "^29.5.0",
     "@types/node": "^20.0.0",
