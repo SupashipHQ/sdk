@@ -1,19 +1,27 @@
+import { useState, useEffect } from 'react'
 import { useDarkFeature } from './DarkFeatureProvider'
 
-export const useFeature = async (
-  featureKey: string,
-  defaultValue: boolean = false
-): Promise<boolean> => {
+export const useFeature = (featureKey: string, defaultValue: boolean = false): boolean => {
+  const [featureValue, setFeatureValue] = useState<boolean>(defaultValue)
   const darkFeature = useDarkFeature()
 
-  if (!darkFeature) {
-    return defaultValue
-  }
+  useEffect(() => {
+    if (!darkFeature) {
+      setFeatureValue(defaultValue)
+      return
+    }
 
-  try {
-    const value = await darkFeature.getFeature(featureKey, defaultValue)
-    return Boolean(value)
-  } catch (error) {
-    return defaultValue
-  }
+    const fetchFeature = async (): Promise<void> => {
+      try {
+        const value = await darkFeature.getFeature(featureKey, defaultValue)
+        setFeatureValue(Boolean(value))
+      } catch (error) {
+        setFeatureValue(defaultValue)
+      }
+    }
+
+    fetchFeature()
+  }, [darkFeature, featureKey, defaultValue])
+
+  return featureValue
 }

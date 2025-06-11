@@ -234,7 +234,7 @@ export function useQuery<TData = unknown, TError = Error>(
     executeFetch()
 
     // Handle refetch on window focus
-    const handleFocus = () => {
+    const handleFocus = (): void => {
       if (refetchOnWindowFocus) {
         executeFetch()
       }

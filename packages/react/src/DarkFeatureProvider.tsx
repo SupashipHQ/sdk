@@ -10,9 +10,9 @@ interface DarkFeatureContextType {
   darkFeature: DarkFeatureClient | null
 }
 
-const DarkFeatureContext = createContext<DarkFeatureContextType>({ darkFeature: null })
+const DarkFeatureContext = createContext<DarkFeatureContextType | null>(null)
 
-export const useDarkFeature = () => {
+export const useDarkFeature = (): DarkFeatureClient | null => {
   const context = useContext(DarkFeatureContext)
   if (!context) {
     throw new Error('useDarkFeature must be used within a DarkFeatureProvider')

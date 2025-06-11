@@ -1,5 +1,4 @@
 import { DarkFeatureClient } from '../client'
-import 'jest'
 
 // Mock Response type for fetch
 interface MockResponse {
