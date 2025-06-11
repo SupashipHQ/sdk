@@ -2,6 +2,33 @@
 
 This directory contains the GitHub Actions workflows for the DarkFeature SDK project.
 
+## Shared Configuration
+
+All workflows use a shared package configuration system to ensure consistency across the monorepo.
+
+### Package Processing Order
+
+Packages are processed in a specific order defined in `.github/scripts/package-config.sh`:
+
+1. **JavaScript package** (`@darkfeature/sdk-javascript`) - processed first
+2. **React package** (`@darkfeature/sdk-react`) - processed second
+
+This order is important because:
+
+- The React package depends on the JavaScript package
+- When JavaScript is version bumped, React's dependency is automatically updated
+- Publishing follows the same order to ensure dependencies are available
+
+### Shared Functions
+
+The shared configuration provides:
+
+- Consistent package ordering across workflows
+- Common utility functions for package management
+- Centralized configuration that's easy to maintain
+
+See [scripts/README.md](../scripts/README.md) for detailed documentation.
+
 ## Workflows
 
 ### 1. CI Workflow (`ci.yml`)

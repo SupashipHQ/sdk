@@ -91,22 +91,42 @@ jobs:
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
           echo "Root package.json bumped to $NEW_VERSION"
 
-      - name: Bump version in all packages
+      - name: Bump version in packages (ordered)
         run: |
-          NEW_VERSION="${{ steps.version-root.outputs.new_version }}"
+          # Source the shared package configuration
+          source .github/scripts/package-config.sh
 
-          for package in packages/*; do
-            if [ -d "$package" ] && [ -f "$package/package.json" ]; then
-              echo "Updating version in $package to $NEW_VERSION"
-              cd "$package"
+          NEW_VERSION="${{ steps.version-root.outputs.new_version }}"
+          VERSION_NUMBER="${NEW_VERSION#v}"  # Remove 'v' prefix
+
+          # Define the version bump handler function
+          process_version() {
+            local package_name="$1"
+            local package_path="$2"
+            
+            echo "🔄 Updating version in $package_path to $VERSION_NUMBER"
+            cd "$package_path"
+            
+            # Set the exact version from root
+            npm version "$VERSION_NUMBER" --no-git-tag-version
+            
+            cd ../..
+            
+            # Special handling: when javascript package is bumped, update react's dependency
+            if [ "$package_name" = "javascript" ]; then
+              echo "🔗 Updating React package dependency on JavaScript package"
+              cd "packages/react"
               
-              # Set the exact version from root (without the 'v' prefix)
-              VERSION_NUMBER="${NEW_VERSION#v}"
-              npm version "$VERSION_NUMBER" --no-git-tag-version
+              # Update the dependency version using npm
+              npm pkg set dependencies.@darkfeature/sdk-javascript="^$VERSION_NUMBER"
               
               cd ../..
+              echo "✅ Updated React package dependency to ^$VERSION_NUMBER"
             fi
-          done
+          }
+
+          # Process packages in the defined order
+          process_packages_in_order "version"
 
       - name: Update pnpm lockfile
         run: pnpm install --lockfile-only
@@ -115,7 +135,11 @@ jobs:
         run: |
           NEW_VERSION="${{ steps.version-root.outputs.new_version }}"
           git add .
-          git commit -m "chore: bump version to $NEW_VERSION"
+          git commit -m "chore: bump version to $NEW_VERSION
+
+          - Updated @darkfeature/sdk-javascript to $NEW_VERSION
+          - Updated @darkfeature/sdk-react to $NEW_VERSION
+          - Updated React package dependency on JavaScript package"
 
       - name: Create and push tag
         run: |
@@ -136,6 +160,10 @@ jobs:
 
             ### Packages Updated:
             - @darkfeature/sdk-javascript: ${{ steps.version-root.outputs.new_version }}
+            - @darkfeature/sdk-react: ${{ steps.version-root.outputs.new_version }}
+
+            ### Dependencies Updated:
+            - React package now depends on JavaScript package ${{ steps.version-root.outputs.new_version }}
 
             See the [full changelog](https://github.com/${{ github.repository }}/compare/v0.1.0...${{ steps.version-root.outputs.new_version }}) for more details.
           draft: false
