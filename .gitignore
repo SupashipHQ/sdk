@@ -4,5 +4,6 @@ coverage
 .DS_Store
 *.log
 .turbo
+*.tsbuildinfo
 
 .env
