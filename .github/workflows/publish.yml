@@ -72,6 +72,27 @@ jobs:
             if npm view "$PACKAGE_NAME@$PACKAGE_VERSION" version 2>/dev/null; then
               echo "⚠️  Version $PACKAGE_VERSION of $PACKAGE_NAME is already published, skipping..."
             else
+              # Convert workspace protocols to regular semver for publishing
+              echo "🔄 Converting workspace protocols to semver ranges for publishing..."
+              node -e "
+                const fs = require('fs');
+                const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
+                
+                // Convert workspace protocols in dependencies
+                ['dependencies', 'devDependencies', 'peerDependencies'].forEach(depType => {
+                  if (pkg[depType]) {
+                    Object.keys(pkg[depType]).forEach(dep => {
+                      if (pkg[depType][dep].startsWith('workspace:')) {
+                        pkg[depType][dep] = pkg[depType][dep].replace('workspace:', '');
+                        console.log('Converted ' + dep + ' from workspace protocol');
+                      }
+                    });
+                  }
+                });
+                
+                fs.writeFileSync('./package.json', JSON.stringify(pkg, null, 2) + '\n');
+              "
+              
               if [ "$RELEASE_TYPE" = "prerelease" ]; then
                 echo "🧪 Publishing $PACKAGE_NAME@$PACKAGE_VERSION as prerelease with @$PUBLISH_TAG tag..."
                 npm publish --access public --tag "$PUBLISH_TAG"

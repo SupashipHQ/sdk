@@ -15,9 +15,10 @@ Packages are processed in a specific order defined in `.github/scripts/package-c
 
 This order is important because:
 
-- The React package depends on the JavaScript package
-- When JavaScript is version bumped, React's dependency is automatically updated
+- Dependencies are resolved in order (packages with no dependencies first)
+- When any package is version bumped, all dependent packages are automatically updated
 - Publishing follows the same order to ensure dependencies are available
+- The system automatically detects cross-package dependencies in dependencies, devDependencies, and peerDependencies
 
 ### Shared Functions
 
@@ -61,11 +62,15 @@ See [scripts/README.md](../scripts/README.md) for detailed documentation.
 **Steps**:
 
 1. Run full test suite to ensure code quality
-2. Bump version in root `package.json` and all workspace packages
-3. Update `pnpm-lock.yaml` to reflect new versions
-4. Commit changes to main branch
-5. Create and push git tag (e.g., `v1.2.3` or `v1.2.3-beta.1`)
-6. Create GitHub release (marked as prerelease for beta versions)
+2. Bump version in root `package.json` and all workspace packages (in dependency order)
+3. **Automatically detect and update cross-package dependencies**:
+   - Scans all packages for dependencies on the package being version bumped
+   - Updates `dependencies`, `devDependencies`, and `peerDependencies` automatically
+   - Works for any number of packages and dependency relationships
+4. Update `pnpm-lock.yaml` to reflect new versions
+5. Commit changes to main branch
+6. Create and push git tag (e.g., `v1.2.3` or `v1.2.3-beta.1`)
+7. Create GitHub release (marked as prerelease for beta versions)
 
 **Version Types**:
 
@@ -164,11 +169,13 @@ npm install @darkfeature/sdk-javascript@1.2.3-beta.1
 
 1. **Automated Quality Gates**: Tests must pass before any release
 2. **Consistent Versioning**: All packages stay in sync
-3. **Automatic Publishing**: No manual npm publish commands
-4. **Beta Release Support**: Proper prerelease handling
-5. **Duplicate Prevention**: Won't republish existing versions
-6. **Audit Trail**: Full history of releases in GitHub
-7. **Manual Control**: You decide when to release, no automatic releases on merge
+3. **Automatic Dependency Management**: Cross-package dependencies updated automatically
+4. **Automatic Publishing**: No manual npm publish commands
+5. **Beta Release Support**: Proper prerelease handling
+6. **Scalable**: Works with any number of packages and complex dependency relationships
+7. **Duplicate Prevention**: Won't republish existing versions
+8. **Audit Trail**: Full history of releases in GitHub
+9. **Manual Control**: You decide when to release, no automatic releases on merge
 
 ## Troubleshooting
 
@@ -188,6 +195,22 @@ If you need to fix a failed release:
 1. Manually delete the git tag: `git tag -d v1.2.3 && git push origin :v1.2.3`
 2. Reset the version in package.json files if needed
 3. Re-run the version bump workflow
+
+### Version Bump Errors
+
+If the version bump workflow fails with npm dependency errors:
+
+**Error**: `Cannot read properties of null (reading 'edgesOut')`
+
+**Cause**: This error occurs when using `npm pkg set` in a pnpm workspace, causing dependency resolution conflicts.
+
+**Solution**: The workflow has been updated to use Node.js directly for dependency updates:
+
+- Uses `node -e` scripts instead of `npm pkg set`
+- Safely updates package.json files without npm dependency conflicts
+- Works correctly with pnpm workspaces
+
+**Testing**: The workflow has been tested to ensure dependency updates work correctly with pnpm workspaces.
 
 ## Recommended Branching Strategy
 

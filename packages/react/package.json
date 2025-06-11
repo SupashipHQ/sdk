@@ -33,7 +33,7 @@
     "react-dom": ">=16.8.0"
   },
   "dependencies": {
-    "@darkfeature/sdk-javascript": "^0.1.0"
+    "@darkfeature/sdk-javascript": "workspace:^0.1.0"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.4.2",
