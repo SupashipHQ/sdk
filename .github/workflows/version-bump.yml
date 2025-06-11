@@ -1,5 +1,11 @@
 name: Version Bump and Release
 
+# To trigger the publish workflow automatically, create a Personal Access Token (PAT):
+# 1. Go to GitHub Settings > Developer settings > Personal access tokens > Tokens (classic)
+# 2. Generate a new token with 'repo' and 'workflow' scopes
+# 3. Add it as a repository secret named 'PAT_TOKEN'
+# Without PAT_TOKEN, the publish workflow won't be triggered automatically
+
 on:
   workflow_dispatch:
     inputs:
@@ -38,7 +44,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
       - name: Setup pnpm
@@ -60,11 +66,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run tests
-        run: pnpm test
-
       - name: Build packages
         run: pnpm build
+
+      - name: Run tests
+        run: pnpm test
 
       - name: Bump version in root package.json
         id: version-root
@@ -105,24 +111,63 @@ jobs:
             local package_path="$2"
             
             echo "🔄 Updating version in $package_path to $VERSION_NUMBER"
-            cd "$package_path"
             
-            # Set the exact version from root
-            npm version "$VERSION_NUMBER" --no-git-tag-version
+            # Update package version using Node.js instead of npm version (which can fail in workspaces)
+            node -e "
+              const fs = require('fs');
+              const path = './$package_path/package.json';
+              const pkg = JSON.parse(fs.readFileSync(path, 'utf8'));
+              pkg.version = '$VERSION_NUMBER';
+              fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + '\n');
+              console.log('Updated ' + pkg.name + ' to version $VERSION_NUMBER');
+            "
             
-            cd ../..
+            # Get the package name that was just version bumped
+            local bumped_package_name=$(node -e "console.log(require('./$package_path/package.json').name)")
             
-            # Special handling: when javascript package is bumped, update react's dependency
-            if [ "$package_name" = "javascript" ]; then
-              echo "🔗 Updating React package dependency on JavaScript package"
-              cd "packages/react"
-              
-              # Update the dependency version using npm
-              npm pkg set dependencies.@darkfeature/sdk-javascript="^$VERSION_NUMBER"
-              
-              cd ../..
-              echo "✅ Updated React package dependency to ^$VERSION_NUMBER"
-            fi
+            echo "🔍 Checking for packages that depend on $bumped_package_name..."
+            
+            # Find all packages that depend on the package that was just bumped
+            for other_package in packages/*; do
+              if [ -d "$other_package" ] && [ -f "$other_package/package.json" ] && [ "$other_package" != "$package_path" ]; then
+                # Check if this package has a dependency on the bumped package
+                local has_dependency=$(node -e "
+                  const pkg = JSON.parse(require('fs').readFileSync('$other_package/package.json', 'utf8'));
+                  const deps = { ...pkg.dependencies, ...pkg.devDependencies, ...pkg.peerDependencies };
+                  console.log(deps['$bumped_package_name'] ? 'true' : 'false');
+                ")
+                
+                if [ "$has_dependency" = "true" ]; then
+                  local other_package_name=$(basename "$other_package")
+                  echo "🔗 Updating $other_package_name dependency on $bumped_package_name"
+                  
+                  # Update the dependency version using Node.js with workspace protocol
+                  node -e "
+                    const fs = require('fs');
+                    const pkg = JSON.parse(fs.readFileSync('$other_package/package.json', 'utf8'));
+                    
+                    // Update in dependencies using workspace protocol for internal packages
+                    if (pkg.dependencies && pkg.dependencies['$bumped_package_name']) {
+                      pkg.dependencies['$bumped_package_name'] = 'workspace:^$VERSION_NUMBER';
+                    }
+                    
+                    // Update in devDependencies using workspace protocol for internal packages
+                    if (pkg.devDependencies && pkg.devDependencies['$bumped_package_name']) {
+                      pkg.devDependencies['$bumped_package_name'] = 'workspace:^$VERSION_NUMBER';
+                    }
+                    
+                    // Update in peerDependencies using workspace protocol for internal packages
+                    if (pkg.peerDependencies && pkg.peerDependencies['$bumped_package_name']) {
+                      pkg.peerDependencies['$bumped_package_name'] = 'workspace:^$VERSION_NUMBER';
+                    }
+                    
+                    fs.writeFileSync('$other_package/package.json', JSON.stringify(pkg, null, 2) + '\n');
+                  "
+                  
+                  echo "✅ Updated $other_package_name dependency to ^$VERSION_NUMBER"
+                fi
+              fi
+            done
           }
 
           # Process packages in the defined order
@@ -137,9 +182,8 @@ jobs:
           git add .
           git commit -m "chore: bump version to $NEW_VERSION
 
-          - Updated @darkfeature/sdk-javascript to $NEW_VERSION
-          - Updated @darkfeature/sdk-react to $NEW_VERSION
-          - Updated React package dependency on JavaScript package"
+          - Updated all workspace packages to $NEW_VERSION
+          - Updated cross-package dependencies automatically"
 
       - name: Create and push tag
         run: |
@@ -147,6 +191,8 @@ jobs:
           git tag "$NEW_VERSION"
           git push origin main
           git push origin "$NEW_VERSION"
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -159,11 +205,10 @@ jobs:
             This release was automatically created by the version bump workflow.
 
             ### Packages Updated:
-            - @darkfeature/sdk-javascript: ${{ steps.version-root.outputs.new_version }}
-            - @darkfeature/sdk-react: ${{ steps.version-root.outputs.new_version }}
+            All workspace packages have been updated to ${{ steps.version-root.outputs.new_version }}
 
             ### Dependencies Updated:
-            - React package now depends on JavaScript package ${{ steps.version-root.outputs.new_version }}
+            Cross-package dependencies have been automatically updated to maintain consistency
 
             See the [full changelog](https://github.com/${{ github.repository }}/compare/v0.1.0...${{ steps.version-root.outputs.new_version }}) for more details.
           draft: false

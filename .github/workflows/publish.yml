@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to publish (e.g., v1.0.0)'
+        required: true
+        type: string
 
 jobs:
   publish:
@@ -15,6 +21,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -27,6 +35,8 @@ jobs:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
           cache: 'pnpm'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -39,11 +49,19 @@ jobs:
           # Source the shared package configuration
           source .github/scripts/package-config.sh
 
-          # Configure npm authentication
-          echo "//registry.npmjs.org/:_authToken=$NPM_ACCESS_TOKEN" > ~/.npmrc
+          # Verify npm authentication
+          echo "🔐 Verifying npm authentication..."
+          npm whoami
 
           # Determine release type and extract prerelease identifier
-          TAG_NAME="${{ github.ref_name }}"
+          # Use manual input tag if provided, otherwise use the pushed tag
+          if [ -n "${{ github.event.inputs.tag }}" ]; then
+            TAG_NAME="${{ github.event.inputs.tag }}"
+            echo "📝 Using manually specified tag: $TAG_NAME"
+          else
+            TAG_NAME="${{ github.ref_name }}"
+            echo "🏷️  Using pushed tag: $TAG_NAME"
+          fi
 
           # Extract prerelease identifier (alpha, beta, rc, etc.) from version tag
           if [[ "$TAG_NAME" =~ v[0-9]+\.[0-9]+\.[0-9]+-(alpha|beta|rc|dev|canary|next)(\.[0-9]+)?$ ]]; then
@@ -72,6 +90,27 @@ jobs:
             if npm view "$PACKAGE_NAME@$PACKAGE_VERSION" version 2>/dev/null; then
               echo "⚠️  Version $PACKAGE_VERSION of $PACKAGE_NAME is already published, skipping..."
             else
+              # Convert workspace protocols to regular semver for publishing
+              echo "🔄 Converting workspace protocols to semver ranges for publishing..."
+              node -e "
+                const fs = require('fs');
+                const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
+                
+                // Convert workspace protocols in dependencies
+                ['dependencies', 'devDependencies', 'peerDependencies'].forEach(depType => {
+                  if (pkg[depType]) {
+                    Object.keys(pkg[depType]).forEach(dep => {
+                      if (pkg[depType][dep].startsWith('workspace:')) {
+                        pkg[depType][dep] = pkg[depType][dep].replace('workspace:', '');
+                        console.log('Converted ' + dep + ' from workspace protocol');
+                      }
+                    });
+                  }
+                });
+                
+                fs.writeFileSync('./package.json', JSON.stringify(pkg, null, 2) + '\n');
+              "
+              
               if [ "$RELEASE_TYPE" = "prerelease" ]; then
                 echo "🧪 Publishing $PACKAGE_NAME@$PACKAGE_VERSION as prerelease with @$PUBLISH_TAG tag..."
                 npm publish --access public --tag "$PUBLISH_TAG"
@@ -88,7 +127,7 @@ jobs:
           # Process packages in the defined order (javascript first, then react)
           process_packages_in_order "publish"
         env:
-          NPM_ACCESS_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
 
       - name: Publication Summary
         run: |
@@ -97,7 +136,15 @@ jobs:
 
           echo "## 📦 Publication Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Published packages for tag: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+
+          # Show different message based on trigger type
+          if [ -n "${{ github.event.inputs.tag }}" ]; then
+            echo "Published packages for manually specified tag: ${{ github.event.inputs.tag }}" >> $GITHUB_STEP_SUMMARY
+            echo "*Triggered manually via workflow_dispatch*" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Published packages for tag: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+            echo "*Triggered automatically by tag push*" >> $GITHUB_STEP_SUMMARY
+          fi
           echo "" >> $GITHUB_STEP_SUMMARY
 
           # Define the summary handler function

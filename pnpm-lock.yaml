@@ -81,8 +81,8 @@ importers:
   packages/react:
     dependencies:
       '@darkfeature/sdk-javascript':
-        specifier: ^0.1.0
-        version: 0.1.0
+        specifier: workspace:^0.1.0
+        version: link:../javascript
       react:
         specifier: '>=16.8.0'
         version: 18.3.1
@@ -398,9 +398,6 @@ packages:
   '@commitlint/types@19.8.1':
     resolution: {integrity: sha512-/yCrWGCoA1SVKOks25EGadP9Pnj0oAIHGpl2wH2M2Y46dPM2ueb8wyCVOD7O3WCTkaJ0IkKvzhl1JY7+uCT2Dw==}
     engines: {node: '>=v18'}
-
-  '@darkfeature/sdk-javascript@0.1.0':
-    resolution: {integrity: sha512-v89Qdz5pa4PMuuom/LUv0kPnu/5VruW+4UWWaeQd7cjqmIB845z/4XKK+4vR5mQcHlcfnZ8ZWZjZ36J2rw0zFQ==}
 
   '@eslint-community/eslint-utils@4.7.0':
     resolution: {integrity: sha512-dyybb3AcajC7uha6CvhdVRJqaKyn7w2YKqKyAN37NKYgZT36w+iRb0Dymmc5qEJ549c/S31cMMSFd75bteCpCw==}
@@ -3296,8 +3293,6 @@ snapshots:
     dependencies:
       '@types/conventional-commits-parser': 5.0.1
       chalk: 5.4.1
-
-  '@darkfeature/sdk-javascript@0.1.0': {}
 
   '@eslint-community/eslint-utils@4.7.0(eslint@8.57.1)':
     dependencies:
