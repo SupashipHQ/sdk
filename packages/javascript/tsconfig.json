@@ -11,7 +11,7 @@
     "composite": false,
     "baseUrl": "./src",
     "paths": {},
-    "types": ["node"]
+    "types": ["node", "jest"]
   },
   "include": ["src"],
   "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/**/__tests__/**/*"]

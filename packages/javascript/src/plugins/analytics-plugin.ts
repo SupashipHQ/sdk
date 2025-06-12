@@ -62,26 +62,6 @@ export class AnalyticsPlugin implements DarkFeaturePlugin {
     }
   }
 
-  async afterGetFeature(
-    featureName: string,
-    value: FeatureValue,
-    context?: FeatureContext
-  ): Promise<void> {
-    if (!this.enabled || !context) return
-
-    this.events.push({
-      type: 'impression',
-      featureName,
-      value,
-      context,
-      timestamp: Date.now(),
-    })
-
-    if (this.events.length >= this.batchSize) {
-      await this.flushEvents()
-    }
-  }
-
   async afterGetFeatures(
     results: Record<string, FeatureValue>,
     context?: FeatureContext
