@@ -8,6 +8,7 @@
   "scripts": {
     "clean": "pnpm -r clean",
     "build": "pnpm -r build",
+    "build:tsup": "pnpm -r build:tsup",
     "test": "pnpm -r test",
     "lint": "eslint . --ext .ts,.tsx",
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
@@ -30,6 +31,7 @@
     "husky": "^8.0.0",
     "lint-staged": "^15.0.0",
     "prettier": "^3.0.0",
+    "tsup": "^8.5.0",
     "typescript": "^5.3.3"
   },
   "lint-staged": {
