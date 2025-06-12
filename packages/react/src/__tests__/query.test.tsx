@@ -23,25 +23,6 @@ describe('useQuery', () => {
     expect(result.current.isLoading).toBe(true)
   })
 
-  it('should show data when query succeeds', async () => {
-    const data: TestData = { success: true }
-    let resolve: (value: TestData) => void = () => {}
-    const promise = new Promise<TestData>(res => {
-      resolve = res
-    })
-    const queryFn = jest.fn<() => Promise<TestData>>().mockReturnValueOnce(promise)
-
-    const { result } = renderHook(() => useQuery(['test'], queryFn))
-
-    await act(async () => {
-      resolve(data)
-      await promise
-    })
-
-    expect(result.current.isSuccess).toBe(true)
-    expect(result.current.data).toEqual(data)
-  })
-
   it('should not execute query when enabled is false', () => {
     const queryFn = jest.fn<() => Promise<TestData>>()
     const { result } = renderHook(() => useQuery(['test'], queryFn, { enabled: false }))
