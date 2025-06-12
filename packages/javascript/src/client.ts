@@ -56,7 +56,7 @@ export class DarkFeatureClient {
     return this.defaultContext
   }
 
-  private parseValue(value: string): FeatureValue {
+  private parseValue(value: FeatureValue): FeatureValue {
     if (!value) return null
     if (value === 'true') return true
     if (value === 'false') return false

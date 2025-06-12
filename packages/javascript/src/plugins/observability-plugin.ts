@@ -16,8 +16,8 @@ interface MetricEvent {
 export class ObservabilityPlugin implements DarkFeaturePlugin {
   name = 'observability'
   private enabled: boolean
-  private metricsEndpoint: string
-  private includeTimings: boolean
+  metricsEndpoint: string
+  includeTimings: boolean
   private includePayloads: boolean
   private events: MetricEvent[] = []
   private requestStartTimes = new Map<string, number>()
@@ -223,15 +223,14 @@ export class ObservabilityPlugin implements DarkFeaturePlugin {
 
     try {
       // In a real implementation, this would send to your metrics endpoint
-      console.debug('[ObservabilityPlugin] Metrics:', {
-        eventCount: eventsToSend.length,
-        timeRange: {
-          start: Math.min(...eventsToSend.map(e => e.timestamp)),
-          end: Math.max(...eventsToSend.map(e => e.timestamp)),
-        },
-        events: eventsToSend,
-      })
-
+      // console.debug('[ObservabilityPlugin] Metrics:', {
+      //   eventCount: eventsToSend.length,
+      //   timeRange: {
+      //     start: Math.min(...eventsToSend.map(e => e.timestamp)),
+      //     end: Math.max(...eventsToSend.map(e => e.timestamp)),
+      //   },
+      //   events: eventsToSend,
+      // })
       // Example: Send to metrics endpoint
       // await fetch(this.metricsEndpoint, {
       //   method: 'POST',

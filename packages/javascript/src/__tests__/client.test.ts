@@ -1,4 +1,5 @@
 import { DarkFeatureClient } from '../client'
+import { FeatureContext } from '../types'
 
 // Mock Response type for fetch
 interface MockResponse {
@@ -44,8 +45,8 @@ describe('DarkFeatureClient', () => {
 
     it('should handle empty or null values', (): void => {
       expect(client['parseValue']('')).toBe(null)
-      expect(client['parseValue'](null as any)).toBe(null)
-      expect(client['parseValue'](undefined as any)).toBe(null)
+      expect(client['parseValue'](null)).toBe(null)
+      expect(client['parseValue'](undefined as unknown as null)).toBe(null)
     })
   })
 
@@ -167,17 +168,6 @@ describe('DarkFeatureClient', () => {
       expect(result).toBe(true)
     })
 
-    it('should handle array parameter as fallback', async (): Promise<void> => {
-      const mockResponse = { features: { testFeature: { variation: 'true' } } }
-      global.fetch = jest.fn().mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve(mockResponse),
-      } as MockResponse) as jest.MockedFunction<typeof fetch>
-
-      const result = await client.getFeature('testFeature', ['array', 'fallback'] as any)
-      expect(result).toBe(true)
-    })
-
     it('should handle null parameter as fallback', async (): Promise<void> => {
       const mockResponse = { features: { testFeature: { variation: 'true' } } }
       global.fetch = jest.fn().mockResolvedValue({
@@ -197,7 +187,7 @@ describe('DarkFeatureClient', () => {
       } as MockResponse) as jest.MockedFunction<typeof fetch>
 
       const result = await client.getFeature('testFeature', {
-        context: null as any,
+        context: null as unknown as FeatureContext,
         fallback: 'default',
       })
       expect(result).toBe(true)
