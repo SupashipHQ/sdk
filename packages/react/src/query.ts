@@ -1,3 +1,5 @@
+'use client'
+
 import { useCallback, useEffect, useReducer, useRef } from 'react'
 
 // Query status types
@@ -101,15 +103,22 @@ function queryReducer<TData, TError>(
 
 // Cache implementation
 class QueryCache {
-  private cache: Map<string, unknown> = new Map()
+  private cache: Map<string, { data: unknown; timestamp: number }> = new Map()
   private timers: Map<string, ReturnType<typeof setTimeout>> = new Map()
 
   getQuery(queryKey: string): unknown {
-    return this.cache.get(queryKey)
+    const entry = this.cache.get(queryKey)
+    return entry ? entry.data : undefined
+  }
+
+  isStale(queryKey: string, staleTime: number): boolean {
+    const entry = this.cache.get(queryKey)
+    if (!entry) return true
+    return Date.now() - entry.timestamp > staleTime
   }
 
   setQuery(queryKey: string, data: unknown, cacheTime: number = 5 * 60 * 1000): void {
-    this.cache.set(queryKey, data)
+    this.cache.set(queryKey, { data, timestamp: Date.now() })
 
     // Clear previous timer if it exists
     if (this.timers.has(queryKey)) {
@@ -123,6 +132,22 @@ class QueryCache {
     }, cacheTime)
 
     this.timers.set(queryKey, timer)
+  }
+
+  invalidateQuery(queryKey: string): void {
+    this.cache.delete(queryKey)
+    if (this.timers.has(queryKey)) {
+      clearTimeout(this.timers.get(queryKey)!)
+      this.timers.delete(queryKey)
+    }
+  }
+
+  invalidateQueries(queryKeyPrefix: string): void {
+    for (const [key] of this.cache) {
+      if (key.startsWith(queryKeyPrefix)) {
+        this.invalidateQuery(key)
+      }
+    }
   }
 
   clear(): void {
@@ -167,7 +192,12 @@ export function useQuery<TData = unknown, TError = Error>(
   }, [queryFn, options])
 
   // Initialize state from cache or with default
-  const initialState = getInitialQueryState<TData, TError>(initialData)
+  const cachedData = queryCache.getQuery(stringifiedQueryKey)
+  const isStale = queryCache.isStale(stringifiedQueryKey, staleTime)
+
+  // Use cached data for initial state even if stale to prevent unnecessary loading states
+  const initialStateData = cachedData !== undefined ? (cachedData as TData) : initialData
+  const initialState = getInitialQueryState<TData, TError>(initialStateData)
   const [state, dispatch] = useReducer(queryReducer<TData, TError>, initialState)
 
   const executeFetch = useCallback(async () => {
@@ -222,21 +252,22 @@ export function useQuery<TData = unknown, TError = Error>(
   useEffect(() => {
     if (!enabled) return
 
-    // Check cache first
-    const cachedData = queryCache.getQuery(stringifiedQueryKey)
-    if (cachedData && staleTime > 0) {
-      dispatch({
-        type: 'FETCH_SUCCESS',
-        payload: { data: cachedData as TData },
-      })
+    // If we have fresh cached data, no need to fetch
+    if (cachedData !== undefined && !isStale) {
+      return
     }
 
+    // If we have stale cached data, we already showed it, just refetch in background
+    // If we have no cached data, fetch fresh
     executeFetch()
 
     // Handle refetch on window focus
     const handleFocus = (): void => {
       if (refetchOnWindowFocus) {
-        executeFetch()
+        const isCurrentStale = queryCache.isStale(stringifiedQueryKey, staleTime)
+        if (isCurrentStale) {
+          executeFetch()
+        }
       }
     }
 
@@ -249,7 +280,15 @@ export function useQuery<TData = unknown, TError = Error>(
         window.removeEventListener('focus', handleFocus)
       }
     }
-  }, [executeFetch, enabled, stringifiedQueryKey, staleTime, refetchOnWindowFocus])
+  }, [
+    executeFetch,
+    enabled,
+    stringifiedQueryKey,
+    staleTime,
+    refetchOnWindowFocus,
+    cachedData,
+    isStale,
+  ])
 
   return state
 }

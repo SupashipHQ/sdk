@@ -1,11 +1,20 @@
-import React, { createContext, useContext, ReactNode, useMemo } from 'react'
+'use client'
+
+import React, { createContext, useContext, ReactNode, useMemo, useCallback } from 'react'
 import {
   DarkFeatureClient,
   DarkFeatureConfig,
   DarkFeaturePlugin,
+  FeatureContext,
 } from '@darkfeature/sdk-javascript'
 
-const DarkFeatureContext = createContext<DarkFeatureClient | null>(null)
+interface DarkFeatureContextValue {
+  client: DarkFeatureClient
+  updateContext: (context: FeatureContext, mergeWithExisting?: boolean) => void
+  getContext: () => FeatureContext | undefined
+}
+
+const DarkFeatureContext = createContext<DarkFeatureContextValue | null>(null)
 
 interface DarkFeatureProviderProps {
   config: DarkFeatureConfig
@@ -26,13 +35,50 @@ export function DarkFeatureProvider({
     })
   }, [config, plugins])
 
-  return <DarkFeatureContext.Provider value={client}>{children}</DarkFeatureContext.Provider>
+  // Memoized context update function
+  const updateContext = useCallback(
+    (context: FeatureContext, mergeWithExisting: boolean = true) => {
+      client.updateContext(context, mergeWithExisting)
+    },
+    [client]
+  )
+
+  // Memoized context getter function
+  const getContext = useCallback(() => {
+    return client.getContext()
+  }, [client])
+
+  const contextValue = useMemo(
+    () => ({
+      client,
+      updateContext,
+      getContext,
+    }),
+    [client, updateContext, getContext]
+  )
+
+  return <DarkFeatureContext.Provider value={contextValue}>{children}</DarkFeatureContext.Provider>
 }
 
 export function useDarkFeature(): DarkFeatureClient {
-  const client = useContext(DarkFeatureContext)
-  if (!client) {
+  const context = useContext(DarkFeatureContext)
+  if (!context) {
     throw new Error('useDarkFeature must be used within a DarkFeatureProvider')
   }
-  return client
+  return context.client
+}
+
+/**
+ * Hook to update the DarkFeature context dynamically
+ * Useful when context depends on authentication or other async operations
+ */
+export function useFeatureContext(): Omit<DarkFeatureContextValue, 'client'> {
+  const context = useContext(DarkFeatureContext)
+  if (!context) {
+    throw new Error('useFeatureContext must be used within a DarkFeatureProvider')
+  }
+  return {
+    updateContext: context.updateContext,
+    getContext: context.getContext,
+  }
 }
