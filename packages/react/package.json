@@ -36,6 +36,7 @@
     "@darkfeature/sdk-javascript": "workspace:^0.1.1"
   },
   "devDependencies": {
+    "@jest/globals": "^30.0.0",
     "@testing-library/jest-dom": "^6.4.2",
     "@testing-library/react": "^14.2.1",
     "@testing-library/react-hooks": "^8.0.1",
