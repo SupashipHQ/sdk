@@ -64,17 +64,8 @@ export class DarkFeatureClient {
     return value
   }
 
-  async getFeature(
-    featureName: string,
-    param?: FeatureValue | FeatureOptions
-  ): Promise<FeatureValue> {
-    // Handle both direct value and options object
-    const options =
-      typeof param === 'object' && !Array.isArray(param) && param !== null
-        ? (param as FeatureOptions)
-        : { fallback: param as FeatureValue }
-
-    const { fallback, context } = options
+  async getFeature(featureName: string, options?: FeatureOptions): Promise<FeatureValue> {
+    const { fallback, context } = options ?? {}
 
     // Only merge context if it's defined and not null
     const mergedContext =
