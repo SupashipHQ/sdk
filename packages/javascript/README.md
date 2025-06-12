@@ -87,13 +87,13 @@ interface RetryConfig {
 Retrieves a single feature flag value.
 
 ```typescript
-getFeature(featureName: string, options?: FeatureOptions | FeatureValue): Promise<FeatureValue>
+getFeature(featureName: string, options?: FeatureOptions): Promise<FeatureValue>
 ```
 
 **Parameters:**
 
 - `featureName`: The name of the feature flag
-- `options`: Either a `FeatureOptions` object or a direct fallback value
+- `options`: A `FeatureOptions` object for configuration
 
 **FeatureOptions:**
 
@@ -107,8 +107,8 @@ interface FeatureOptions {
 **Examples:**
 
 ```typescript
-// Simple fallback
-const isEnabled = await client.getFeature('my-feature', false)
+// With fallback value
+const isEnabled = await client.getFeature('my-feature', { fallback: false })
 
 // With options object
 const value = await client.getFeature('my-feature', {
@@ -270,8 +270,8 @@ const features = await client.getFeatures({
 })
 
 // ❌ Less efficient - multiple API calls
-const feature1 = await client.getFeature('feature-1', false)
-const feature2 = await client.getFeature('feature-2', 'default')
+const feature1 = await client.getFeature('feature-1', { fallback: false })
+const feature2 = await client.getFeature('feature-2', { fallback: 'default' })
 ```
 
 ### 4. Handle Context Updates
@@ -474,7 +474,9 @@ export class AppComponent implements OnInit {
     })
 
     // Reload features with new context
-    const premiumEnabled = await this.featureFlags.getFeature('premium-features', false)
+    const premiumEnabled = await this.featureFlags.getFeature('premium-features', {
+      fallback: false,
+    })
     this.showPremiumFeatures = premiumEnabled
   }
 }
@@ -562,7 +564,7 @@ import { DarkFeatureClient, FeatureValue, FeatureContext } from '@darkfeature/sd
 
 // Types are automatically inferred
 const client = new DarkFeatureClient({ apiKey: 'key' })
-const value: FeatureValue = await client.getFeature('feature')
+const value: FeatureValue = await client.getFeature('example-feature')
 ```
 
 ## License

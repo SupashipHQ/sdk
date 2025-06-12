@@ -157,25 +157,14 @@ describe('DarkFeatureClient', () => {
       expect(result).toBe(true)
     })
 
-    it('should handle direct value parameter', async (): Promise<void> => {
+    it('should handle null fallback', async (): Promise<void> => {
       const mockResponse = { features: { testFeature: { variation: 'true' } } }
       global.fetch = jest.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve(mockResponse),
       } as MockResponse) as jest.MockedFunction<typeof fetch>
 
-      const result = await client.getFeature('testFeature', 'fallback-value')
-      expect(result).toBe(true)
-    })
-
-    it('should handle null parameter as fallback', async (): Promise<void> => {
-      const mockResponse = { features: { testFeature: { variation: 'true' } } }
-      global.fetch = jest.fn().mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve(mockResponse),
-      } as MockResponse) as jest.MockedFunction<typeof fetch>
-
-      const result = await client.getFeature('testFeature', null)
+      const result = await client.getFeature('testFeature', { fallback: null })
       expect(result).toBe(true)
     })
 
@@ -226,7 +215,7 @@ describe('DarkFeatureClient', () => {
       expect(result).toBe(null)
     })
 
-    it('should handle error case when no parameter provided', async (): Promise<void> => {
+    it('should handle error case when no options provided', async (): Promise<void> => {
       global.fetch = jest.fn().mockRejectedValue(new Error('Network error')) as jest.MockedFunction<
         typeof fetch
       >
