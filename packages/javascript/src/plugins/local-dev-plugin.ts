@@ -18,24 +18,6 @@ export class LocalDevPlugin implements DarkFeaturePlugin {
     this.overrides = config.overrides || {}
   }
 
-  async beforeGetFeature(featureName: string): Promise<void> {
-    if (!this.enabled) return
-
-    // If there's an override, throw an error to prevent the API call
-    if (featureName in this.overrides) {
-      throw new Error('LOCAL_OVERRIDE')
-    }
-  }
-
-  async afterGetFeature(featureName: string, value: FeatureValue): Promise<void> {
-    if (!this.enabled) return
-
-    // If the feature is not in the API response, use the local value
-    if (value === null && featureName in this.features) {
-      throw new Error('LOCAL_FALLBACK')
-    }
-  }
-
   async beforeGetFeatures(featureNames: string[]): Promise<void> {
     if (!this.enabled) return
 

@@ -22,20 +22,6 @@ export class LoggingPlugin implements DarkFeaturePlugin {
     this.logger = new DefaultLogger(config.level)
   }
 
-  async beforeGetFeature(featureName: string, context?: FeatureContext): Promise<void> {
-    if (!this.enabled) return
-    this.logger.debug('Getting feature', { featureName, context })
-  }
-
-  async afterGetFeature(
-    featureName: string,
-    value: FeatureValue,
-    context?: FeatureContext
-  ): Promise<void> {
-    if (!this.enabled) return
-    this.logger.debug('Got feature value', { featureName, value, context })
-  }
-
   async beforeGetFeatures(featureNames: string[], context?: FeatureContext): Promise<void> {
     if (!this.enabled) return
     this.logger.debug('Getting features', { featureNames, context })

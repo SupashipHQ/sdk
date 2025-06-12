@@ -174,32 +174,6 @@ describe('DarkFeatureClient', () => {
     expect(result).toEqual({ feature1: true })
   })
 
-  it('should handle plugin beforeGetFeature hook', async (): Promise<void> => {
-    const mockPlugin = {
-      name: 'testPlugin',
-      beforeGetFeature: jest.fn().mockResolvedValue(undefined),
-      afterGetFeature: jest.fn().mockResolvedValue(undefined),
-    }
-
-    client = new DarkFeatureClient({
-      apiKey: mockApiKey,
-      baseUrl: mockBaseUrl,
-      plugins: [mockPlugin],
-    })
-
-    const mockResponse = { features: { testFeature: { variation: 'true' } } }
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(mockResponse),
-    } as MockResponse) as jest.MockedFunction<typeof fetch>
-
-    const result = await client.getFeature('testFeature', { fallback: false })
-
-    expect(mockPlugin.beforeGetFeature).toHaveBeenCalledWith('testFeature', undefined)
-    expect(mockPlugin.afterGetFeature).toHaveBeenCalledWith('testFeature', true, undefined)
-    expect(result).toBe(true)
-  })
-
   it('should handle plugin beforeGetFeatures hook', async (): Promise<void> => {
     const mockPlugin = {
       name: 'testPlugin',
@@ -375,23 +349,5 @@ describe('DarkFeatureClient', () => {
     })
 
     await expect(client.cleanup()).resolves.toBeUndefined()
-  })
-
-  it('should throw when plugin beforeGetFeature hook fails and no fallback', async (): Promise<void> => {
-    const mockPlugin = {
-      name: 'testPlugin',
-      beforeGetFeature: jest.fn().mockRejectedValue(new Error('Plugin error')),
-    }
-
-    client = new DarkFeatureClient({
-      apiKey: mockApiKey,
-      baseUrl: mockBaseUrl,
-      plugins: [mockPlugin],
-    })
-
-    // Call without fallback to trigger the throw error path
-    await expect(client.getFeature('testFeature', { fallback: undefined })).rejects.toThrow(
-      'Plugin error'
-    )
   })
 })

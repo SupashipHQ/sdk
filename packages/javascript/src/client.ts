@@ -33,11 +33,20 @@ export class DarkFeatureClient {
    * @param mergeWithExisting - Whether to merge with existing context (default: true)
    */
   updateContext(context: FeatureContext, mergeWithExisting: boolean = true): void {
+    const oldContext = this.defaultContext
+
     if (mergeWithExisting && this.defaultContext) {
       this.defaultContext = { ...this.defaultContext, ...context }
     } else {
       this.defaultContext = context
     }
+
+    // Notify plugins of context change
+    Promise.all(
+      this.plugins.map(plugin =>
+        plugin.onContextUpdate?.(oldContext, this.defaultContext!, 'updateContext')
+      )
+    ).catch(console.error)
   }
 
   /**
@@ -74,11 +83,6 @@ export class DarkFeatureClient {
         : this.defaultContext
 
     try {
-      // Run beforeGetFeature hooks
-      await Promise.all(
-        this.plugins.map(plugin => plugin.beforeGetFeature?.(featureName, mergedContext))
-      )
-
       const response = await this.getFeatures({
         features: { [featureName]: fallback ?? null },
         context: mergedContext,
@@ -86,17 +90,16 @@ export class DarkFeatureClient {
 
       const value = response[featureName] ?? fallback ?? null
 
-      // Run afterGetFeature hooks
-      await Promise.all(
-        this.plugins.map(plugin => plugin.afterGetFeature?.(featureName, value, mergedContext))
-      )
-
       return value
     } catch (error) {
       // Run onError hooks
       await Promise.all(this.plugins.map(plugin => plugin.onError?.(error as Error, mergedContext)))
 
       if (fallback !== undefined) {
+        // Notify plugins that fallback was used
+        await Promise.all(
+          this.plugins.map(plugin => plugin.onFallbackUsed?.(featureName, fallback, error as Error))
+        )
         return fallback
       }
       throw error
@@ -109,6 +112,15 @@ export class DarkFeatureClient {
       ...options.context,
     }
 
+    // Notify plugins of context update for this request
+    if (options.context) {
+      await Promise.all(
+        this.plugins.map(plugin =>
+          plugin.onContextUpdate?.(this.defaultContext, context, 'request')
+        )
+      )
+    }
+
     const featureNames = Object.keys(options.features)
 
     try {
@@ -118,17 +130,31 @@ export class DarkFeatureClient {
       )
 
       const fetchFeatures = async (): Promise<Record<string, FeatureValue>> => {
-        const response = await fetch(`${this.baseUrl}/features`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${this.apiKey}`,
-          },
-          body: JSON.stringify({
-            features: featureNames,
-            context,
-          }),
+        const url = `${this.baseUrl}/features`
+        const headers = {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.apiKey}`,
+        }
+        const body = JSON.stringify({
+          features: featureNames,
+          context,
         })
+
+        // Notify plugins before request
+        await Promise.all(this.plugins.map(plugin => plugin.beforeRequest?.(url, body, headers)))
+
+        const startTime = Date.now()
+        const response = await fetch(url, {
+          method: 'POST',
+          headers,
+          body,
+        })
+        const duration = Date.now() - startTime
+
+        // Notify plugins after response
+        await Promise.all(
+          this.plugins.map(plugin => plugin.afterResponse?.(response, { duration }))
+        )
 
         if (!response.ok) {
           throw new Error(`Failed to fetch features: ${response.statusText}`)
@@ -147,7 +173,17 @@ export class DarkFeatureClient {
       }
 
       const result = this.retryEnabled
-        ? await retry(fetchFeatures, this.maxRetries, this.retryBackoff)
+        ? await retry(
+            fetchFeatures,
+            this.maxRetries,
+            this.retryBackoff,
+            (attempt, error, willRetry) => {
+              // Notify plugins of retry attempts
+              Promise.all(
+                this.plugins.map(plugin => plugin.onRetryAttempt?.(attempt, error, willRetry))
+              ).catch(console.error)
+            }
+          )
         : await fetchFeatures()
 
       // Run afterGetFeatures hooks
@@ -160,6 +196,16 @@ export class DarkFeatureClient {
 
       // If fallbacks are provided and an error occurs, return fallback values
       if (options.features && Object.keys(options.features).length > 0) {
+        // Notify plugins that fallbacks were used
+        await Promise.all(
+          Object.entries(options.features).map(([featureName, fallbackValue]) =>
+            Promise.all(
+              this.plugins.map(plugin =>
+                plugin.onFallbackUsed?.(featureName, fallbackValue, error as Error)
+              )
+            )
+          )
+        )
         return options.features
       }
 
