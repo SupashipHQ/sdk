@@ -27,10 +27,31 @@ export class DarkFeatureClient {
     this.plugins = config.plugins || []
   }
 
+  /**
+   * Updates the default context for the client
+   * @param context - New context to merge with or replace the existing context
+   * @param mergeWithExisting - Whether to merge with existing context (default: true)
+   */
+  updateContext(context: FeatureContext, mergeWithExisting: boolean = true): void {
+    if (mergeWithExisting && this.defaultContext) {
+      this.defaultContext = { ...this.defaultContext, ...context }
+    } else {
+      this.defaultContext = context
+    }
+  }
+
+  /**
+   * Gets the current default context
+   */
+  getContext(): FeatureContext | undefined {
+    return this.defaultContext
+  }
+
   private parseValue(value: string): FeatureValue {
+    if (!value) return null
     if (value === 'true') return true
     if (value === 'false') return false
-    if (!isNaN(Number(value))) return Number(value)
+    if (typeof value === 'string' && !isNaN(Number(value))) return Number(value)
     return value
   }
 
