@@ -20,16 +20,17 @@ export interface QueryState<TData = unknown, TError = Error> {
 
 // Initial state factory for queries
 export function getInitialQueryState<TData, TError>(
-  initialData?: TData
+  initialData?: TData,
+  enabled: boolean = true
 ): QueryState<TData, TError> {
   return {
-    status: initialData !== undefined ? 'success' : 'idle',
+    status: !enabled ? 'idle' : initialData !== undefined ? 'success' : 'idle',
     data: initialData,
     error: null,
-    isLoading: initialData === undefined,
+    isLoading: enabled && initialData === undefined,
     isSuccess: initialData !== undefined,
     isError: false,
-    isIdle: initialData === undefined,
+    isIdle: !enabled || initialData === undefined,
     isFetching: false,
     dataUpdatedAt: initialData !== undefined ? Date.now() : 0,
   }
@@ -197,7 +198,7 @@ export function useQuery<TData = unknown, TError = Error>(
 
   // Use cached data for initial state even if stale to prevent unnecessary loading states
   const initialStateData = cachedData !== undefined ? (cachedData as TData) : initialData
-  const initialState = getInitialQueryState<TData, TError>(initialStateData)
+  const initialState = getInitialQueryState<TData, TError>(initialStateData, enabled)
   const [state, dispatch] = useReducer(queryReducer<TData, TError>, initialState)
 
   const executeFetch = useCallback(async () => {
@@ -248,47 +249,26 @@ export function useQuery<TData = unknown, TError = Error>(
     runQuery()
   }, [enabled, stringifiedQueryKey, retry, retryDelay, cacheTime])
 
-  // Initial fetch and refetch on dependencies change
+  // Execute query on mount and when dependencies change
   useEffect(() => {
-    if (!enabled) return
-
-    // If we have fresh cached data, no need to fetch
-    if (cachedData !== undefined && !isStale) {
-      return
+    if (enabled && (isStale || state.data === undefined)) {
+      executeFetch()
     }
+  }, [enabled, isStale, executeFetch, state.data])
 
-    // If we have stale cached data, we already showed it, just refetch in background
-    // If we have no cached data, fetch fresh
-    executeFetch()
+  // Handle window focus
+  useEffect(() => {
+    if (!refetchOnWindowFocus) return
 
-    // Handle refetch on window focus
     const handleFocus = (): void => {
-      if (refetchOnWindowFocus) {
-        const isCurrentStale = queryCache.isStale(stringifiedQueryKey, staleTime)
-        if (isCurrentStale) {
-          executeFetch()
-        }
+      if (enabled && isStale) {
+        executeFetch()
       }
     }
 
-    if (refetchOnWindowFocus && typeof window !== 'undefined') {
-      window.addEventListener('focus', handleFocus)
-    }
-
-    return () => {
-      if (refetchOnWindowFocus && typeof window !== 'undefined') {
-        window.removeEventListener('focus', handleFocus)
-      }
-    }
-  }, [
-    executeFetch,
-    enabled,
-    stringifiedQueryKey,
-    staleTime,
-    refetchOnWindowFocus,
-    cachedData,
-    isStale,
-  ])
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
+  }, [enabled, isStale, executeFetch, refetchOnWindowFocus])
 
   return state
 }

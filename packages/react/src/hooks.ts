@@ -8,48 +8,13 @@ import { FeatureValue } from '@darkfeature/sdk-javascript'
 const STALE_TIME = 5 * 60 * 1000 // 5 minutes
 const CACHE_TIME = 10 * 60 * 1000 // 10 minutes
 
-// Main useFeature hook with multiple overloads for different use cases
-export function useFeature(featureKey: string): QueryState<FeatureValue>
-
-export function useFeature(featureKey: string, options: UseFeatureOptions): QueryState<FeatureValue>
-
-export function useFeature(featureKey: string, fallback: FeatureValue): QueryState<FeatureValue>
-
+// Main useFeature hook with options parameter
 export function useFeature(
   featureKey: string,
-  fallback: FeatureValue,
-  options: Omit<UseFeatureOptions, 'fallback'>
-): QueryState<FeatureValue>
-
-export function useFeature(
-  featureKey: string,
-  fallbackOrOptions?: FeatureValue | UseFeatureOptions,
-  options?: Omit<UseFeatureOptions, 'fallback'>
+  options?: UseFeatureOptions
 ): QueryState<FeatureValue> {
   const client = useDarkFeature()
-
-  // Parse parameters to handle all overload signatures
-  let finalOptions: UseFeatureOptions
-
-  if (fallbackOrOptions === undefined) {
-    // useFeature(key)
-    finalOptions = {}
-  } else if (
-    typeof fallbackOrOptions === 'object' &&
-    fallbackOrOptions !== null &&
-    !Array.isArray(fallbackOrOptions)
-  ) {
-    // useFeature(key, options)
-    finalOptions = fallbackOrOptions as UseFeatureOptions
-  } else {
-    // useFeature(key, fallback) or useFeature(key, fallback, options)
-    finalOptions = {
-      fallback: fallbackOrOptions as FeatureValue,
-      ...options,
-    }
-  }
-
-  const { fallback, context, shouldFetch = true } = finalOptions
+  const { fallback, context, shouldFetch = true } = options ?? {}
 
   return useQuery(
     ['feature', featureKey, context],
@@ -73,6 +38,7 @@ export function useFeature(
       staleTime: STALE_TIME,
       cacheTime: CACHE_TIME,
       refetchOnWindowFocus: false, // Feature flags shouldn't refetch on focus
+      initialData: fallback, // Use fallback as initial data
     }
   )
 }
