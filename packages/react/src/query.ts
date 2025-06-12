@@ -1,3 +1,5 @@
+'use client'
+
 import { useCallback, useEffect, useReducer, useRef } from 'react'
 
 // Query status types
@@ -18,16 +20,17 @@ export interface QueryState<TData = unknown, TError = Error> {
 
 // Initial state factory for queries
 export function getInitialQueryState<TData, TError>(
-  initialData?: TData
+  initialData?: TData,
+  enabled: boolean = true
 ): QueryState<TData, TError> {
   return {
-    status: initialData !== undefined ? 'success' : 'idle',
+    status: !enabled ? 'idle' : initialData !== undefined ? 'success' : 'idle',
     data: initialData,
     error: null,
-    isLoading: initialData === undefined,
+    isLoading: enabled && initialData === undefined,
     isSuccess: initialData !== undefined,
     isError: false,
-    isIdle: initialData === undefined,
+    isIdle: !enabled || initialData === undefined,
     isFetching: false,
     dataUpdatedAt: initialData !== undefined ? Date.now() : 0,
   }
@@ -101,15 +104,22 @@ function queryReducer<TData, TError>(
 
 // Cache implementation
 class QueryCache {
-  private cache: Map<string, unknown> = new Map()
+  private cache: Map<string, { data: unknown; timestamp: number }> = new Map()
   private timers: Map<string, ReturnType<typeof setTimeout>> = new Map()
 
   getQuery(queryKey: string): unknown {
-    return this.cache.get(queryKey)
+    const entry = this.cache.get(queryKey)
+    return entry ? entry.data : undefined
+  }
+
+  isStale(queryKey: string, staleTime: number): boolean {
+    const entry = this.cache.get(queryKey)
+    if (!entry) return true
+    return Date.now() - entry.timestamp > staleTime
   }
 
   setQuery(queryKey: string, data: unknown, cacheTime: number = 5 * 60 * 1000): void {
-    this.cache.set(queryKey, data)
+    this.cache.set(queryKey, { data, timestamp: Date.now() })
 
     // Clear previous timer if it exists
     if (this.timers.has(queryKey)) {
@@ -123,6 +133,22 @@ class QueryCache {
     }, cacheTime)
 
     this.timers.set(queryKey, timer)
+  }
+
+  invalidateQuery(queryKey: string): void {
+    this.cache.delete(queryKey)
+    if (this.timers.has(queryKey)) {
+      clearTimeout(this.timers.get(queryKey)!)
+      this.timers.delete(queryKey)
+    }
+  }
+
+  invalidateQueries(queryKeyPrefix: string): void {
+    for (const [key] of this.cache) {
+      if (key.startsWith(queryKeyPrefix)) {
+        this.invalidateQuery(key)
+      }
+    }
   }
 
   clear(): void {
@@ -167,7 +193,12 @@ export function useQuery<TData = unknown, TError = Error>(
   }, [queryFn, options])
 
   // Initialize state from cache or with default
-  const initialState = getInitialQueryState<TData, TError>(initialData)
+  const cachedData = queryCache.getQuery(stringifiedQueryKey)
+  const isStale = queryCache.isStale(stringifiedQueryKey, staleTime)
+
+  // Use cached data for initial state even if stale to prevent unnecessary loading states
+  const initialStateData = cachedData !== undefined ? (cachedData as TData) : initialData
+  const initialState = getInitialQueryState<TData, TError>(initialStateData, enabled)
   const [state, dispatch] = useReducer(queryReducer<TData, TError>, initialState)
 
   const executeFetch = useCallback(async () => {
@@ -218,38 +249,26 @@ export function useQuery<TData = unknown, TError = Error>(
     runQuery()
   }, [enabled, stringifiedQueryKey, retry, retryDelay, cacheTime])
 
-  // Initial fetch and refetch on dependencies change
+  // Execute query on mount and when dependencies change
   useEffect(() => {
-    if (!enabled) return
-
-    // Check cache first
-    const cachedData = queryCache.getQuery(stringifiedQueryKey)
-    if (cachedData && staleTime > 0) {
-      dispatch({
-        type: 'FETCH_SUCCESS',
-        payload: { data: cachedData as TData },
-      })
+    if (enabled && (isStale || state.data === undefined)) {
+      executeFetch()
     }
+  }, [enabled, isStale, executeFetch, state.data])
 
-    executeFetch()
+  // Handle window focus
+  useEffect(() => {
+    if (!refetchOnWindowFocus) return
 
-    // Handle refetch on window focus
     const handleFocus = (): void => {
-      if (refetchOnWindowFocus) {
+      if (enabled && isStale) {
         executeFetch()
       }
     }
 
-    if (refetchOnWindowFocus && typeof window !== 'undefined') {
-      window.addEventListener('focus', handleFocus)
-    }
-
-    return () => {
-      if (refetchOnWindowFocus && typeof window !== 'undefined') {
-        window.removeEventListener('focus', handleFocus)
-      }
-    }
-  }, [executeFetch, enabled, stringifiedQueryKey, staleTime, refetchOnWindowFocus])
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
+  }, [enabled, isStale, executeFetch, refetchOnWindowFocus])
 
   return state
 }
