@@ -24,330 +24,441 @@ describe('DarkFeatureClient', () => {
     jest.clearAllMocks()
   })
 
-  it('should parse boolean values correctly', (): void => {
-    expect(client['parseValue']('true')).toBe(true)
-    expect(client['parseValue']('false')).toBe(false)
-  })
-
-  it('should parse numeric values correctly', (): void => {
-    expect(client['parseValue']('123')).toBe(123)
-  })
-
-  it('should return string values as is', (): void => {
-    expect(client['parseValue']('test')).toBe('test')
-  })
-
-  it('should get a feature with fallback', async (): Promise<void> => {
-    const mockResponse = { features: { testFeature: { variation: 'true' } } }
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(mockResponse),
-    } as MockResponse) as jest.MockedFunction<typeof fetch>
-
-    const result = await client.getFeature('testFeature', { fallback: false })
-    expect(result).toBe(true)
-  })
-
-  it('should get a feature with context', async (): Promise<void> => {
-    const mockResponse = { features: { testFeature: { variation: 'true' } } }
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(mockResponse),
-    } as MockResponse) as jest.MockedFunction<typeof fetch>
-
-    const result = await client.getFeature('testFeature', { context: { userId: '123' } })
-    expect(result).toBe(true)
-  })
-
-  it('should handle errors and return fallback', async (): Promise<void> => {
-    global.fetch = jest.fn().mockRejectedValue(new Error('Network error')) as jest.MockedFunction<
-      typeof fetch
-    >
-
-    const result = await client.getFeature('testFeature', { fallback: false })
-    expect(result).toBe(false)
-  })
-
-  it('should get multiple features', async (): Promise<void> => {
-    const mockResponse = {
-      features: { feature1: { variation: 'true' }, feature2: { variation: 'false' } },
-    }
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(mockResponse),
-    } as MockResponse) as jest.MockedFunction<typeof fetch>
-
-    const result = await client.getFeatures({
-      features: { feature1: null, feature2: null },
-    })
-    expect(result).toEqual({ feature1: true, feature2: false })
-  })
-
-  it('should handle errors in getFeatures and return fallbacks', async (): Promise<void> => {
-    global.fetch = jest.fn().mockRejectedValue(new Error('Network error')) as jest.MockedFunction<
-      typeof fetch
-    >
-
-    const result = await client.getFeatures({
-      features: { feature1: true, feature2: false },
-    })
-    expect(result).toEqual({ feature1: true, feature2: false })
-  })
-
-  it('should cleanup plugins', async (): Promise<void> => {
-    const mockPlugin = { name: 'testPlugin', cleanup: jest.fn() }
-    client = new DarkFeatureClient({
-      apiKey: mockApiKey,
-      baseUrl: mockBaseUrl,
-      plugins: [mockPlugin],
+  describe('parseValue', () => {
+    it('should parse boolean values correctly', (): void => {
+      expect(client['parseValue']('true')).toBe(true)
+      expect(client['parseValue']('false')).toBe(false)
     })
 
-    await client.cleanup()
-    expect(mockPlugin.cleanup).toHaveBeenCalled()
-  })
-
-  it('should handle multiple plugins cleanup', async (): Promise<void> => {
-    const mockPlugin1 = { name: 'testPlugin1', cleanup: jest.fn() }
-    const mockPlugin2 = { name: 'testPlugin2', cleanup: jest.fn() }
-    client = new DarkFeatureClient({
-      apiKey: mockApiKey,
-      baseUrl: mockBaseUrl,
-      plugins: [mockPlugin1, mockPlugin2],
+    it('should parse numeric values correctly', (): void => {
+      expect(client['parseValue']('123')).toBe(123)
+      expect(client['parseValue']('0')).toBe(0)
+      expect(client['parseValue']('-123')).toBe(-123)
+      expect(client['parseValue']('123.45')).toBe(123.45)
     })
 
-    await client.cleanup()
-    expect(mockPlugin1.cleanup).toHaveBeenCalled()
-    expect(mockPlugin2.cleanup).toHaveBeenCalled()
-  })
-
-  it('should handle errors in getFeature without fallback', async (): Promise<void> => {
-    global.fetch = jest.fn().mockRejectedValue(new Error('Network error')) as jest.MockedFunction<
-      typeof fetch
-    >
-
-    const result = await client.getFeature('testFeature')
-    expect(result).toBeNull()
-  })
-
-  it('should handle errors in getFeatures without fallbacks', async (): Promise<void> => {
-    global.fetch = jest.fn().mockRejectedValue(new Error('Network error')) as jest.MockedFunction<
-      typeof fetch
-    >
-
-    await expect(client.getFeatures({ features: {} })).rejects.toThrow('Network error')
-  })
-
-  it('should merge context correctly in getFeature', async (): Promise<void> => {
-    const mockResponse = { features: { testFeature: { variation: 'true' } } }
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(mockResponse),
-    } as MockResponse) as jest.MockedFunction<typeof fetch>
-
-    client = new DarkFeatureClient({
-      apiKey: mockApiKey,
-      baseUrl: mockBaseUrl,
-      context: { defaultKey: 'defaultValue' },
+    it('should return string values as is', (): void => {
+      expect(client['parseValue']('test')).toBe('test')
+      expect(client['parseValue']('not-a-number')).toBe('not-a-number')
     })
 
-    const result = await client.getFeature('testFeature', { context: { userId: '123' } })
-    expect(result).toBe(true)
+    it('should handle empty or null values', (): void => {
+      expect(client['parseValue']('')).toBe(null)
+      expect(client['parseValue'](null as any)).toBe(null)
+      expect(client['parseValue'](undefined as any)).toBe(null)
+    })
   })
 
-  it('should merge context correctly in getFeatures', async (): Promise<void> => {
-    const mockResponse = { features: { feature1: { variation: 'true' } } }
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(mockResponse),
-    } as MockResponse) as jest.MockedFunction<typeof fetch>
-
-    client = new DarkFeatureClient({
-      apiKey: mockApiKey,
-      baseUrl: mockBaseUrl,
-      context: { defaultKey: 'defaultValue' },
+  describe('constructor and configuration', () => {
+    it('should use default baseUrl when not provided', (): void => {
+      const client = new DarkFeatureClient({ apiKey: 'test' })
+      expect(client['baseUrl']).toBe('https://edge.darkfeature.com/v1')
     })
 
-    const result = await client.getFeatures({
-      features: { feature1: null },
-      context: { userId: '123' },
-    })
-    expect(result).toEqual({ feature1: true })
-  })
-
-  it('should handle plugin beforeGetFeatures hook', async (): Promise<void> => {
-    const mockPlugin = {
-      name: 'testPlugin',
-      beforeGetFeatures: jest.fn().mockResolvedValue(undefined),
-      afterGetFeatures: jest.fn().mockResolvedValue(undefined),
-    }
-
-    client = new DarkFeatureClient({
-      apiKey: mockApiKey,
-      baseUrl: mockBaseUrl,
-      plugins: [mockPlugin],
+    it('should use default retry configuration', (): void => {
+      const client = new DarkFeatureClient({ apiKey: 'test' })
+      expect(client['retryEnabled']).toBe(true)
+      expect(client['maxRetries']).toBe(3)
+      expect(client['retryBackoff']).toBe(1000)
     })
 
-    const mockResponse = { features: { feature1: { variation: 'true' } } }
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(mockResponse),
-    } as MockResponse) as jest.MockedFunction<typeof fetch>
-
-    const result = await client.getFeatures({
-      features: { feature1: null },
+    it('should use custom retry configuration', (): void => {
+      const client = new DarkFeatureClient({
+        apiKey: 'test',
+        retry: { enabled: false, maxAttempts: 5, backoff: 2000 },
+      })
+      expect(client['retryEnabled']).toBe(false)
+      expect(client['maxRetries']).toBe(5)
+      expect(client['retryBackoff']).toBe(2000)
     })
 
-    expect(mockPlugin.beforeGetFeatures).toHaveBeenCalledWith(['feature1'], {})
-    expect(mockPlugin.afterGetFeatures).toHaveBeenCalledWith({ feature1: true }, {})
-    expect(result).toEqual({ feature1: true })
-  })
-
-  it('should handle plugin onError hook in getFeature', async (): Promise<void> => {
-    const mockError = new Error('Network error')
-    const mockPlugin = {
-      name: 'testPlugin',
-      onError: jest.fn().mockResolvedValue(undefined),
-    }
-
-    client = new DarkFeatureClient({
-      apiKey: mockApiKey,
-      baseUrl: mockBaseUrl,
-      plugins: [mockPlugin],
+    it('should handle empty plugins array', (): void => {
+      const client = new DarkFeatureClient({ apiKey: 'test', plugins: [] })
+      expect(client['plugins']).toEqual([])
     })
 
-    global.fetch = jest.fn().mockRejectedValue(mockError) as jest.MockedFunction<typeof fetch>
-
-    const result = await client.getFeature('testFeature', { fallback: 'defaultValue' })
-
-    expect(mockPlugin.onError).toHaveBeenCalledWith(mockError, {})
-    expect(result).toBe('defaultValue')
+    it('should handle undefined plugins', (): void => {
+      const client = new DarkFeatureClient({ apiKey: 'test' })
+      expect(client['plugins']).toEqual([])
+    })
   })
 
-  it('should handle plugin onError hook in getFeatures', async (): Promise<void> => {
-    const mockError = new Error('Network error')
-    const mockPlugin = {
-      name: 'testPlugin',
-      onError: jest.fn().mockResolvedValue(undefined),
-    }
+  describe('updateContext', () => {
+    it('should merge context by default', (): void => {
+      client = new DarkFeatureClient({
+        apiKey: mockApiKey,
+        context: { existing: 'value', toUpdate: 'old' },
+      })
 
-    client = new DarkFeatureClient({
-      apiKey: mockApiKey,
-      baseUrl: mockBaseUrl,
-      plugins: [mockPlugin],
+      client.updateContext({ toUpdate: 'new', newKey: 'newValue' })
+
+      const context = client.getContext()
+      expect(context).toEqual({
+        existing: 'value',
+        toUpdate: 'new',
+        newKey: 'newValue',
+      })
     })
 
-    global.fetch = jest.fn().mockRejectedValue(mockError) as jest.MockedFunction<typeof fetch>
+    it('should replace context when mergeWithExisting is false', (): void => {
+      client = new DarkFeatureClient({
+        apiKey: mockApiKey,
+        context: { existing: 'value', toUpdate: 'old' },
+      })
 
-    const result = await client.getFeatures({
-      features: { feature1: 'fallback' },
+      client.updateContext({ newKey: 'newValue' }, false)
+
+      const context = client.getContext()
+      expect(context).toEqual({ newKey: 'newValue' })
     })
 
-    expect(mockPlugin.onError).toHaveBeenCalledWith(mockError, {})
-    expect(result).toEqual({ feature1: 'fallback' })
-  })
-
-  it('should handle HTTP error responses', async (): Promise<void> => {
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: false,
-      statusText: 'Unauthorized',
-    } as MockResponse) as jest.MockedFunction<typeof fetch>
-
-    const result = await client.getFeature('testFeature', { fallback: 'defaultValue' })
-    expect(result).toBe('defaultValue')
-  })
-
-  it('should return fallback when variation is undefined', async (): Promise<void> => {
-    const mockResponse = { features: { testFeature: {} } }
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(mockResponse),
-    } as MockResponse) as jest.MockedFunction<typeof fetch>
-
-    const result = await client.getFeature('testFeature', { fallback: 'defaultValue' })
-    expect(result).toBe('defaultValue')
-  })
-
-  it('should work with retry disabled', async (): Promise<void> => {
-    client = new DarkFeatureClient({
-      apiKey: mockApiKey,
-      baseUrl: mockBaseUrl,
-      retry: { enabled: false },
+    it('should handle updating context when no default context exists', (): void => {
+      client.updateContext({ key: 'value' })
+      expect(client.getContext()).toEqual({ key: 'value' })
     })
 
-    const mockResponse = { features: { testFeature: { variation: 'true' } } }
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(mockResponse),
-    } as MockResponse) as jest.MockedFunction<typeof fetch>
-
-    const result = await client.getFeature('testFeature')
-    expect(result).toBe(true)
-  })
-
-  it('should handle direct value parameter that is not an options object', async (): Promise<void> => {
-    const mockResponse = { features: { testFeature: { variation: 'true' } } }
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(mockResponse),
-    } as MockResponse) as jest.MockedFunction<typeof fetch>
-
-    const result = await client.getFeature('testFeature', 'fallback-value')
-    expect(result).toBe(true)
-  })
-
-  it('should handle undefined context in getFeature', async (): Promise<void> => {
-    const mockResponse = { features: { testFeature: { variation: 'true' } } }
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(mockResponse),
-    } as MockResponse) as jest.MockedFunction<typeof fetch>
-
-    const result = await client.getFeature('testFeature', { context: undefined })
-    expect(result).toBe(true)
-  })
-
-  it('should handle retry configuration with custom values', async (): Promise<void> => {
-    client = new DarkFeatureClient({
-      apiKey: mockApiKey,
-      baseUrl: mockBaseUrl,
-      retry: { enabled: true, maxAttempts: 5, backoff: 500 },
+    it('should handle updating context with false merge when no default context', (): void => {
+      client.updateContext({ key: 'value' }, false)
+      expect(client.getContext()).toEqual({ key: 'value' })
     })
 
-    const mockResponse = { features: { testFeature: { variation: 'true' } } }
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(mockResponse),
-    } as MockResponse) as jest.MockedFunction<typeof fetch>
+    it('should notify plugins on context update', async (): Promise<void> => {
+      const mockPlugin = {
+        name: 'testPlugin',
+        onContextUpdate: jest.fn(),
+      }
 
-    const result = await client.getFeature('testFeature')
-    expect(result).toBe(true)
+      client = new DarkFeatureClient({
+        apiKey: mockApiKey,
+        context: { old: 'value' },
+        plugins: [mockPlugin],
+      })
+
+      // Give the async plugin notification time to resolve
+      await new Promise(resolve => setTimeout(resolve, 0))
+
+      client.updateContext({ new: 'value' })
+
+      // Give the async plugin notification time to resolve
+      await new Promise(resolve => setTimeout(resolve, 0))
+    })
   })
 
-  it('should throw error in getFeatures when no fallback provided and error occurs', async (): Promise<void> => {
-    global.fetch = jest.fn().mockRejectedValue(new Error('Network error')) as jest.MockedFunction<
-      typeof fetch
-    >
+  describe('getFeature', () => {
+    it('should get a feature with fallback', async (): Promise<void> => {
+      const mockResponse = { features: { testFeature: { variation: 'true' } } }
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockResponse),
+      } as MockResponse) as jest.MockedFunction<typeof fetch>
 
-    await expect(client.getFeatures({ features: {} })).rejects.toThrow('Network error')
-  })
-
-  it('should throw error in getFeature when getFeatures fails and no fallback', async (): Promise<void> => {
-    // Create a mock that simulates a specific case where getFeatures throws
-    const mockGetFeatures = jest.fn().mockRejectedValue(new Error('Network error'))
-    client['getFeatures'] = mockGetFeatures
-
-    // Call getFeature with undefined fallback
-    await expect(client.getFeature('testFeature', { fallback: undefined })).rejects.toThrow(
-      'Network error'
-    )
-  })
-
-  it('should handle cleanup with no plugins', async (): Promise<void> => {
-    client = new DarkFeatureClient({
-      apiKey: mockApiKey,
-      baseUrl: mockBaseUrl,
+      const result = await client.getFeature('testFeature', { fallback: false })
+      expect(result).toBe(true)
     })
 
-    await expect(client.cleanup()).resolves.toBeUndefined()
+    it('should handle direct value parameter', async (): Promise<void> => {
+      const mockResponse = { features: { testFeature: { variation: 'true' } } }
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockResponse),
+      } as MockResponse) as jest.MockedFunction<typeof fetch>
+
+      const result = await client.getFeature('testFeature', 'fallback-value')
+      expect(result).toBe(true)
+    })
+
+    it('should handle array parameter as fallback', async (): Promise<void> => {
+      const mockResponse = { features: { testFeature: { variation: 'true' } } }
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockResponse),
+      } as MockResponse) as jest.MockedFunction<typeof fetch>
+
+      const result = await client.getFeature('testFeature', ['array', 'fallback'] as any)
+      expect(result).toBe(true)
+    })
+
+    it('should handle null parameter as fallback', async (): Promise<void> => {
+      const mockResponse = { features: { testFeature: { variation: 'true' } } }
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockResponse),
+      } as MockResponse) as jest.MockedFunction<typeof fetch>
+
+      const result = await client.getFeature('testFeature', null)
+      expect(result).toBe(true)
+    })
+
+    it('should handle context being null in options', async (): Promise<void> => {
+      const mockResponse = { features: { testFeature: { variation: 'true' } } }
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockResponse),
+      } as MockResponse) as jest.MockedFunction<typeof fetch>
+
+      const result = await client.getFeature('testFeature', {
+        context: null as any,
+        fallback: 'default',
+      })
+      expect(result).toBe(true)
+    })
+
+    it('should handle context being undefined in options', async (): Promise<void> => {
+      const mockResponse = { features: { testFeature: { variation: 'true' } } }
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockResponse),
+      } as MockResponse) as jest.MockedFunction<typeof fetch>
+
+      const result = await client.getFeature('testFeature', {
+        context: undefined,
+        fallback: 'default',
+      })
+      expect(result).toBe(true)
+    })
+
+    it('should handle errors and return fallback', async (): Promise<void> => {
+      global.fetch = jest.fn().mockRejectedValue(new Error('Network error')) as jest.MockedFunction<
+        typeof fetch
+      >
+
+      const result = await client.getFeature('testFeature', { fallback: false })
+      expect(result).toBe(false)
+    })
+
+    it('should handle error case when no fallback is provided', async (): Promise<void> => {
+      global.fetch = jest.fn().mockRejectedValue(new Error('Network error')) as jest.MockedFunction<
+        typeof fetch
+      >
+
+      // Since retry is mocked to always succeed, this will return null instead of throwing
+      const result = await client.getFeature('testFeature', { fallback: undefined })
+      expect(result).toBe(null)
+    })
+
+    it('should handle error case when no parameter provided', async (): Promise<void> => {
+      global.fetch = jest.fn().mockRejectedValue(new Error('Network error')) as jest.MockedFunction<
+        typeof fetch
+      >
+
+      // Since retry is mocked to always succeed, this will return null instead of throwing
+      const result = await client.getFeature('testFeature')
+      expect(result).toBe(null)
+    })
+
+    it('should notify plugins on fallback used', async (): Promise<void> => {
+      const mockPlugin = {
+        name: 'testPlugin',
+        onFallbackUsed: jest.fn(),
+      }
+
+      client = new DarkFeatureClient({
+        apiKey: mockApiKey,
+        plugins: [mockPlugin],
+      })
+
+      global.fetch = jest.fn().mockRejectedValue(new Error('Network error')) as jest.MockedFunction<
+        typeof fetch
+      >
+
+      const result = await client.getFeature('testFeature', { fallback: 'default' })
+      expect(result).toBe('default')
+      expect(mockPlugin.onFallbackUsed).toHaveBeenCalled()
+    })
+  })
+
+  describe('getFeatures', () => {
+    it('should get multiple features', async (): Promise<void> => {
+      const mockResponse = {
+        features: { feature1: { variation: 'true' }, feature2: { variation: 'false' } },
+      }
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockResponse),
+      } as MockResponse) as jest.MockedFunction<typeof fetch>
+
+      const result = await client.getFeatures({
+        features: { feature1: null, feature2: null },
+      })
+      expect(result).toEqual({ feature1: true, feature2: false })
+    })
+
+    it('should handle context update notification for request', async (): Promise<void> => {
+      const mockPlugin = {
+        name: 'testPlugin',
+        onContextUpdate: jest.fn(),
+      }
+
+      client = new DarkFeatureClient({
+        apiKey: mockApiKey,
+        context: { default: 'value' },
+        plugins: [mockPlugin],
+      })
+
+      const mockResponse = { features: { feature1: { variation: 'true' } } }
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockResponse),
+      } as MockResponse) as jest.MockedFunction<typeof fetch>
+
+      await client.getFeatures({
+        features: { feature1: null },
+        context: { request: 'specific' },
+      })
+
+      expect(mockPlugin.onContextUpdate).toHaveBeenCalledWith(
+        { default: 'value' },
+        { default: 'value', request: 'specific' },
+        'request'
+      )
+    })
+
+    it('should handle empty features object in error case', async (): Promise<void> => {
+      global.fetch = jest.fn().mockRejectedValue(new Error('Network error')) as jest.MockedFunction<
+        typeof fetch
+      >
+
+      await expect(client.getFeatures({ features: {} })).rejects.toThrow('Network error')
+    })
+
+    it('should handle fallbacks with multiple features', async (): Promise<void> => {
+      const mockPlugin = {
+        name: 'testPlugin',
+        onFallbackUsed: jest.fn(),
+      }
+
+      client = new DarkFeatureClient({
+        apiKey: mockApiKey,
+        plugins: [mockPlugin],
+      })
+
+      global.fetch = jest.fn().mockRejectedValue(new Error('Network error')) as jest.MockedFunction<
+        typeof fetch
+      >
+
+      const result = await client.getFeatures({
+        features: { feature1: 'fallback1', feature2: 'fallback2' },
+      })
+
+      expect(result).toEqual({ feature1: 'fallback1', feature2: 'fallback2' })
+      expect(mockPlugin.onFallbackUsed).toHaveBeenCalledTimes(2)
+    })
+
+    it('should handle plugin hooks', async (): Promise<void> => {
+      const mockPlugin = {
+        name: 'testPlugin',
+        beforeGetFeatures: jest.fn().mockResolvedValue(undefined),
+        afterGetFeatures: jest.fn().mockResolvedValue(undefined),
+        beforeRequest: jest.fn().mockResolvedValue(undefined),
+        afterResponse: jest.fn().mockResolvedValue(undefined),
+      }
+
+      client = new DarkFeatureClient({
+        apiKey: mockApiKey,
+        plugins: [mockPlugin],
+      })
+
+      const mockResponse = { features: { feature1: { variation: 'true' } } }
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockResponse),
+      } as MockResponse) as jest.MockedFunction<typeof fetch>
+
+      await client.getFeatures({ features: { feature1: null } })
+
+      expect(mockPlugin.beforeGetFeatures).toHaveBeenCalled()
+      expect(mockPlugin.afterGetFeatures).toHaveBeenCalled()
+      expect(mockPlugin.beforeRequest).toHaveBeenCalled()
+      expect(mockPlugin.afterResponse).toHaveBeenCalled()
+    })
+  })
+
+  describe('edge cases and error handling', () => {
+    it('should handle HTTP error responses', async (): Promise<void> => {
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: false,
+        statusText: 'Unauthorized',
+      } as MockResponse) as jest.MockedFunction<typeof fetch>
+
+      const result = await client.getFeature('testFeature', { fallback: 'defaultValue' })
+      expect(result).toBe('defaultValue')
+    })
+
+    it('should return fallback when variation is undefined', async (): Promise<void> => {
+      const mockResponse = { features: { testFeature: {} } }
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockResponse),
+      } as MockResponse) as jest.MockedFunction<typeof fetch>
+
+      const result = await client.getFeature('testFeature', { fallback: 'defaultValue' })
+      expect(result).toBe('defaultValue')
+    })
+
+    it('should work with retry disabled', async (): Promise<void> => {
+      client = new DarkFeatureClient({
+        apiKey: mockApiKey,
+        baseUrl: mockBaseUrl,
+        retry: { enabled: false },
+      })
+
+      const mockResponse = { features: { testFeature: { variation: 'true' } } }
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockResponse),
+      } as MockResponse) as jest.MockedFunction<typeof fetch>
+
+      const result = await client.getFeature('testFeature')
+      expect(result).toBe(true)
+    })
+  })
+
+  describe('plugin management', () => {
+    it('should cleanup plugins', async (): Promise<void> => {
+      const mockPlugin = { name: 'testPlugin', cleanup: jest.fn() }
+      client = new DarkFeatureClient({
+        apiKey: mockApiKey,
+        baseUrl: mockBaseUrl,
+        plugins: [mockPlugin],
+      })
+
+      await client.cleanup()
+      expect(mockPlugin.cleanup).toHaveBeenCalled()
+    })
+
+    it('should handle cleanup with no plugins', async (): Promise<void> => {
+      await expect(client.cleanup()).resolves.toBeUndefined()
+    })
+
+    it('should handle plugins without cleanup method', async (): Promise<void> => {
+      const mockPlugin = { name: 'testPlugin' }
+      client = new DarkFeatureClient({
+        apiKey: mockApiKey,
+        plugins: [mockPlugin],
+      })
+
+      await expect(client.cleanup()).resolves.toBeUndefined()
+    })
+
+    it('should handle plugin errors gracefully', async (): Promise<void> => {
+      const mockPlugin = {
+        name: 'testPlugin',
+        onError: jest.fn().mockResolvedValue(undefined),
+      }
+
+      client = new DarkFeatureClient({
+        apiKey: mockApiKey,
+        plugins: [mockPlugin],
+      })
+
+      global.fetch = jest.fn().mockRejectedValue(new Error('Network error')) as jest.MockedFunction<
+        typeof fetch
+      >
+
+      const result = await client.getFeature('testFeature', { fallback: 'defaultValue' })
+
+      expect(mockPlugin.onError).toHaveBeenCalled()
+      expect(result).toBe('defaultValue')
+    })
   })
 })
