@@ -2,16 +2,9 @@
   "name": "@darkfeature/sdk-react",
   "version": "0.1.1",
   "description": "DarkFeature SDK for React",
-  "main": "./dist/index.js",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.js",
-      "browser": "./dist/index.js"
-    }
-  },
   "files": [
     "dist",
     "README.md",
@@ -19,8 +12,9 @@
   ],
   "scripts": {
     "clean": "rimraf dist",
-    "build": "pnpm clean && tsc && tsc-alias",
-    "dev": "tsc --watch",
+    "build": "pnpm clean && pnpm build:tsup",
+    "build:tsup": "tsup",
+    "dev": "tsup --watch",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
@@ -51,7 +45,6 @@
     "jest-environment-jsdom": "^29.7.0",
     "rimraf": "^6.0.1",
     "ts-jest": "^29.1.0",
-    "tsc-alias": "^1.8.8",
     "typescript": "~5.3.3"
   },
   "keywords": [

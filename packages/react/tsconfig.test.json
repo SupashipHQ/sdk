@@ -5,6 +5,5 @@
     "noUnusedParameters": false,
     "types": ["jest", "node", "@testing-library/jest-dom"]
   },
-  "include": ["src/**/*"],
-  "exclude": []
+  "include": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/**/__tests__/**/*"]
 }
