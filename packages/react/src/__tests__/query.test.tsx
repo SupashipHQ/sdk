@@ -58,7 +58,7 @@ describe('useQuery', () => {
 
   it('should handle query error', async () => {
     const error = new Error('Test error')
-    let reject: (reason?: any) => void = () => {}
+    let reject: (reason?: unknown) => void = () => {}
     const promise = new Promise<TestData>((_, rej) => {
       reject = rej
     })
@@ -112,7 +112,7 @@ describe('useQuery', () => {
 
   it('should handle query settled with error', async () => {
     const error = new Error('Test error')
-    let reject: (reason?: any) => void = () => {}
+    let reject: (reason?: unknown) => void = () => {}
     const promise = new Promise<TestData>((_, rej) => {
       reject = rej
     })
@@ -141,7 +141,7 @@ describe('useQuery', () => {
 
   it('should not retry when retry is false', async () => {
     const error = new Error('Test error')
-    let reject: (reason?: any) => void = () => {}
+    let reject: (reason?: unknown) => void = () => {}
     const promise = new Promise<TestData>((_, rej) => {
       reject = rej
     })

@@ -15,7 +15,7 @@ pnpm add @darkfeature/sdk-react
 ## Quick Start
 
 ```tsx
-import { DarkFeatureProvider, useFeature } from '@darkfeature/sdk-react'
+import { DarkFeatureProvider, useFeature, DarkFeature } from '@darkfeature/sdk-react'
 
 function App() {
   return (
@@ -36,16 +36,16 @@ function App() {
 
 function YourApp() {
   // Simple usage with fallback
-  const isEnabled = useFeature('my-feature', { fallback: false })
+  const { data: isEnabled } = useFeature('my-feature', { fallback: false })
 
   // With context override
-  const variation = useFeature('experiment-feature', {
+  const { data: variation } = useFeature('experiment-feature', {
     fallback: 'control',
     context: { segment: 'premium' },
   })
 
   // Multiple features at once
-  const features = useFeatures({
+  const { data: features } = useFeatures({
     features: {
       'feature-1': false,
       'feature-2': 'default-value',
@@ -85,10 +85,14 @@ The provider component that makes feature flags available to your React componen
 
 ```tsx
 interface DarkFeatureConfig {
-  apiKey: string // Your DarkFeature API key
+  apiKey: string // Your DarkFeature API key (Project Settings -> Environments)
   baseUrl?: string // Custom API endpoint
   context?: FeatureContext // Default context for feature evaluation
   retry?: RetryConfig // Retry configuration for network requests
+}
+
+interface FeatureContext {
+  [key: string]: string | number | boolean | null | undefined // key value pairs
 }
 
 interface RetryConfig {
@@ -98,12 +102,21 @@ interface RetryConfig {
 }
 ```
 
+Common context properties:
+
+- `userId`: User identifier
+- `email`: User email
+- `plan`: Membership plan (e.g., 'premium', 'free')
+- `version`: Application version (e.g., 1.0.0)
+
+> Note: The above are just common examples. You can use any properties in your context object that make sense for your application's feature targeting needs.
+
 ### useFeature Hook
 
 Retrieves a single feature flag value with React state management.
 
 ```tsx
-const value = useFeature(featureName: string, options?: UseFeatureOptions)
+const { data: value }: QueryState<FeatureValue> = useFeature(featureName: string, options?: UseFeatureOptions)
 ```
 
 **UseFeatureOptions:**
@@ -121,10 +134,10 @@ interface UseFeatureOptions {
 ```tsx
 function MyComponent() {
   // Simple boolean feature
-  const isEnabled = useFeature('my-feature', { fallback: false })
+  const { data: isEnabled } = useFeature('my-feature', { fallback: false })
 
   // String variant with fallback
-  const variant = useFeature('button-color', { fallback: 'blue' })
+  const { data: variant } = useFeature('button-color', { fallback: 'blue' })
 
   // With context override
   const showPremium = useFeature('premium-feature', {
@@ -155,7 +168,7 @@ function MyComponent() {
 Retrieves multiple feature flags in a single request with React state management.
 
 ```tsx
-const features = useFeatures(options: UseFeaturesOptions)
+const { data, isLoading }: QueryState<Record<string, FeatureValue>> = useFeatures(options: UseFeaturesOptions)
 ```
 
 **UseFeaturesOptions:**
@@ -174,7 +187,7 @@ interface UseFeaturesOptions {
 function Dashboard() {
   const { user, isLoading } = useUser()
 
-  const features = useFeatures({
+  const { data: features } = useFeatures({
     features: {
       'new-dashboard': false,
       'sidebar-variant': 'default',
@@ -233,103 +246,193 @@ function UserProfileSettings() {
 
 ## Components
 
-### FeatureFlag Component
+### DarkFeature Component
 
-A declarative component for conditional rendering based on feature flags.
+A declarative component for conditional rendering based on feature flags using composable sub-components.
 
 ```tsx
-<FeatureFlag feature="feature-name" fallback={false}>
-  {isEnabled => (isEnabled ? <NewComponent /> : <OldComponent />)}
-</FeatureFlag>
+<DarkFeature feature="feature-name" fallback={false}>
+  <DarkFeature.Variation match={true}>
+    <NewComponent />
+  </DarkFeature.Variation>
+  <DarkFeature.Fallback>
+    <OldComponent />
+  </DarkFeature.Fallback>
+</DarkFeature>
 ```
 
 **Props:**
 
 ```tsx
-interface FeatureFlagProps {
+interface DarkFeatureProps {
   feature: string
   fallback?: FeatureValue
   context?: FeatureContext
-  loading?: React.ComponentType | React.ReactNode
-  error?: React.ComponentType<{ error: Error; retry: () => void }> | React.ReactNode
-  children: (value: FeatureValue, loading: boolean, error: Error | null) => React.ReactNode
+  shouldFetch?: boolean // Whether to fetch the feature (default: true)
+  children: ReactNode // Sub-components (Variation, Loader, Fallback)
+}
+
+interface VariationProps {
+  match: FeatureValue // The expected variation value to match against
+  children: ReactNode
+}
+
+interface LoaderProps {
+  children: ReactNode // Content to render while loading
+}
+
+interface FallbackProps {
+  children: ReactNode // Content to render when no variations match
 }
 ```
 
-**Example:**
+**Sub-components:**
+
+- `DarkFeature.Variation` - Renders content when feature matches a specific value
+- `DarkFeature.Loader` - Renders loading state while feature is being fetched
+- `DarkFeature.Fallback` - Renders default content when no variations match
+
+**Examples:**
 
 ```tsx
 function App() {
   return (
     <div>
-      <FeatureFlag
-        feature="new-header"
-        fallback={false}
-        loading={<HeaderSkeleton />}
-        error={<HeaderError />}
-      >
-        {enabled => (enabled ? <NewHeader /> : <OldHeader />)}
-      </FeatureFlag>
+      {/* Simple boolean feature */}
+      <DarkFeature feature="new-header" fallback={false}>
+        <DarkFeature.Loader>
+          <HeaderSkeleton />
+        </DarkFeature.Loader>
+        <DarkFeature.Variation match={true}>
+          <NewHeader />
+        </DarkFeature.Variation>
+        <DarkFeature.Fallback>
+          <OldHeader />
+        </DarkFeature.Fallback>
+      </DarkFeature>
 
-      <FeatureFlag feature="theme-variant" fallback="light">
-        {theme => (
-          <div className={`theme-${theme}`}>
+      {/* Multiple variations with string values */}
+      <DarkFeature feature="theme-variant" fallback="light">
+        <DarkFeature.Variation match="light">
+          <div className="theme-light">
             <MainContent />
           </div>
-        )}
-      </FeatureFlag>
+        </DarkFeature.Variation>
+        <DarkFeature.Variation match="dark">
+          <div className="theme-dark">
+            <MainContent />
+          </div>
+        </DarkFeature.Variation>
+        <DarkFeature.Variation match="auto">
+          <div className="theme-auto">
+            <MainContent />
+          </div>
+        </DarkFeature.Variation>
+        <DarkFeature.Fallback>
+          <div className="theme-default">
+            <MainContent />
+          </div>
+        </DarkFeature.Fallback>
+      </DarkFeature>
+
+      {/* Numeric variations */}
+      <DarkFeature feature="max-items" fallback={10}>
+        <DarkFeature.Variation match={5}>
+          <ItemList maxItems={5} />
+        </DarkFeature.Variation>
+        <DarkFeature.Variation match={10}>
+          <ItemList maxItems={10} />
+        </DarkFeature.Variation>
+        <DarkFeature.Variation match={20}>
+          <ItemList maxItems={20} />
+        </DarkFeature.Variation>
+        <DarkFeature.Fallback>
+          <ItemList maxItems={10} />
+        </DarkFeature.Fallback>
+      </DarkFeature>
+
+      {/* Conditional fetching based on user state */}
+      <DarkFeature
+        feature="premium-feature"
+        fallback={false}
+        shouldFetch={!!user && user.plan === 'premium'}
+      >
+        <DarkFeature.Loader>
+          <PremiumFeatureSkeleton />
+        </DarkFeature.Loader>
+        <DarkFeature.Variation match={true}>
+          <PremiumFeatureContent />
+        </DarkFeature.Variation>
+        <DarkFeature.Fallback>
+          <StandardFeatureContent />
+        </DarkFeature.Fallback>
+      </DarkFeature>
     </div>
   )
 }
 ```
 
-### ConditionalFeature Component
+### Simple Usage Patterns
 
-A simpler component for showing/hiding content based on feature flags.
-
-```tsx
-<ConditionalFeature feature="new-feature" fallback={false}>
-  <NewFeatureContent />
-</ConditionalFeature>
-```
-
-**Props:**
+For simple show/hide scenarios, you can use the DarkFeature component with just a single variation:
 
 ```tsx
-interface ConditionalFeatureProps {
-  feature: string
-  fallback?: FeatureValue
-  context?: FeatureContext
-  when?: (value: FeatureValue) => boolean // Custom condition function
-  children: React.ReactNode
-}
-```
+// Simple show/hide based on boolean
+<DarkFeature feature="new-feature" fallback={false}>
+  <DarkFeature.Variation match={true}>
+    <NewFeatureContent />
+  </DarkFeature.Variation>
+</DarkFeature>
 
-**Examples:**
+// With loading state
+<DarkFeature feature="beta-banner" fallback={false}>
+  <DarkFeature.Loader>
+    <BannerSkeleton />
+  </DarkFeature.Loader>
+  <DarkFeature.Variation match={true}>
+    <BetaBanner />
+  </DarkFeature.Variation>
+</DarkFeature>
 
-```tsx
-// Simple show/hide
-<ConditionalFeature feature="beta-banner" fallback={false}>
-  <BetaBanner />
-</ConditionalFeature>
-
-// With custom condition
-<ConditionalFeature
-  feature="user-limit"
-  fallback={10}
-  when={(limit) => limit > 5}
->
-  <AdvancedUserList />
-</ConditionalFeature>
+// Conditional rendering with multiple possible values
+<DarkFeature feature="user-limit" fallback={10}>
+  <DarkFeature.Variation match={5}>
+    <BasicUserList />
+  </DarkFeature.Variation>
+  <DarkFeature.Variation match={10}>
+    <StandardUserList />
+  </DarkFeature.Variation>
+  <DarkFeature.Variation match={20}>
+    <AdvancedUserList />
+  </DarkFeature.Variation>
+  <DarkFeature.Fallback>
+    <DefaultUserList />
+  </DarkFeature.Fallback>
+</DarkFeature>
 
 // String matching
-<ConditionalFeature
-  feature="theme"
-  fallback="light"
-  when={(theme) => theme === 'dark'}
+<DarkFeature feature="theme" fallback="light">
+  <DarkFeature.Variation match="dark">
+    <DarkModeStyles />
+  </DarkFeature.Variation>
+  <DarkFeature.Variation match="light">
+    <LightModeStyles />
+  </DarkFeature.Variation>
+</DarkFeature>
+
+// Conditional fetching - only fetch when user is authenticated
+<DarkFeature
+  feature="user-dashboard"
+  fallback={false}
+  shouldFetch={isAuthenticated}
 >
-  <DarkModeStyles />
-</ConditionalFeature>
+  <DarkFeature.Variation match={true}>
+    <UserDashboard />
+  </DarkFeature.Variation>
+  <DarkFeature.Fallback>
+    <PublicDashboard />
+  </DarkFeature.Fallback>
+</DarkFeature>
 ```
 
 ## Error Handling
@@ -342,10 +445,10 @@ The React SDK handles errors gracefully by returning fallback values when provid
 
 ```tsx
 // ✅ Good - provides fallback
-const isEnabled = useFeature('new-feature', { fallback: false })
+const { data: isEnabled } = useFeature('new-feature', { fallback: false })
 
 // ❌ Risky - no fallback, may cause issues
-const isEnabled = useFeature('new-feature')
+const { data: isEnabled } = useFeature('new-feature')
 ```
 
 ### 2. Use Context for User Targeting
@@ -376,7 +479,7 @@ function App() {
 
 ```tsx
 // ✅ Good - single API call
-const features = useFeatures({
+const { data: features } = useFeatures({
   features: {
     'feature-1': false,
     'feature-2': 'default',
@@ -396,7 +499,7 @@ const feature3 = useFeature('feature-3', { fallback: null })
 function MyComponent() {
   const { user, isLoading: userLoading } = useUser()
 
-  const features = useFeatures({
+  const { data: features } = useFeatures({
     features: { 'user-specific-feature': false },
     context: { userId: user?.id },
     shouldFetch: !userLoading && !!user,
@@ -430,21 +533,6 @@ function UserDashboard() {
       <PageContent page={currentPage} />
     </div>
   )
-}
-```
-
-### 6. Optimize Re-renders
-
-```tsx
-// Use React.memo for components that depend on feature flags
-const ExpensiveFeatureComponent = React.memo(({ isEnabled }) => {
-  return isEnabled ? <ExpensiveComponent /> : null
-})
-
-function App() {
-  const isEnabled = useFeature('expensive-feature', { fallback: false })
-
-  return <ExpensiveFeatureComponent isEnabled={isEnabled} />
 }
 ```
 
@@ -493,7 +581,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 import { useFeature } from '@darkfeature/sdk-react'
 
 export default function HomePage() {
-  const showNewHero = useFeature('new-hero-section', { fallback: false })
+  const { data: showNewHero } = useFeature('new-hero-section', { fallback: false })
 
   return <main>{showNewHero ? <NewHeroSection /> : <OldHeroSection />}</main>
 }
@@ -525,7 +613,7 @@ export default function App({ Component, pageProps }: AppProps) {
 import { useFeatures } from '@darkfeature/sdk-react'
 
 export default function HomePage() {
-  const features = useFeatures({
+  const { data: features } = useFeatures({
     features: {
       'new-homepage': false,
       'hero-variant': 'default',
@@ -626,7 +714,7 @@ import { View, Text } from 'react-native'
 import { useFeature } from '@darkfeature/sdk-react'
 
 export function HomePage() {
-  const showNewOnboarding = useFeature('new-onboarding-flow', { fallback: false })
+  const { data: showNewOnboarding } = useFeature('new-onboarding-flow', { fallback: false })
 
   return <View>{showNewOnboarding ? <NewOnboardingFlow /> : <OldOnboardingFlow />}</View>
 }
@@ -655,7 +743,7 @@ export const wrapRootElement = ({ element }) => (
 import { useFeature } from '@darkfeature/sdk-react'
 
 export function Layout({ children }) {
-  const newLayout = useFeature('new-layout-design', { fallback: false })
+  const { data: newLayout } = useFeature('new-layout-design', { fallback: false })
 
   return <div className={newLayout ? 'new-layout' : 'old-layout'}>{children}</div>
 }
@@ -668,7 +756,7 @@ export function Layout({ children }) {
 ```tsx
 function DynamicFeatureComponent() {
   const [featureName, setFeatureName] = useState('default-feature')
-  const isEnabled = useFeature(featureName, { fallback: false })
+  const { data: isEnabled } = useFeature(featureName, { fallback: false })
 
   return (
     <div>
@@ -688,9 +776,9 @@ function DynamicFeatureComponent() {
 
 ```tsx
 function useCompositeFeature() {
-  const newUI = useFeature('new-ui', { fallback: false })
-  const darkMode = useFeature('dark-mode', { fallback: false })
-  const animations = useFeature('animations', { fallback: true })
+  const { data: newUI } = useFeature('new-ui', { fallback: false })
+  const { data: darkMode } = useFeature('dark-mode', { fallback: false })
+  const { data: animations } = useFeature('animations', { fallback: true })
 
   return {
     showNewUIWithDarkMode: newUI && darkMode,
@@ -707,36 +795,6 @@ function App() {
       <MainContent />
     </div>
   )
-}
-```
-
-### Custom Hook with Caching
-
-```tsx
-import { useCallback, useRef } from 'react'
-import { useFeature } from '@darkfeature/sdk-react'
-
-function useFeatureWithCache(featureName: string, fallback: any, ttl = 60000) {
-  const cache = useRef(new Map())
-
-  const getCachedFeature = useCallback(() => {
-    const now = Date.now()
-    const cached = cache.current.get(featureName)
-
-    if (cached && now - cached.timestamp < ttl) {
-      return cached.value
-    }
-
-    return null
-  }, [featureName, ttl])
-
-  const cachedValue = getCachedFeature()
-
-  const value = useFeature(featureName, {
-    fallback,
-  })
-
-  return cachedValue !== null ? cachedValue : value
 }
 ```
 
