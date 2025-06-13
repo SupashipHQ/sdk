@@ -17,7 +17,9 @@
     "commitlint": "commitlint --edit",
     "commitlint:test": "echo 'feat: test commit message' | commitlint",
     "prepare": "husky install",
-    "release": "lerna version --no-push --no-git-tag-version"
+    "release": "lerna version --no-push --no-git-tag-version",
+    "link:global": "pnpm build && pnpm -r --filter './packages/*' exec pnpm link --global",
+    "unlink:global": "pnpm -r --filter './packages/*' exec pnpm unlink --global"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.8.1",
