@@ -63,16 +63,20 @@ new DarkFeatureClient(config: DarkFeatureConfig)
 
 **Configuration Options:**
 
-| Option    | Type             | Required | Description                                         |
-| --------- | ---------------- | -------- | --------------------------------------------------- |
-| `apiKey`  | `string`         | Yes      | Your DarkFeature API key                            |
-| `baseUrl` | `string`         | No       | Custom API endpoint (defaults to DarkFeature's API) |
-| `context` | `FeatureContext` | No       | Default context for feature evaluation              |
-| `retry`   | `RetryConfig`    | No       | Retry configuration for network requests            |
+| Option    | Type             | Required | Description                                                 |
+| --------- | ---------------- | -------- | ----------------------------------------------------------- |
+| `apiKey`  | `string`         | Yes      | Your DarkFeature API key (Project Settings -> Environments) |
+| `baseUrl` | `string`         | No       | Custom API endpoint (defaults to DarkFeature's API)         |
+| `context` | `FeatureContext` | No       | Default context for feature evaluation                      |
+| `retry`   | `RetryConfig`    | No       | Retry configuration for network requests                    |
 
 **Retry Configuration:**
 
 ```typescript
+interface FeatureContext {
+  [key: string]: string | number | boolean | null | undefined // key value pairs
+}
+
 interface RetryConfig {
   enabled?: boolean // Enable/disable retries (default: true)
   maxAttempts?: number // Maximum retry attempts (default: 3)
@@ -217,9 +221,10 @@ Common context properties:
 
 - `userId`: User identifier
 - `email`: User email
-- `segment`: User segment (e.g., 'premium', 'free')
-- `version`: Application version
-- `environment`: Environment name (e.g., 'production', 'staging')
+- `plan`: Membership plan (e.g., 'premium', 'free')
+- `version`: Application version (e.g., 1.0.0)
+
+> Note: The above are just common examples. You can use any properties in your context object that make sense for your application's feature targeting needs.
 
 ## Error Handling
 
