@@ -11,4 +11,7 @@ export default defineConfig({
   minify: false,
   target: 'es2020',
   external: ['react', 'react-dom'], // Mark React as external
+  banner: {
+    js: `"use client";`,
+  },
 })
