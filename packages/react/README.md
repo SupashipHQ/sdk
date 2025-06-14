@@ -35,10 +35,25 @@ function App() {
 }
 
 function YourApp() {
-  // Simple usage with fallback
+  return (
+    <div>
+      {/* Component-based approach - declarative and clean */}
+      <DarkFeature
+        feature="my-feature"
+        fallback={false}
+        variations={{
+          true: <NewFeatureComponent />,
+          false: <OldFeatureComponent />,
+        }}
+      />
+    </div>
+  )
+}
+
+function YourAppWithHooks() {
+  // Hook-based approach - programmatic control
   const { feature: isEnabled } = useFeature('my-feature', { fallback: false })
 
-  // With context override
   const { feature: expFeature } = useFeature('experiment-feature', {
     fallback: 'control',
     context: { segment: 'premium' },
@@ -57,7 +72,7 @@ function YourApp() {
   return (
     <div>
       {isEnabled && <NewFeatureComponent />}
-      <ExperimentComponent variant={variation} />
+      <ExperimentComponent variant={expFeature} />
       {features['feature-1'] && <Feature1Component />}
     </div>
   )
@@ -547,12 +562,23 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
 // app/page.tsx
 ;('use client')
-import { useFeature } from '@darkfeature/sdk-react'
+import { DarkFeature } from '@darkfeature/sdk-react'
 
 export default function HomePage() {
-  const { feature: showNewHero } = useFeature('new-hero-section', { fallback: false })
-
-  return <main>{showNewHero ? <NewHeroSection /> : <OldHeroSection />}</main>
+  return (
+    <main>
+      <DarkFeature
+        feature="new-hero-section"
+        fallback={false}
+        loading="skeleton"
+        variations={{
+          true: <NewHeroSection />,
+          false: <OldHeroSection />,
+          skeleton: <HeroSkeleton />,
+        }}
+      />
+    </main>
+  )
 }
 ```
 
@@ -579,23 +605,29 @@ export default function App({ Component, pageProps }: AppProps) {
 }
 
 // pages/index.tsx
-import { useFeatures } from '@darkfeature/sdk-react'
+import { DarkFeature } from '@darkfeature/sdk-react'
 
 export default function HomePage() {
-  const { features } = useFeatures({
-    features: {
-      'new-homepage': false,
-      'hero-variant': 'default',
-    },
-  })
-
   return (
     <div>
-      {features['new-homepage'] ? (
-        <NewHomePage variant={features['hero-variant']} />
-      ) : (
-        <OldHomePage />
-      )}
+      <DarkFeature
+        feature="new-homepage"
+        fallback={false}
+        variations={{
+          true: (
+            <DarkFeature
+              feature="hero-variant"
+              fallback="default"
+              variations={{
+                default: <NewHomePage variant="default" />,
+                'variant-a': <NewHomePage variant="variant-a" />,
+                'variant-b': <NewHomePage variant="variant-b" />,
+              }}
+            />
+          ),
+          false: <OldHomePage />,
+        }}
+      />
     </div>
   )
 }
@@ -679,13 +711,24 @@ export default function App() {
 
 // components/HomePage.tsx
 import React from 'react'
-import { View, Text } from 'react-native'
-import { useFeature } from '@darkfeature/sdk-react'
+import { View } from 'react-native'
+import { DarkFeature } from '@darkfeature/sdk-react'
 
 export function HomePage() {
-  const { feature: showNewOnboarding } = useFeature('new-onboarding-flow', { fallback: false })
-
-  return <View>{showNewOnboarding ? <NewOnboardingFlow /> : <OldOnboardingFlow />}</View>
+  return (
+    <View>
+      <DarkFeature
+        feature="new-onboarding-flow"
+        fallback={false}
+        loading="skeleton"
+        variations={{
+          true: <NewOnboardingFlow />,
+          false: <OldOnboardingFlow />,
+          skeleton: <OnboardingSkeleton />,
+        }}
+      />
+    </View>
+  )
 }
 ```
 
@@ -709,12 +752,19 @@ export const wrapRootElement = ({ element }) => (
 )
 
 // src/components/Layout.tsx
-import { useFeature } from '@darkfeature/sdk-react'
+import { DarkFeature } from '@darkfeature/sdk-react'
 
 export function Layout({ children }) {
-  const { feature: newLayout } = useFeature('new-layout-design', { fallback: false })
-
-  return <div className={newLayout ? 'new-layout' : 'old-layout'}>{children}</div>
+  return (
+    <DarkFeature
+      feature="new-layout-design"
+      fallback={false}
+      variations={{
+        true: <div className="new-layout">{children}</div>,
+        false: <div className="old-layout">{children}</div>,
+      }}
+    />
+  )
 }
 ```
 
@@ -724,8 +774,7 @@ export function Layout({ children }) {
 
 ```tsx
 function DynamicFeatureComponent() {
-  const [featureName, setFeatureName] = useState('default-feature')
-  const { feature: isEnabled } = useFeature(featureName, { fallback: false })
+  const [featureName, setFeatureName] = useState('feature-a')
 
   return (
     <div>
@@ -735,7 +784,16 @@ function DynamicFeatureComponent() {
         <option value="feature-c">Feature C</option>
       </select>
 
-      {isEnabled && <DynamicContent />}
+      <DarkFeature
+        feature={featureName}
+        fallback={false}
+        loading="skeleton"
+        variations={{
+          true: <DynamicContent featureName={featureName} />,
+          false: <DisabledMessage />,
+          skeleton: <ContentSkeleton />,
+        }}
+      />
     </div>
   )
 }
