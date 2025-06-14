@@ -248,191 +248,160 @@ function UserProfileSettings() {
 
 ### DarkFeature Component
 
-A declarative component for conditional rendering based on feature flags using composable sub-components.
+A declarative component for conditional rendering based on feature flags using a compact variations approach.
 
 ```tsx
-<DarkFeature feature="feature-name" fallback={false}>
-  <DarkFeature.Variation match={true}>
-    <NewComponent />
-  </DarkFeature.Variation>
-  <DarkFeature.Fallback>
-    <OldComponent />
-  </DarkFeature.Fallback>
-</DarkFeature>
+<DarkFeature
+  feature="my-feature"
+  fallback={false}
+  loading="spinner"
+  variations={{
+    true: <div>Feature is enabled!</div>,
+    false: <div>Feature is disabled!</div>,
+    spinner: <div>Loading...</div>,
+  }}
+/>
 ```
 
 **Props:**
 
 ```tsx
 interface DarkFeatureProps {
-  feature: string
-  fallback?: FeatureValue
-  context?: FeatureContext
+  feature: string // The feature flag key to evaluate
+  fallback?: FeatureValue // Fallback value to use when feature is not available (string | number | boolean | null)
+  context?: FeatureContext // Context for feature evaluation
   shouldFetch?: boolean // Whether to fetch the feature (default: true)
-  children: ReactNode // Sub-components (Variation, Loader, Fallback)
-}
-
-interface VariationProps {
-  match: FeatureValue // The expected variation value to match against
-  children: ReactNode
-}
-
-interface LoaderProps {
-  children: ReactNode // Content to render while loading
-}
-
-interface FallbackProps {
-  children: ReactNode // Content to render when no variations match
+  variations: Record<string, ReactNode> // Variations object mapping feature values/keys to JSX elements
+  loading?: string // Key in variations object to use for loading state
 }
 ```
 
-**Sub-components:**
+**FeatureValue Type Support:**
 
-- `DarkFeature.Variation` - Renders content when feature matches a specific value
-- `DarkFeature.Loader` - Renders loading state while feature is being fetched
-- `DarkFeature.Fallback` - Renders default content when no variations match
+The `variations` object keys must be strings, but they correspond to all supported `FeatureValue` types:
+
+| FeatureValue Type | Example Value | Variation Key | Description                 |
+| ----------------- | ------------- | ------------- | --------------------------- |
+| `string`          | `"variant-a"` | `"variant-a"` | Direct string match         |
+| `boolean`         | `true`        | `"true"`      | Boolean converted to string |
+| `boolean`         | `false`       | `"false"`     | Boolean converted to string |
+| `number`          | `42`          | `"42"`        | Number converted to string  |
+| `null`            | `null`        | `"null"`      | Null converted to string    |
 
 **Examples:**
 
+#### String Feature Values
+
 ```tsx
-function App() {
-  return (
-    <div>
-      {/* Simple boolean feature */}
-      <DarkFeature feature="new-header" fallback={false}>
-        <DarkFeature.Loader>
-          <HeaderSkeleton />
-        </DarkFeature.Loader>
-        <DarkFeature.Variation match={true}>
-          <NewHeader />
-        </DarkFeature.Variation>
-        <DarkFeature.Fallback>
-          <OldHeader />
-        </DarkFeature.Fallback>
-      </DarkFeature>
+<DarkFeature
+  feature="theme-variant"
+  fallback="auto"
+  loading="spinner"
+  variations={{
+    light: <LightTheme />,
+    dark: <DarkTheme />,
+    auto: <AutoTheme />,
+    spinner: <ThemeLoader />,
+  }}
+/>
+```
 
-      {/* Multiple variations with string values */}
-      <DarkFeature feature="theme-variant" fallback="light">
-        <DarkFeature.Variation match="light">
-          <div className="theme-light">
-            <MainContent />
-          </div>
-        </DarkFeature.Variation>
-        <DarkFeature.Variation match="dark">
-          <div className="theme-dark">
-            <MainContent />
-          </div>
-        </DarkFeature.Variation>
-        <DarkFeature.Variation match="auto">
-          <div className="theme-auto">
-            <MainContent />
-          </div>
-        </DarkFeature.Variation>
-        <DarkFeature.Fallback>
-          <div className="theme-default">
-            <MainContent />
-          </div>
-        </DarkFeature.Fallback>
-      </DarkFeature>
+#### Boolean Feature Values
 
-      {/* Numeric variations */}
-      <DarkFeature feature="max-items" fallback={10}>
-        <DarkFeature.Variation match={5}>
-          <ItemList maxItems={5} />
-        </DarkFeature.Variation>
-        <DarkFeature.Variation match={10}>
-          <ItemList maxItems={10} />
-        </DarkFeature.Variation>
-        <DarkFeature.Variation match={20}>
-          <ItemList maxItems={20} />
-        </DarkFeature.Variation>
-        <DarkFeature.Fallback>
-          <ItemList maxItems={10} />
-        </DarkFeature.Fallback>
-      </DarkFeature>
+```tsx
+<DarkFeature
+  feature="new-header"
+  fallback="false"
+  loading="skeleton"
+  variations={{
+    // Boolean type
+    true: <NewHeader />,
+    false: <OldHeader />,
+    skeleton: <HeaderSkeleton />,
+  }}
+/>
 
-      {/* Conditional fetching based on user state */}
-      <DarkFeature
-        feature="premium-feature"
-        fallback={false}
-        shouldFetch={!!user && user.plan === 'premium'}
-      >
-        <DarkFeature.Loader>
-          <PremiumFeatureSkeleton />
-        </DarkFeature.Loader>
-        <DarkFeature.Variation match={true}>
-          <PremiumFeatureContent />
-        </DarkFeature.Variation>
-        <DarkFeature.Fallback>
-          <StandardFeatureContent />
-        </DarkFeature.Fallback>
-      </DarkFeature>
-    </div>
-  )
-}
+<DarkFeature
+  feature="show-banner"
+  variations={{
+    true: <PromoBanner />,
+    false: null, // Render nothing when false
+  }}
+/>
+```
+
+#### Number Feature Values
+
+```tsx
+<DarkFeature
+  feature="max-items"
+  fallback="10"
+  loading="spinner"
+  variations={{
+    // Number type
+    '5': <ItemList maxItems={5} />,
+    '10': <ItemList maxItems={10} />,
+    '20': <ItemList maxItems={20} />,
+    spinner: <ItemListSpinner />,
+  }}
+/>
 ```
 
 ### Simple Usage Patterns
 
-For simple show/hide scenarios, you can use the DarkFeature component with just a single variation:
+For simple show/hide scenarios, you can use the DarkFeature component with compact variations:
 
 ```tsx
 // Simple show/hide based on boolean
-<DarkFeature feature="new-feature" fallback={false}>
-  <DarkFeature.Variation match={true}>
-    <NewFeatureContent />
-  </DarkFeature.Variation>
-</DarkFeature>
+<DarkFeature
+  feature="new-feature"
+  variations={{
+    true: <NewFeatureContent />,
+  }}
+/>
 
 // With loading state
-<DarkFeature feature="beta-banner" fallback={false}>
-  <DarkFeature.Loader>
-    <BannerSkeleton />
-  </DarkFeature.Loader>
-  <DarkFeature.Variation match={true}>
-    <BetaBanner />
-  </DarkFeature.Variation>
-</DarkFeature>
+<DarkFeature
+  feature="beta-banner"
+  loading="skeleton"
+  variations={{
+    true: <BetaBanner />,
+    skeleton: <BannerSkeleton />,
+  }}
+/>
 
 // Conditional rendering with multiple possible values
-<DarkFeature feature="user-limit" fallback={10}>
-  <DarkFeature.Variation match={5}>
-    <BasicUserList />
-  </DarkFeature.Variation>
-  <DarkFeature.Variation match={10}>
-    <StandardUserList />
-  </DarkFeature.Variation>
-  <DarkFeature.Variation match={20}>
-    <AdvancedUserList />
-  </DarkFeature.Variation>
-  <DarkFeature.Fallback>
-    <DefaultUserList />
-  </DarkFeature.Fallback>
-</DarkFeature>
+<DarkFeature
+  feature="user-limit"
+  fallback="default"
+  variations={{
+    '5': <BasicUserList />,
+    '10': <StandardUserList />,
+    '20': <AdvancedUserList />,
+    default: <DefaultUserList />,
+  }}
+/>
 
 // String matching
-<DarkFeature feature="theme" fallback="light">
-  <DarkFeature.Variation match="dark">
-    <DarkModeStyles />
-  </DarkFeature.Variation>
-  <DarkFeature.Variation match="light">
-    <LightModeStyles />
-  </DarkFeature.Variation>
-</DarkFeature>
+<DarkFeature
+  feature="theme"
+  fallback="light"
+  variations={{
+    dark: <DarkModeStyles />,
+    light: <LightModeStyles />,
+  }}
+/>
 
 // Conditional fetching - only fetch when user is authenticated
 <DarkFeature
   feature="user-dashboard"
-  fallback={false}
+  fallback="public"
   shouldFetch={isAuthenticated}
->
-  <DarkFeature.Variation match={true}>
-    <UserDashboard />
-  </DarkFeature.Variation>
-  <DarkFeature.Fallback>
-    <PublicDashboard />
-  </DarkFeature.Fallback>
-</DarkFeature>
+  variations={{
+    true: <UserDashboard />,
+    public: <PublicDashboard />,
+  }}
+/>
 ```
 
 ## Error Handling

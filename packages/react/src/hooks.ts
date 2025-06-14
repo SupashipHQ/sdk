@@ -4,6 +4,7 @@ import { useDarkFeature } from './provider'
 import { UseFeatureOptions, UseFeaturesOptions } from './types'
 import { useQuery, QueryState } from './query'
 import { FeatureValue } from '@darkfeature/sdk-javascript'
+import { hasValue } from './utils'
 
 const STALE_TIME = 5 * 60 * 1000 // 5 minutes
 const CACHE_TIME = 10 * 60 * 1000 // 10 minutes
@@ -23,7 +24,7 @@ export function useFeature(
         // Try to get the feature value from the client
         const value = await client.getFeature(featureKey, { context })
         // Return the actual value if it exists (could be false, 0, etc.)
-        return value !== undefined && value !== null ? value : (fallback ?? null)
+        return hasValue(value) ? value : (fallback ?? null)
       } catch (error) {
         // If the API call fails, use the fallback
         if (fallback !== undefined) {
@@ -55,8 +56,7 @@ export function useFeatures(options: UseFeaturesOptions): QueryState<Record<stri
         // Merge API results with fallbacks for any missing values
         const mergedResult: Record<string, FeatureValue> = {}
         for (const [key, fallback] of Object.entries(features)) {
-          mergedResult[key] =
-            result[key] !== undefined && result[key] !== null ? result[key] : fallback
+          mergedResult[key] = hasValue(result[key]) ? result[key] : fallback
         }
         return mergedResult
       } catch (error) {

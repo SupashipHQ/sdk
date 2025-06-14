@@ -56,12 +56,12 @@ export class DarkFeatureClient {
     return this.defaultContext
   }
 
-  private parseValue(value: FeatureValue): FeatureValue {
-    if (!value) return null
-    if (value === 'true') return true
-    if (value === 'false') return false
-    if (typeof value === 'string' && !isNaN(Number(value))) return Number(value)
-    return value
+  private getVariationValue(variation: FeatureValue, fallback: FeatureValue): FeatureValue {
+    if (variation !== undefined && variation !== null) {
+      return variation
+    }
+
+    return fallback ?? null
   }
 
   async getFeature(featureName: string, options?: FeatureOptions): Promise<FeatureValue> {
@@ -156,8 +156,7 @@ export class DarkFeatureClient {
 
         featureNames.forEach(name => {
           const variation = data.features[name]?.variation
-          result[name] =
-            variation !== undefined ? this.parseValue(variation) : (options.features[name] ?? null)
+          result[name] = this.getVariationValue(variation, options.features[name])
         })
 
         return result
