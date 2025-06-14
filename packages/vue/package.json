@@ -1,0 +1,65 @@
+{
+  "name": "@darkfeature/sdk-vue",
+  "version": "0.2.3",
+  "description": "DarkFeature SDK for Vue",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "clean": "rimraf dist",
+    "build": "pnpm clean && pnpm build:tsup",
+    "build:tsup": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest",
+    "test:watch": "vitest --watch",
+    "test:coverage": "vitest --coverage",
+    "lint": "eslint src --ext .ts,.vue",
+    "lint:fix": "eslint src --ext .ts,.vue --fix",
+    "prepublishOnly": "pnpm build"
+  },
+  "peerDependencies": {
+    "vue": ">=3.0.0"
+  },
+  "dependencies": {
+    "@darkfeature/sdk-javascript": "workspace:^0.2.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "@vitejs/plugin-vue": "^5.0.0",
+    "@vue/test-utils": "^2.4.0",
+    "eslint": "^8.0.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-prettier": "^5.0.0",
+    "eslint-plugin-vue": "^9.0.0",
+    "jsdom": "^24.0.0",
+    "prettier": "^3.0.0",
+    "rimraf": "^6.0.1",
+    "typescript": "~5.3.3",
+    "vitest": "^1.0.0",
+    "vue": "^3.4.0"
+  },
+  "keywords": [
+    "feature-flags",
+    "feature-toggles",
+    "vue",
+    "sdk"
+  ],
+  "author": "DarkFeature",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/darkfeature/sdk.git",
+    "directory": "packages/vue"
+  },
+  "bugs": {
+    "url": "https://github.com/darkfeature/sdk/issues"
+  },
+  "homepage": "https://darkfeature.com"
+}
