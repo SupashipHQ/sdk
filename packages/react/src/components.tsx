@@ -1,8 +1,9 @@
 'use client'
 
-import React, { ReactNode, Children, isValidElement } from 'react'
+import React, { ReactNode } from 'react'
 import { useFeature } from './hooks'
 import { FeatureValue } from '@darkfeature/sdk-javascript'
+import { hasValue } from './utils'
 
 export interface DarkFeatureProps {
   /**
@@ -11,7 +12,7 @@ export interface DarkFeatureProps {
   feature: string
 
   /**
-   * Fallback value to use when the feature is loading or fails to load
+   * Key in variations object to use when no feature value matches
    */
   fallback?: FeatureValue
 
@@ -26,77 +27,90 @@ export interface DarkFeatureProps {
   shouldFetch?: boolean
 
   /**
-   * Child components (Variation, Loader, Fallback)
+   * Variations object mapping feature values/keys to JSX elements
    */
-  children: ReactNode
-}
-
-export interface VariationProps {
-  /**
-   * The expected variation value to match against
-   */
-  match: FeatureValue
+  variations: Record<string, ReactNode>
 
   /**
-   * Content to render when feature matches this variation
+   * Key in variations object to use for loading state
    */
-  children: ReactNode
-}
-
-export interface LoaderProps {
-  /**
-   * Content to render while loading
-   */
-  children: ReactNode
-}
-
-export interface FallbackProps {
-  /**
-   * Content to render when no variations match
-   */
-  children: ReactNode
+  loading?: string
 }
 
 /**
- * Variation component for rendering content when feature matches a specific value
- */
-export function Variation({ children }: VariationProps): React.JSX.Element {
-  return <>{children}</>
-}
-
-/**
- * Loader component for rendering loading state
- */
-export function Loader({ children }: LoaderProps): React.JSX.Element {
-  return <>{children}</>
-}
-
-/**
- * Fallback component for rendering default content when no variations match
- */
-export function Fallback({ children }: FallbackProps): React.JSX.Element {
-  return <>{children}</>
-}
-
-/**
- * DarkFeature component that conditionally renders children based on feature flag variations.
+ * DarkFeature component that conditionally renders variations based on feature flag values.
+ *
+ * Supports all FeatureValue types (string | number | boolean | null) as variation keys.
+ * Feature values are automatically converted to strings for object key matching:
+ * - boolean `true` → `"true"`
+ * - boolean `false` → `"false"`
+ * - number `42` → `"42"`
+ * - string `"variant-a"` → `"variant-a"`
+ * - `null` → `"null"`
  *
  * @example
+ * String variations:
  * ```tsx
- * <DarkFeature feature="my-feature" fallback={false}>
- *   <DarkFeature.Variation match={true}>
- *     <div>Feature is enabled!</div>
- *   </DarkFeature.Variation>
- *   <DarkFeature.Variation match="variant-a">
- *     <div>Variant A content</div>
- *   </DarkFeature.Variation>
- *   <DarkFeature.Loader>
- *     <div>Loading...</div>
- *   </DarkFeature.Loader>
- *   <DarkFeature.Fallback>
- *     <div>Default content</div>
- *   </DarkFeature.Fallback>
- * </DarkFeature>
+ * <DarkFeature
+ *   feature="theme-variant"
+ *   fallback="default"
+ *   loading="spinner"
+ *   variations={{
+ *     "light": <LightTheme />,
+ *     "dark": <DarkTheme />,
+ *     "auto": <AutoTheme />,
+ *     default: <DefaultTheme />,
+ *     spinner: <ThemeLoader />
+ *   }}
+ * />
+ * ```
+ *
+ * @example
+ * Boolean variations:
+ * ```tsx
+ * <DarkFeature
+ *   feature="new-header"
+ *   fallback={false}
+ *   loading="skeleton"
+ *   variations={{
+ *     "true": <NewHeader />,
+ *     "false": <OldHeader />,
+ *     skeleton: <HeaderSkeleton />
+ *   }}
+ * />
+ * ```
+ *
+ * @example
+ * Number variations:
+ * ```tsx
+ * <DarkFeature
+ *   feature="max-items"
+ *   fallback="default"
+ *   variations={{
+ *     "5": <ItemList maxItems={5} />,
+ *     "10": <ItemList maxItems={10} />,
+ *     "20": <ItemList maxItems={20} />,
+ *     default: <ItemList maxItems={10} />
+ *   }}
+ * />
+ * ```
+ *
+ * @example
+ * Mixed types with null handling:
+ * ```tsx
+ * <DarkFeature
+ *   feature="experiment-config"
+ *   fallback="disabled"
+ *   variations={{
+ *     "control": <ControlExperiment />,
+ *     "variant-a": <VariantAExperiment />,
+ *     "42": <NumericExperiment value={42} />,
+ *     "true": <EnabledExperiment />,
+ *     "false": <DisabledExperiment />,
+ *     "null": <NoExperiment />,
+ *     disabled: <NoExperiment />
+ *   }}
+ * />
  * ```
  */
 export function DarkFeature({
@@ -104,63 +118,40 @@ export function DarkFeature({
   fallback,
   context,
   shouldFetch = true,
-  children,
+  variations,
+  loading,
 }: DarkFeatureProps): React.JSX.Element | null {
-  const { data, isLoading } = useFeature(feature, {
-    fallback,
+  const { feature: featureValue, isLoading } = useFeature(feature, {
     context,
     shouldFetch,
   })
 
-  // Find child components
-  const variations: { match: FeatureValue; children: ReactNode }[] = []
-  let loaderChildren: ReactNode | null = null
-  let fallbackChildren: ReactNode | null = null
-
-  Children.forEach(children, child => {
-    if (isValidElement(child)) {
-      if (child.type === Variation && child.props && 'match' in child.props) {
-        const props = child.props as VariationProps
-        // eslint-disable-next-line react/prop-types
-        variations.push({ match: props.match, children: props.children })
-      } else if (child.type === Loader && child.props) {
-        const props = child.props as LoaderProps
-        loaderChildren = props.children
-      } else if (child.type === Fallback && child.props) {
-        const props = child.props as FallbackProps
-        fallbackChildren = props.children
-      }
-    }
-  })
-
   // Show loading state if provided and currently loading
-  if (isLoading && loaderChildren) {
-    return <>{loaderChildren}</>
+  if (isLoading && loading && variations[loading]) {
+    return <>{variations[loading]}</>
   }
 
-  // Don't render anything if still loading and no loader component provided
+  // Don't render anything if still loading and no loader provided
   if (isLoading) {
     return null
   }
 
-  // Find matching variation
-  const matchingVariation = variations.find(variation => variation.match === data)
+  // Use fallback if data is undefined/null and fallback is provided
+  const effectiveValue = hasValue(featureValue) ? featureValue : (fallback ?? null)
 
-  // Render matching variation if found
-  if (matchingVariation) {
-    return <>{matchingVariation.children}</>
+  // Don't render anything if no effective value
+  if (!hasValue(effectiveValue)) {
+    return null
   }
 
-  // Render fallback component if no variation matches
-  if (fallbackChildren) {
-    return <>{fallbackChildren}</>
+  // Convert effective value to string for object key lookup
+  const valueKey = String(effectiveValue)
+
+  // Find matching variation by exact key match
+  if (variations[valueKey]) {
+    return <>{variations[valueKey]}</>
   }
 
-  // Don't render anything if no fallback provided and no variation matches
+  // Don't render anything if no variation matches
   return null
 }
-
-// Attach sub-components to main component
-DarkFeature.Variation = Variation
-DarkFeature.Loader = Loader
-DarkFeature.Fallback = Fallback
