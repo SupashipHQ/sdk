@@ -1,6 +1,6 @@
 {
   "name": "@darkfeature/sdk-react",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "DarkFeature SDK for React",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -27,7 +27,7 @@
     "react-dom": ">=16.8.0"
   },
   "dependencies": {
-    "@darkfeature/sdk-javascript": "workspace:^0.2.1"
+    "@darkfeature/sdk-javascript": "workspace:^0.2.2"
   },
   "devDependencies": {
     "@jest/globals": "^30.0.0",
