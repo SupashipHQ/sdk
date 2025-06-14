@@ -36,16 +36,16 @@ function App() {
 
 function YourApp() {
   // Simple usage with fallback
-  const { data: isEnabled } = useFeature('my-feature', { fallback: false })
+  const { feature: isEnabled } = useFeature('my-feature', { fallback: false })
 
   // With context override
-  const { data: variation } = useFeature('experiment-feature', {
+  const { feature: expFeature } = useFeature('experiment-feature', {
     fallback: 'control',
     context: { segment: 'premium' },
   })
 
   // Multiple features at once
-  const { data: features } = useFeatures({
+  const { features } = useFeatures({
     features: {
       'feature-1': false,
       'feature-2': 'default-value',
@@ -116,7 +116,7 @@ Common context properties:
 Retrieves a single feature flag value with React state management.
 
 ```tsx
-const { data: value }: QueryState<FeatureValue> = useFeature(featureName: string, options?: UseFeatureOptions)
+const { feature, isLoading, error }: UseFeatureResult = useFeature(featureName: string, options?: UseFeatureOptions)
 ```
 
 **UseFeatureOptions:**
@@ -134,20 +134,20 @@ interface UseFeatureOptions {
 ```tsx
 function MyComponent() {
   // Simple boolean feature
-  const { data: isEnabled } = useFeature('my-feature', { fallback: false })
+  const { feature: isEnabled } = useFeature('my-feature', { fallback: false })
 
   // String variant with fallback
-  const { data: variant } = useFeature('button-color', { fallback: 'blue' })
+  const { feature: btnColor } = useFeature('button-color', { fallback: 'blue' })
 
   // With context override
-  const showPremium = useFeature('premium-feature', {
+  const { feature: showPremium } = useFeature('premium-feature', {
     fallback: false,
     context: { userPlan: 'premium' },
   })
 
   // Conditional fetching
   const { user, isLoading } = useUser()
-  const personalizedFeature = useFeature('personalized-dashboard', {
+  const { feature: personalizedDashboard } = useFeature('personalized-dashboard', {
     fallback: false,
     context: { userId: user?.id },
     shouldFetch: !isLoading && !!user,
@@ -168,7 +168,7 @@ function MyComponent() {
 Retrieves multiple feature flags in a single request with React state management.
 
 ```tsx
-const { data, isLoading }: QueryState<Record<string, FeatureValue>> = useFeatures(options: UseFeaturesOptions)
+const { features, isLoading, error }: UseFeaturesResult = useFeatures(options: UseFeaturesOptions)
 ```
 
 **UseFeaturesOptions:**
@@ -187,7 +187,7 @@ interface UseFeaturesOptions {
 function Dashboard() {
   const { user, isLoading } = useUser()
 
-  const { data: features } = useFeatures({
+  const { features } = useFeatures({
     features: {
       'new-dashboard': false,
       'sidebar-variant': 'default',
@@ -414,10 +414,10 @@ The React SDK handles errors gracefully by returning fallback values when provid
 
 ```tsx
 // ✅ Good - provides fallback
-const { data: isEnabled } = useFeature('new-feature', { fallback: false })
+const { feature: isEnabled } = useFeature('new-feature', { fallback: false })
 
 // ❌ Risky - no fallback, may cause issues
-const { data: isEnabled } = useFeature('new-feature')
+const { feature: isEnabled } = useFeature('new-feature')
 ```
 
 ### 2. Use Context for User Targeting
@@ -448,7 +448,7 @@ function App() {
 
 ```tsx
 // ✅ Good - single API call
-const { data: features } = useFeatures({
+const { features } = useFeatures({
   features: {
     'feature-1': false,
     'feature-2': 'default',
@@ -468,7 +468,7 @@ const feature3 = useFeature('feature-3', { fallback: null })
 function MyComponent() {
   const { user, isLoading: userLoading } = useUser()
 
-  const { data: features } = useFeatures({
+  const { features } = useFeatures({
     features: { 'user-specific-feature': false },
     context: { userId: user?.id },
     shouldFetch: !userLoading && !!user,
@@ -550,7 +550,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 import { useFeature } from '@darkfeature/sdk-react'
 
 export default function HomePage() {
-  const { data: showNewHero } = useFeature('new-hero-section', { fallback: false })
+  const { feature: showNewHero } = useFeature('new-hero-section', { fallback: false })
 
   return <main>{showNewHero ? <NewHeroSection /> : <OldHeroSection />}</main>
 }
@@ -582,7 +582,7 @@ export default function App({ Component, pageProps }: AppProps) {
 import { useFeatures } from '@darkfeature/sdk-react'
 
 export default function HomePage() {
-  const { data: features } = useFeatures({
+  const { features } = useFeatures({
     features: {
       'new-homepage': false,
       'hero-variant': 'default',
@@ -683,7 +683,7 @@ import { View, Text } from 'react-native'
 import { useFeature } from '@darkfeature/sdk-react'
 
 export function HomePage() {
-  const { data: showNewOnboarding } = useFeature('new-onboarding-flow', { fallback: false })
+  const { feature: showNewOnboarding } = useFeature('new-onboarding-flow', { fallback: false })
 
   return <View>{showNewOnboarding ? <NewOnboardingFlow /> : <OldOnboardingFlow />}</View>
 }
@@ -712,7 +712,7 @@ export const wrapRootElement = ({ element }) => (
 import { useFeature } from '@darkfeature/sdk-react'
 
 export function Layout({ children }) {
-  const { data: newLayout } = useFeature('new-layout-design', { fallback: false })
+  const { feature: newLayout } = useFeature('new-layout-design', { fallback: false })
 
   return <div className={newLayout ? 'new-layout' : 'old-layout'}>{children}</div>
 }
@@ -725,7 +725,7 @@ export function Layout({ children }) {
 ```tsx
 function DynamicFeatureComponent() {
   const [featureName, setFeatureName] = useState('default-feature')
-  const { data: isEnabled } = useFeature(featureName, { fallback: false })
+  const { feature: isEnabled } = useFeature(featureName, { fallback: false })
 
   return (
     <div>
@@ -745,9 +745,9 @@ function DynamicFeatureComponent() {
 
 ```tsx
 function useCompositeFeature() {
-  const { data: newUI } = useFeature('new-ui', { fallback: false })
-  const { data: darkMode } = useFeature('dark-mode', { fallback: false })
-  const { data: animations } = useFeature('animations', { fallback: true })
+  const { feature: newUI } = useFeature('new-ui', { fallback: false })
+  const { feature: darkMode } = useFeature('dark-mode', { fallback: false })
+  const { feature: animations } = useFeature('animations', { fallback: true })
 
   return {
     showNewUIWithDarkMode: newUI && darkMode,

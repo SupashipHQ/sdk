@@ -6,18 +6,24 @@ import { useQuery, QueryState } from './query'
 import { FeatureValue } from '@darkfeature/sdk-javascript'
 import { hasValue } from './utils'
 
+// Custom return types for hooks
+export interface UseFeatureResult extends Omit<QueryState<FeatureValue>, 'data'> {
+  feature: FeatureValue
+}
+
+export interface UseFeaturesResult extends Omit<QueryState<Record<string, FeatureValue>>, 'data'> {
+  features: Record<string, FeatureValue>
+}
+
 const STALE_TIME = 5 * 60 * 1000 // 5 minutes
 const CACHE_TIME = 10 * 60 * 1000 // 10 minutes
 
 // Main useFeature hook with options parameter
-export function useFeature(
-  featureKey: string,
-  options?: UseFeatureOptions
-): QueryState<FeatureValue> {
+export function useFeature(featureKey: string, options?: UseFeatureOptions): UseFeatureResult {
   const client = useDarkFeature()
   const { fallback, context, shouldFetch = true } = options ?? {}
 
-  return useQuery(
+  const result = useQuery(
     ['feature', featureKey, context],
     async (): Promise<FeatureValue> => {
       try {
@@ -42,13 +48,19 @@ export function useFeature(
       initialData: fallback, // Use fallback as initial data
     }
   )
+
+  const { data, ...rest } = result
+  return {
+    ...rest,
+    feature: data ?? null,
+  }
 }
 
-export function useFeatures(options: UseFeaturesOptions): QueryState<Record<string, FeatureValue>> {
+export function useFeatures(options: UseFeaturesOptions): UseFeaturesResult {
   const client = useDarkFeature()
   const { features, context, shouldFetch = true } = options
 
-  return useQuery(
+  const result = useQuery(
     ['features', Object.keys(features).sort(), context],
     async (): Promise<Record<string, FeatureValue>> => {
       try {
@@ -71,4 +83,10 @@ export function useFeatures(options: UseFeaturesOptions): QueryState<Record<stri
       refetchOnWindowFocus: false, // Feature flags shouldn't refetch on focus
     }
   )
+
+  const { data, ...rest } = result
+  return {
+    ...rest,
+    features: data ?? {},
+  }
 }

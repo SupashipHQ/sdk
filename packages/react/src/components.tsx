@@ -121,7 +121,7 @@ export function DarkFeature({
   variations,
   loading,
 }: DarkFeatureProps): React.JSX.Element | null {
-  const { data, isLoading } = useFeature(feature, {
+  const { feature: featureValue, isLoading } = useFeature(feature, {
     context,
     shouldFetch,
   })
@@ -137,7 +137,7 @@ export function DarkFeature({
   }
 
   // Use fallback if data is undefined/null and fallback is provided
-  const effectiveValue = hasValue(data) ? data : (fallback ?? null)
+  const effectiveValue = hasValue(featureValue) ? featureValue : (fallback ?? null)
 
   // Don't render anything if no effective value
   if (!hasValue(effectiveValue)) {
