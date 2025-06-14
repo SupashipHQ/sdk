@@ -3,8 +3,8 @@ name: Version Bump and Release
 # To trigger the publish workflow automatically, create a Personal Access Token (PAT):
 # 1. Go to GitHub Settings > Developer settings > Personal access tokens > Tokens (classic)
 # 2. Generate a new token with 'repo' and 'workflow' scopes
-# 3. Add it as a repository secret named 'PAT_TOKEN'
-# Without PAT_TOKEN, the publish workflow won't be triggered automatically
+# 3. Add it as a repository secret named 'GH_ACCESS_TOKEN'
+# Without GH_ACCESS_TOKEN, the publish workflow won't be triggered automatically
 
 on:
   workflow_dispatch:
@@ -44,7 +44,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GH_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
       - name: Setup pnpm
@@ -192,7 +192,7 @@ jobs:
           git push origin main
           git push origin "$NEW_VERSION"
         env:
-          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
