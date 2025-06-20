@@ -64,7 +64,10 @@ export class DarkFeatureClient {
     return fallback ?? null
   }
 
-  async getFeature(featureName: string, options?: FeatureOptions): Promise<FeatureValue> {
+  async getFeature<T extends FeatureValue = FeatureValue>(
+    featureName: string,
+    options?: FeatureOptions<T>
+  ): Promise<T> {
     const { fallback, context } = options ?? {}
 
     // Only merge context if it's defined and not null
@@ -75,13 +78,13 @@ export class DarkFeatureClient {
 
     try {
       const response = await this.getFeatures({
-        features: { [featureName]: fallback ?? null },
+        features: { [featureName]: fallback ?? null } as any,
         context: mergedContext,
       })
 
-      const value = response[featureName] ?? fallback ?? null
+      const value = (response as any)[featureName] ?? fallback ?? null
 
-      return value
+      return value as unknown as T
     } catch (error) {
       // Run onError hooks
       await Promise.all(this.plugins.map(plugin => plugin.onError?.(error as Error, mergedContext)))
@@ -89,15 +92,19 @@ export class DarkFeatureClient {
       if (fallback !== undefined) {
         // Notify plugins that fallback was used
         await Promise.all(
-          this.plugins.map(plugin => plugin.onFallbackUsed?.(featureName, fallback, error as Error))
+          this.plugins.map(plugin =>
+            plugin.onFallbackUsed?.(featureName, fallback as FeatureValue, error as Error)
+          )
         )
-        return fallback
+        return fallback as unknown as T
       }
       throw error
     }
   }
 
-  async getFeatures(options: FeaturesOptions): Promise<Record<string, FeatureValue>> {
+  async getFeatures<T extends Record<string, FeatureValue> = Record<string, FeatureValue>>(
+    options: FeaturesOptions<T>
+  ): Promise<T> {
     const context = {
       ...this.defaultContext,
       ...options.context,
@@ -156,7 +163,7 @@ export class DarkFeatureClient {
 
         featureNames.forEach(name => {
           const variation = data.features[name]?.variation
-          result[name] = this.getVariationValue(variation, options.features[name])
+          result[name] = this.getVariationValue(variation, (options.features as any)[name])
         })
 
         return result
@@ -179,7 +186,7 @@ export class DarkFeatureClient {
       // Run afterGetFeatures hooks
       await Promise.all(this.plugins.map(plugin => plugin.afterGetFeatures?.(result, context)))
 
-      return result
+      return result as unknown as T
     } catch (error) {
       // Run onError hooks
       await Promise.all(this.plugins.map(plugin => plugin.onError?.(error as Error, context)))
@@ -191,20 +198,19 @@ export class DarkFeatureClient {
           Object.entries(options.features).map(([featureName, fallbackValue]) =>
             Promise.all(
               this.plugins.map(plugin =>
-                plugin.onFallbackUsed?.(featureName, fallbackValue, error as Error)
+                plugin.onFallbackUsed?.(featureName, fallbackValue as FeatureValue, error as Error)
               )
             )
           )
         )
-        return options.features
+        return options.features as unknown as T
       }
 
-      // Re-throw the error if no fallbacks are available
       throw error
     }
   }
 
   async cleanup(): Promise<void> {
-    await Promise.all(this.plugins.map(plugin => plugin.cleanup?.()))
+    // Cleanup resources if needed
   }
 }
