@@ -85,8 +85,10 @@ export function useFeatures<T extends Record<string, FeatureValue> = Record<stri
         for (const [key, fallback] of Object.entries(features)) {
           const apiValue = result[key]
           if (hasValue(apiValue)) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             ;(mergedResult as any)[key] = apiValue
           } else {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             ;(mergedResult as any)[key] = fallback
           }
         }

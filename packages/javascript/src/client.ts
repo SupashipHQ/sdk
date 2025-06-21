@@ -78,10 +78,12 @@ export class DarkFeatureClient {
 
     try {
       const response = await this.getFeatures({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         features: { [featureName]: fallback ?? null } as any,
         context: mergedContext,
       })
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const value = (response as any)[featureName] ?? fallback ?? null
 
       return value as unknown as T
@@ -163,6 +165,7 @@ export class DarkFeatureClient {
 
         featureNames.forEach(name => {
           const variation = data.features[name]?.variation
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           result[name] = this.getVariationValue(variation, (options.features as any)[name])
         })
 
