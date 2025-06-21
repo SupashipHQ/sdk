@@ -1,6 +1,6 @@
 {
   "name": "@darkfeature/sdk-javascript",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "JavaScript SDK for DarkFeature",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",

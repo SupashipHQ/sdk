@@ -81,7 +81,7 @@ importers:
   packages/react:
     dependencies:
       '@darkfeature/sdk-javascript':
-        specifier: workspace:^0.2.3
+        specifier: workspace:^0.2.4
         version: link:../javascript
       react:
         specifier: '>=16.8.0'
