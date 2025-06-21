@@ -6,38 +6,48 @@ import { useQuery, QueryState } from './query'
 import { FeatureValue } from '@darkfeature/sdk-javascript'
 import { hasValue } from './utils'
 
-// Custom return types for hooks
-export interface UseFeatureResult extends Omit<QueryState<FeatureValue>, 'data'> {
-  feature: FeatureValue
+// Custom return types for hooks with generics
+export interface UseFeatureResult<T extends FeatureValue> extends Omit<QueryState<T>, 'data'> {
+  feature: T
 }
 
-export interface UseFeaturesResult extends Omit<QueryState<Record<string, FeatureValue>>, 'data'> {
-  features: Record<string, FeatureValue>
+export interface UseFeaturesResult<T extends Record<string, FeatureValue>>
+  extends Omit<QueryState<T>, 'data'> {
+  features: T
 }
 
 const STALE_TIME = 5 * 60 * 1000 // 5 minutes
 const CACHE_TIME = 10 * 60 * 1000 // 10 minutes
 
-// Main useFeature hook with options parameter
-export function useFeature(featureKey: string, options?: UseFeatureOptions): UseFeatureResult {
+export function useFeature<T extends FeatureValue = FeatureValue>(
+  featureName: string,
+  options?: UseFeatureOptions<T>
+): UseFeatureResult<T> {
   const client = useDarkFeature()
   const { fallback, context, shouldFetch = true } = options ?? {}
 
   const result = useQuery(
-    ['feature', featureKey, context],
-    async (): Promise<FeatureValue> => {
+    ['feature', featureName, context],
+    async (): Promise<T> => {
       try {
         // Try to get the feature value from the client
-        const value = await client.getFeature(featureKey, { context })
+        const value = await client.getFeature(featureName, { context })
         // Return the actual value if it exists (could be false, 0, etc.)
-        return hasValue(value) ? value : (fallback ?? null)
+        if (hasValue(value)) {
+          // Since T extends FeatureValue and value is FeatureValue, this is safe
+          return value as unknown as T
+        }
+        if (fallback !== undefined) {
+          return fallback
+        }
+        return null as unknown as T
       } catch (error) {
         // If the API call fails, use the fallback
         if (fallback !== undefined) {
           return fallback
         }
         // If no fallback provided, return null as safe default
-        return null
+        return null as unknown as T
       }
     },
     {
@@ -52,28 +62,40 @@ export function useFeature(featureKey: string, options?: UseFeatureOptions): Use
   const { data, ...rest } = result
   return {
     ...rest,
-    feature: data ?? null,
+    feature: data ?? (null as unknown as T),
   }
 }
 
-export function useFeatures(options: UseFeaturesOptions): UseFeaturesResult {
+export function useFeatures<T extends Record<string, FeatureValue> = Record<string, FeatureValue>>(
+  options: UseFeaturesOptions<T>
+): UseFeaturesResult<T> {
   const client = useDarkFeature()
   const { features, context, shouldFetch = true } = options
 
   const result = useQuery(
     ['features', Object.keys(features).sort(), context],
-    async (): Promise<Record<string, FeatureValue>> => {
+    async (): Promise<T> => {
       try {
-        const result = await client.getFeatures({ features, context })
+        const result = await client.getFeatures({
+          features: features as Record<string, FeatureValue>,
+          context,
+        })
         // Merge API results with fallbacks for any missing values
-        const mergedResult: Record<string, FeatureValue> = {}
+        const mergedResult = {} as T
         for (const [key, fallback] of Object.entries(features)) {
-          mergedResult[key] = hasValue(result[key]) ? result[key] : fallback
+          const apiValue = result[key]
+          if (hasValue(apiValue)) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            ;(mergedResult as any)[key] = apiValue
+          } else {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            ;(mergedResult as any)[key] = fallback
+          }
         }
         return mergedResult
       } catch (error) {
         // If API fails, return the fallback features
-        return features
+        return features as unknown as T
       }
     },
     {
@@ -87,6 +109,6 @@ export function useFeatures(options: UseFeaturesOptions): UseFeaturesResult {
   const { data, ...rest } = result
   return {
     ...rest,
-    features: data ?? {},
+    features: data ?? ({} as T),
   }
 }

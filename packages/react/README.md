@@ -128,17 +128,17 @@ Common context properties:
 
 ### useFeature Hook
 
-Retrieves a single feature flag value with React state management.
+Retrieves a single feature flag value with React state management and full TypeScript type safety.
 
 ```tsx
-const { feature, isLoading, error }: UseFeatureResult = useFeature(featureName: string, options?: UseFeatureOptions)
+const { feature, isLoading, error }: UseFeatureResult<T> = useFeature<T>(featureName: string, options?: UseFeatureOptions<T>)
 ```
 
 **UseFeatureOptions:**
 
 ```tsx
-interface UseFeatureOptions {
-  fallback?: FeatureValue // Fallback value if feature not found
+interface UseFeatureOptions<T extends FeatureValue = FeatureValue> {
+  fallback?: T // Type-safe fallback value
   context?: FeatureContext // Context override for this request
   shouldFetch?: boolean // Whether to fetch the feature (default: true)
 }
@@ -149,30 +149,38 @@ interface UseFeatureOptions {
 ```tsx
 function MyComponent() {
   // Simple boolean feature
-  const { feature: isEnabled } = useFeature('my-feature', { fallback: false })
+  const { feature: isEnabled } = useFeature<boolean>('my-feature', { fallback: false })
 
   // String variant with fallback
-  const { feature: btnColor } = useFeature('button-color', { fallback: 'blue' })
+  const { feature: buttonColor } = useFeature<string>('button-color', { fallback: 'blue' })
+
+  // Number variant with fallback
+  const { feature: maxItems } = useFeature<number>('max-items', { fallback: 10 })
 
   // With context override
-  const { feature: showPremium } = useFeature('premium-feature', {
+  const { feature: showPremium } = useFeature<boolean>('premium-feature', {
     fallback: false,
     context: { userPlan: 'premium' },
   })
 
   // Conditional fetching
   const { user, isLoading } = useUser()
-  const { feature: personalizedDashboard } = useFeature('personalized-dashboard', {
-    fallback: false,
-    context: { userId: user?.id },
-    shouldFetch: !isLoading && !!user,
-  })
+  const { feature: dashboardVariant } = useFeature<'modern' | 'classic' | 'beta'>(
+    'dashboard-variant',
+    {
+      fallback: 'classic',
+      context: { userId: user?.id },
+      shouldFetch: !isLoading && !!user,
+    }
+  )
 
   return (
     <div>
       {isEnabled && <NewFeature />}
-      <Button color={variant} />
+      <Button color={buttonColor} />
+      <ItemList maxItems={maxItems} />
       {showPremium && <PremiumContent />}
+      <Dashboard variant={dashboardVariant} />
     </div>
   )
 }
@@ -183,31 +191,36 @@ function MyComponent() {
 Retrieves multiple feature flags in a single request with React state management.
 
 ```tsx
-const { features, isLoading, error }: UseFeaturesResult = useFeatures(options: UseFeaturesOptions)
+const { features, isLoading, error }: UseFeaturesResult<T> = useFeatures<T>(options: UseFeaturesOptions<T>)
 ```
 
 **UseFeaturesOptions:**
 
 ```tsx
-interface UseFeaturesOptions {
-  features: Record<string, FeatureValue> // Feature names with fallback values
+interface UseFeaturesOptions<T extends Record<string, FeatureValue>> {
+  features: T // Feature names with fallback values
   context?: FeatureContext // Context override for this request
   shouldFetch?: boolean // Whether to fetch features (default: true)
 }
 ```
 
-**Example:**
+**Examples:**
 
 ```tsx
 function Dashboard() {
   const { user, isLoading } = useUser()
 
-  const { features } = useFeatures({
+  type DashboardFeatures = {
+    'new-dashboard': boolean
+    'sidebar-variant': 'light' | 'dark' | 'auto'
+    'max-items': number
+  }
+
+  const { features } = useFeatures<DashboardFeatures>({
     features: {
       'new-dashboard': false,
-      'sidebar-variant': 'default',
+      'sidebar-variant': 'auto',
       'max-items': 10,
-      'premium-widgets': false,
     },
     context: {
       userId: user?.id,
@@ -223,7 +236,6 @@ function Dashboard() {
     <div className={features['new-dashboard'] ? 'new-layout' : 'old-layout'}>
       <Sidebar variant={features['sidebar-variant']} />
       <MainContent maxItems={features['max-items']} />
-      {features['premium-widgets'] && <PremiumWidgets />}
     </div>
   )
 }
@@ -899,71 +911,6 @@ describe('MyComponent', () => {
     expect(screen.getByText('Old Feature Content')).toBeInTheDocument()
   })
 })
-```
-
-## TypeScript Support
-
-The SDK is written in TypeScript and provides full type safety:
-
-```tsx
-import {
-  DarkFeatureProvider,
-  useFeature,
-  useFeatures,
-  FeatureValue,
-  FeatureContext,
-  DarkFeatureConfig,
-} from '@darkfeature/sdk-react'
-
-// Type-safe configuration
-const config: DarkFeatureConfig = {
-  apiKey: 'your-api-key',
-  context: {
-    userId: '123',
-    plan: 'premium',
-  },
-}
-
-// Type-safe feature values
-const isEnabled: boolean = useFeature('boolean-feature', { fallback: false })
-const variant: string = useFeature('string-feature', { fallback: 'default' })
-const count: number = useFeature('number-feature', { fallback: 0 })
-
-// Type-safe context
-const context: FeatureContext = {
-  userId: '123',
-  segment: 'premium',
-  version: '1.0.0',
-}
-```
-
-### Custom Type Definitions
-
-```tsx
-// types/features.ts
-export interface AppFeatureContext {
-  userId?: string
-  plan?: 'free' | 'premium' | 'enterprise'
-  segment?: string
-  version?: string
-  region?: string
-}
-
-export type AppFeatureFlags = {
-  'new-dashboard': boolean
-  'theme-variant': 'light' | 'dark' | 'auto'
-  'max-file-size': number
-  'beta-features': boolean
-}
-
-// Custom hooks with strict typing
-export function useAppFeature<K extends keyof AppFeatureFlags>(
-  featureName: K,
-  fallback: AppFeatureFlags[K],
-  context?: AppFeatureContext
-): AppFeatureFlags[K] {
-  return useFeature(featureName, { fallback, context })
-}
 ```
 
 ## Troubleshooting

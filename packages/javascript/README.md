@@ -27,20 +27,26 @@ const client = new DarkFeatureClient({
 })
 
 // Get a single feature flag with fallback
-const isEnabled = await client.getFeature('my-feature', { fallback: false })
+const isEnabled = await client.getFeature<boolean>('my-feature', { fallback: false })
 
 // Get a feature flag with context override
-const featureValue = await client.getFeature('experiment-feature', {
+const featureValue = await client.getFeature<string>('experiment-feature', {
   fallback: 'control',
   context: { segment: 'premium' },
 })
 
 // Get multiple features at once
-const features = await client.getFeatures({
+type FeatureFlags = {
+  'feature-1': boolean
+  'feature-2': string
+  'feature-3': number
+}
+
+const features = await client.getFeatures<FeatureFlags>({
   features: {
     'feature-1': false,
     'feature-2': 'default-value',
-    'feature-3': null,
+    'feature-3': 10,
   },
   context: {
     userId: '456', // Override default context for this request
@@ -88,22 +94,22 @@ interface RetryConfig {
 
 ##### getFeature()
 
-Retrieves a single feature flag value.
+Retrieves a single feature flag value with full TypeScript type safety.
 
 ```typescript
-getFeature(featureName: string, options?: FeatureOptions): Promise<FeatureValue>
+getFeature<T extends FeatureValue = FeatureValue>(featureName: string, options?: FeatureOptions<T>): Promise<T>
 ```
 
 **Parameters:**
 
 - `featureName`: The name of the feature flag
-- `options`: A `FeatureOptions` object for configuration
+- `options`: A `FeatureOptions<T>` object for configuration
 
 **FeatureOptions:**
 
 ```typescript
-interface FeatureOptions {
-  fallback?: FeatureValue // Fallback value if feature not found or error occurs
+interface FeatureOptions<T extends FeatureValue = FeatureValue> {
+  fallback?: T // Fallback value if feature not found or error occurs
   context?: FeatureContext // Context override for this request
 }
 ```
@@ -112,16 +118,22 @@ interface FeatureOptions {
 
 ```typescript
 // With fallback value
-const isEnabled = await client.getFeature('my-feature', { fallback: false })
+const isEnabled = await client.getFeature<boolean>('my-feature', { fallback: false })
 
-// With options object
-const value = await client.getFeature('my-feature', {
-  fallback: 'default',
+// Type-safe string feature - value will be typed as string
+const theme = await client.getFeature<string>('theme-variant', { fallback: 'light' })
+
+// Type-safe number feature - value will be typed as number
+const maxItems = await client.getFeature<number>('max-items', { fallback: 10 })
+
+// Advanced: Union types for specific values
+const variant = await client.getFeature<'control' | 'treatment' | 'holdout'>('experiment', {
+  fallback: 'control',
   context: { userId: '123' },
 })
 
 // No fallback (will return null if not found)
-const value = await client.getFeature('my-feature')
+const value = await client.getFeature<string>('my-feature')
 ```
 
 ##### getFeatures()
@@ -129,21 +141,49 @@ const value = await client.getFeature('my-feature')
 Retrieves multiple feature flags in a single request.
 
 ```typescript
-getFeatures(options: FeaturesOptions): Promise<Record<string, FeatureValue>>
+getFeatures<T extends Record<string, FeatureValue> = Record<string, FeatureValue>>(options: FeaturesOptions<T>): Promise<T>
 ```
 
 **FeaturesOptions:**
 
 ```typescript
-interface FeaturesOptions {
-  features: Record<string, FeatureValue> // Feature names with fallback values
+interface FeaturesOptions<T extends Record<string, FeatureValue> = Record<string, FeatureValue>> {
+  features: T // Feature names with fallback values
   context?: FeatureContext // Context override for this request
 }
 ```
 
-**Example:**
+**Examples:**
 
 ```typescript
+type FeatureFlags = {
+  'enable-new-ui': boolean
+  'theme-variant': 'light' | 'dark' | 'auto'
+  'max-items': number
+  'experiment-variant': 'control' | 'treatment'
+}
+
+const myFeatures = await client.getFeatures<FeatureFlags>({
+  features: {
+    'enable-new-ui': false,
+    'theme-variant': 'light',
+    'max-items': 10,
+    'experiment-variant': 'control',
+  },
+  context: {
+    userId: '123',
+    segment: 'premium',
+  },
+})
+// myFeatures is typed as FeatureFlags
+// e.g., { 'enable-new-ui': true, 'theme-variant': 'dark', 'max-items': 20, 'experiment-variant': 'treatment' }
+
+// You can access with full type safety
+const isUIEnabled: boolean = myFeatures['enable-new-ui']
+const theme: 'light' | 'dark' | 'auto' = myFeatures['theme-variant']
+const maxItems: number = myFeatures['max-items']
+
+// without explicit generic (defaults to Record<string, FeatureValue>)
 const features = await client.getFeatures({
   features: {
     'feature-1': false, // Boolean fallback
@@ -558,18 +598,6 @@ $('#user-segment').change(async function () {
   const enabled = await client.getFeature('segment-specific-feature', { fallback: false })
   $('#special-feature').toggle(enabled)
 })
-```
-
-## TypeScript Support
-
-This SDK is written in TypeScript and provides full type safety:
-
-```typescript
-import { DarkFeatureClient, FeatureValue, FeatureContext } from '@darkfeature/sdk-javascript'
-
-// Types are automatically inferred
-const client = new DarkFeatureClient({ apiKey: 'key' })
-const value: FeatureValue = await client.getFeature('example-feature')
 ```
 
 ## License

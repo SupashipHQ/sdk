@@ -18,13 +18,15 @@ export interface RetryConfig {
   backoff?: number
 }
 
-export interface FeatureOptions {
-  fallback?: FeatureValue
+export interface FeatureOptions<T extends FeatureValue = FeatureValue> {
+  fallback?: T
   context?: FeatureContext
 }
 
-export interface FeaturesOptions {
-  features: Record<string, FeatureValue>
+export interface FeaturesOptions<
+  T extends Record<string, FeatureValue> = Record<string, FeatureValue>,
+> {
+  features: T
   context?: FeatureContext
 }
 

@@ -19,12 +19,14 @@
     "naumovs.color-highlight",
     "mikestead.dotenv",
     "gruntfuggly.todo-tree",
-    "redhat.vscode-yaml"
+    "redhat.vscode-yaml",
+    "yoavbls.pretty-ts-errors"
   ],
   // List of extensions recommended by VS Code that should not be recommended for users of this workspace.
   "unwantedRecommendations": [
     "hookyqr.beautify",
     "dbaeumer.jshint",
-    "ms-vscode.vscode-typescript-tslint-plugin"
+    "ms-vscode.vscode-typescript-tslint-plugin",
+    "ms-vscode.vscode-typescript-next"
   ]
 }
