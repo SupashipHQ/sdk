@@ -603,3 +603,232 @@ $('#user-segment').change(async function () {
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
+
+## Local Development Plugin
+
+The `LocalDevPlugin` allows you to override feature flags during development without modifying your code. This is perfect for testing different feature states locally. **Works in both Node.js and browser environments.**
+
+### Environment Support
+
+- **Node.js**: Uses configuration files in your project directory
+- **Browser/React**: Uses localStorage for configuration persistence
+
+### Configuration Files (Node.js)
+
+The plugin automatically looks for configuration files in the following order:
+
+- `.darkfeature.json`
+- `darkfeatures.config.json`
+
+### Sample Configuration
+
+**For Node.js:** Create a `.darkfeature.json` file in your project root:
+
+**For Browser/React:** The configuration is stored in localStorage automatically.
+
+```json
+{
+  "overrides": {
+    "new-ui": true,
+    "beta-feature": "enabled",
+    "experiment-123": false
+  },
+  "features": {
+    "dev-only-feature": true,
+    "local-testing": "development"
+  },
+  "disabled": false
+}
+```
+
+### Configuration Options
+
+- **overrides**: High-priority feature values that always take precedence
+- **features**: Default values for features (used when API returns null)
+- **disabled**: Set to `true` to completely disable the plugin
+
+### Usage
+
+```typescript
+import { DarkFeatureClient, LocalDevPlugin } from '@darkfeatures/javascript'
+
+const client = new DarkFeatureClient({
+  apiKey: 'your-api-key',
+  plugins: [
+    new LocalDevPlugin({
+      // Node.js only: specify custom config path
+      configPath: './my-features.json',
+      // Node.js only: disable file watching
+      watchForChanges: false,
+      // Browser only: custom localStorage key
+      storageKey: 'my-app:features',
+      // Browser only: UI options
+      showUI: true, // Automatically enabled in development
+      uiPosition: 'bottom-right', // Optional: bottom-left, top-left, top-right
+      hotkey: 'Ctrl+Shift+F', // Optional: customize hotkey
+      // Both: fallback values
+      fallbackFeatures: {
+        'legacy-feature': false,
+      },
+    }),
+  ],
+})
+
+// Create a sample config (works in both environments)
+const plugin = new LocalDevPlugin()
+plugin.createSampleConfig()
+```
+
+### Gitignore Setup (Node.js)
+
+Add these files to your `.gitignore`:
+
+```
+# Dark Features local development
+.darkfeature.json
+darkfeatures.config.json
+```
+
+### Browser Development
+
+In browser environments, configuration is stored in localStorage and persists across sessions. You can:
+
+```typescript
+const plugin = new LocalDevPlugin()
+
+// Export configuration to share with team
+const configJson = plugin.exportConfig()
+
+// Import configuration from teammate
+plugin.importConfig(configJson)
+
+// Clear browser configuration
+plugin.clearBrowserConfig()
+```
+
+### Runtime Configuration
+
+You can also modify overrides programmatically:
+
+```typescript
+const plugin = new LocalDevPlugin()
+
+// Set an override
+plugin.setOverride('feature-name', true)
+
+// Remove an override
+plugin.removeOverride('feature-name')
+
+// Clear all overrides
+plugin.clearOverrides()
+
+// Set a default feature value
+plugin.setFeature('feature-name', 'default-value')
+```
+
+### Hot Reloading
+
+- **Node.js**: Automatically watches for file changes and reloads configuration
+- **Browser**: Configuration updates immediately when using the runtime methods
+
+This means you can edit your configuration and see changes immediately without restarting your application.
+
+## Development UI
+
+The `LocalDevPlugin` includes a **TanStack Query DevTools-style** floating UI when used in browser environments. **The UI automatically appears in development mode and provides visual feature flag management.**
+
+### Browser UI Features
+
+- 🎯 **Floating UI**: Toggle-able panel similar to React/TanStack Query DevTools
+- 🔍 **Feature Overview**: See all loaded features with their current values and sources
+- ⚡ **Live Editing**: Override feature values with instant feedback
+- 🎨 **Visual Indicators**: Color-coded badges showing value sources (API, Override, Fallback)
+- ⌨️ **Keyboard Shortcuts**: Default `Ctrl+Shift+F` to toggle (customizable)
+- 📋 **Import/Export**: Share configurations with team members
+- 🚀 **Development Only**: Automatically disabled in production
+
+### Visual Interface
+
+The DevUI shows:
+
+- **🟢 API**: Values from your feature flag service
+- **🟠 OVERRIDE**: Values you've overridden locally with 🔧 indicator
+- **⚫ FALLBACK**: Default/fallback values
+
+### Usage
+
+```typescript
+import { DarkFeatureClient, LocalDevPlugin } from '@darkfeatures/javascript'
+
+const client = new DarkFeatureClient({
+  apiKey: 'your-api-key',
+  plugins: [
+    new LocalDevPlugin({
+      // UI options (browser only)
+      showUI: true, // Automatically enabled in development
+      uiPosition: 'bottom-right', // or 'bottom-left', 'top-left', 'top-right'
+      hotkey: 'Ctrl+Shift+F', // customize toggle hotkey
+      // Other options work as before
+      fallbackFeatures: { 'legacy-feature': false },
+    }),
+  ],
+})
+```
+
+### Development Mode Detection
+
+The UI automatically enables only when:
+
+- `process.env.NODE_ENV === 'development'`, OR
+- `window.location.hostname` is `localhost` or `127.0.0.1`, OR
+- `window.location.port` is not empty (development server)
+
+### UI Actions
+
+- **Click the 🚩 button**: Toggle the DevTools panel
+- **Use hotkey**: Default `Ctrl+Shift+F` (customizable)
+- **Override values**: Type new values and press Enter or click ✓
+- **Remove overrides**: Click 🗑️ next to overridden features
+- **Clear all**: Use "Clear Overrides" button
+- **Share configs**: Export/Import configuration JSON
+
+### React Integration Example
+
+```typescript
+// Perfect for React development
+import { DarkFeatureClient, LocalDevPlugin } from '@darkfeatures/javascript'
+
+export const featureClient = new DarkFeatureClient({
+  apiKey: process.env.REACT_APP_DARKFEATURE_API_KEY,
+  plugins: [
+    new LocalDevPlugin({
+      // UI automatically appears in development
+      uiPosition: 'bottom-left',
+      hotkey: 'Ctrl+Shift+D',
+    }),
+  ],
+})
+
+// In your React component
+function App() {
+  const [features, setFeatures] = useState({})
+
+  useEffect(() => {
+    featureClient.getFeatures({
+      features: {
+        'new-ui': false,
+        'beta-feature': 'control',
+        'premium-unlock': false
+      }
+    }).then(setFeatures)
+  }, [])
+
+  // Features will show up in the DevUI automatically!
+  return (
+    <div>
+      {features['new-ui'] && <NewUIComponent />}
+      {features['beta-feature'] === 'variant-a' && <BetaFeature />}
+    </div>
+  )
+}
+```
