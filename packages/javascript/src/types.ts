@@ -2,6 +2,7 @@ import { DarkFeaturePlugin } from './plugins/types'
 
 export interface DarkFeatureConfig {
   apiKey: string
+  environment: string
   baseUrl?: string
   context?: FeatureContext
   retry?: RetryConfig

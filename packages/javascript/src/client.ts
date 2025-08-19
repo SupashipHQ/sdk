@@ -10,6 +10,7 @@ import { DarkFeaturePlugin } from './plugins/types'
 
 export class DarkFeatureClient {
   private apiKey: string
+  private environment: string
   private baseUrl: string
   private defaultContext?: FeatureContext
   private retryEnabled: boolean
@@ -19,6 +20,7 @@ export class DarkFeatureClient {
 
   constructor(config: DarkFeatureConfig) {
     this.apiKey = config.apiKey
+    this.environment = config.environment
     this.baseUrl = config.baseUrl || 'https://edge.darkfeature.com/v1'
     this.defaultContext = config.context
     this.retryEnabled = config.retry?.enabled ?? true
@@ -137,6 +139,7 @@ export class DarkFeatureClient {
         }
         const body = JSON.stringify({
           features: featureNames,
+          environment: this.environment,
           context,
         })
 
