@@ -12,7 +12,7 @@ export interface DarkFeatureProps {
   feature: string
 
   /**
-   * Key in variations object to use when no feature value matches
+   * Key in variants object to use when no feature value matches
    */
   fallback?: FeatureValue
 
@@ -27,20 +27,20 @@ export interface DarkFeatureProps {
   shouldFetch?: boolean
 
   /**
-   * Variations object mapping feature values/keys to JSX elements
+   * Variants object mapping feature values/keys to JSX elements
    */
-  variations: Record<string, ReactNode>
+  variants: Record<string, ReactNode>
 
   /**
-   * Key in variations object to use for loading state
+   * Key in variants object to use for loading state
    */
   loading?: string
 }
 
 /**
- * DarkFeature component that conditionally renders variations based on feature flag values.
+ * DarkFeature component that conditionally renders variants based on feature flag values.
  *
- * Supports all FeatureValue types (string | number | boolean | null) as variation keys.
+ * Supports all FeatureValue types (string | number | boolean | null) as variant keys.
  * Feature values are automatically converted to strings for object key matching:
  * - boolean `true` → `"true"`
  * - boolean `false` → `"false"`
@@ -49,13 +49,13 @@ export interface DarkFeatureProps {
  * - `null` → `"null"`
  *
  * @example
- * String variations:
+ * String variants:
  * ```tsx
  * <DarkFeature
  *   feature="theme-variant"
  *   fallback="default"
  *   loading="spinner"
- *   variations={{
+ *   variants={{
  *     "light": <LightTheme />,
  *     "dark": <DarkTheme />,
  *     "auto": <AutoTheme />,
@@ -66,13 +66,13 @@ export interface DarkFeatureProps {
  * ```
  *
  * @example
- * Boolean variations:
+ * Boolean variants:
  * ```tsx
  * <DarkFeature
  *   feature="new-header"
  *   fallback={false}
  *   loading="skeleton"
- *   variations={{
+ *   variants={{
  *     "true": <NewHeader />,
  *     "false": <OldHeader />,
  *     skeleton: <HeaderSkeleton />
@@ -81,12 +81,12 @@ export interface DarkFeatureProps {
  * ```
  *
  * @example
- * Number variations:
+ * Number variants:
  * ```tsx
  * <DarkFeature
  *   feature="max-items"
  *   fallback="default"
- *   variations={{
+ *   variants={{
  *     "5": <ItemList maxItems={5} />,
  *     "10": <ItemList maxItems={10} />,
  *     "20": <ItemList maxItems={20} />,
@@ -101,7 +101,7 @@ export interface DarkFeatureProps {
  * <DarkFeature
  *   feature="experiment-config"
  *   fallback="disabled"
- *   variations={{
+ *   variants={{
  *     "control": <ControlExperiment />,
  *     "variant-a": <VariantAExperiment />,
  *     "42": <NumericExperiment value={42} />,
@@ -118,7 +118,7 @@ export function DarkFeature({
   fallback,
   context,
   shouldFetch = true,
-  variations,
+  variants,
   loading,
 }: DarkFeatureProps): React.JSX.Element | null {
   const { feature: featureValue, isLoading } = useFeature(feature, {
@@ -127,8 +127,8 @@ export function DarkFeature({
   })
 
   // Show loading state if provided and currently loading
-  if (isLoading && loading && variations[loading]) {
-    return <>{variations[loading]}</>
+  if (isLoading && loading && variants[loading]) {
+    return <>{variants[loading]}</>
   }
 
   // Don't render anything if still loading and no loader provided
@@ -147,11 +147,11 @@ export function DarkFeature({
   // Convert effective value to string for object key lookup
   const valueKey = String(effectiveValue)
 
-  // Find matching variation by exact key match
-  if (variations[valueKey]) {
-    return <>{variations[valueKey]}</>
+  // Find matching variant by exact key match
+  if (variants[valueKey]) {
+    return <>{variants[valueKey]}</>
   }
 
-  // Don't render anything if no variation matches
+  // Don't render anything if no variant matches
   return null
 }

@@ -41,7 +41,7 @@ function YourApp() {
       <DarkFeature
         feature="my-feature"
         fallback={false}
-        variations={{
+        variants={{
           true: <NewFeatureComponent />,
           false: <OldFeatureComponent />,
         }}
@@ -275,14 +275,14 @@ function UserProfileSettings() {
 
 ### DarkFeature Component
 
-A declarative component for conditional rendering based on feature flags using a compact variations approach.
+A declarative component for conditional rendering based on feature flags using a compact variants approach.
 
 ```tsx
 <DarkFeature
   feature="my-feature"
   fallback={false}
   loading="spinner"
-  variations={{
+  variants={{
     true: <div>Feature is enabled!</div>,
     false: <div>Feature is disabled!</div>,
     spinner: <div>Loading...</div>,
@@ -298,16 +298,16 @@ interface DarkFeatureProps {
   fallback?: FeatureValue // Fallback value to use when feature is not available (string | number | boolean | null)
   context?: FeatureContext // Context for feature evaluation
   shouldFetch?: boolean // Whether to fetch the feature (default: true)
-  variations: Record<string, ReactNode> // Variations object mapping feature values/keys to JSX elements
-  loading?: string // Key in variations object to use for loading state
+  variants: Record<string, ReactNode> // variants object mapping feature values/keys to JSX elements
+  loading?: string // Key in variants object to use for loading state
 }
 ```
 
 **FeatureValue Type Support:**
 
-The `variations` object keys must be strings, but they correspond to all supported `FeatureValue` types:
+The `variants` object keys must be strings, but they correspond to all supported `FeatureValue` types:
 
-| FeatureValue Type | Example Value | Variation Key | Description                 |
+| FeatureValue Type | Example Value | Variant Value | Description                 |
 | ----------------- | ------------- | ------------- | --------------------------- |
 | `string`          | `"variant-a"` | `"variant-a"` | Direct string match         |
 | `boolean`         | `true`        | `"true"`      | Boolean converted to string |
@@ -324,7 +324,7 @@ The `variations` object keys must be strings, but they correspond to all support
   feature="theme-variant"
   fallback="auto"
   loading="spinner"
-  variations={{
+  variants={{
     light: <LightTheme />,
     dark: <DarkTheme />,
     auto: <AutoTheme />,
@@ -340,7 +340,7 @@ The `variations` object keys must be strings, but they correspond to all support
   feature="new-header"
   fallback="false"
   loading="skeleton"
-  variations={{
+  variants={{
     // Boolean type
     true: <NewHeader />,
     false: <OldHeader />,
@@ -350,7 +350,7 @@ The `variations` object keys must be strings, but they correspond to all support
 
 <DarkFeature
   feature="show-banner"
-  variations={{
+  variants={{
     true: <PromoBanner />,
     false: null, // Render nothing when false
   }}
@@ -364,7 +364,7 @@ The `variations` object keys must be strings, but they correspond to all support
   feature="max-items"
   fallback="10"
   loading="spinner"
-  variations={{
+  variants={{
     // Number type
     '5': <ItemList maxItems={5} />,
     '10': <ItemList maxItems={10} />,
@@ -376,13 +376,13 @@ The `variations` object keys must be strings, but they correspond to all support
 
 ### Simple Usage Patterns
 
-For simple show/hide scenarios, you can use the DarkFeature component with compact variations:
+For simple show/hide scenarios, you can use the DarkFeature component with compact variants:
 
 ```tsx
 // Simple show/hide based on boolean
 <DarkFeature
   feature="new-feature"
-  variations={{
+  variants={{
     true: <NewFeatureContent />,
   }}
 />
@@ -391,7 +391,7 @@ For simple show/hide scenarios, you can use the DarkFeature component with compa
 <DarkFeature
   feature="beta-banner"
   loading="skeleton"
-  variations={{
+  variants={{
     true: <BetaBanner />,
     skeleton: <BannerSkeleton />,
   }}
@@ -401,7 +401,7 @@ For simple show/hide scenarios, you can use the DarkFeature component with compa
 <DarkFeature
   feature="user-limit"
   fallback="default"
-  variations={{
+  variants={{
     '5': <BasicUserList />,
     '10': <StandardUserList />,
     '20': <AdvancedUserList />,
@@ -413,7 +413,7 @@ For simple show/hide scenarios, you can use the DarkFeature component with compa
 <DarkFeature
   feature="theme"
   fallback="light"
-  variations={{
+  variants={{
     dark: <DarkModeStyles />,
     light: <LightModeStyles />,
   }}
@@ -424,7 +424,7 @@ For simple show/hide scenarios, you can use the DarkFeature component with compa
   feature="user-dashboard"
   fallback="public"
   shouldFetch={isAuthenticated}
-  variations={{
+  variants={{
     true: <UserDashboard />,
     public: <PublicDashboard />,
   }}
@@ -583,7 +583,7 @@ export default function HomePage() {
         feature="new-hero-section"
         fallback={false}
         loading="skeleton"
-        variations={{
+        variants={{
           true: <NewHeroSection />,
           false: <OldHeroSection />,
           skeleton: <HeroSkeleton />,
@@ -625,12 +625,12 @@ export default function HomePage() {
       <DarkFeature
         feature="new-homepage"
         fallback={false}
-        variations={{
+        variants={{
           true: (
             <DarkFeature
               feature="hero-variant"
               fallback="default"
-              variations={{
+              variants={{
                 default: <NewHomePage variant="default" />,
                 'variant-a': <NewHomePage variant="variant-a" />,
                 'variant-b': <NewHomePage variant="variant-b" />,
@@ -733,7 +733,7 @@ export function HomePage() {
         feature="new-onboarding-flow"
         fallback={false}
         loading="skeleton"
-        variations={{
+        variants={{
           true: <NewOnboardingFlow />,
           false: <OldOnboardingFlow />,
           skeleton: <OnboardingSkeleton />,
@@ -771,7 +771,7 @@ export function Layout({ children }) {
     <DarkFeature
       feature="new-layout-design"
       fallback={false}
-      variations={{
+      variants={{
         true: <div className="new-layout">{children}</div>,
         false: <div className="old-layout">{children}</div>,
       }}
@@ -800,7 +800,7 @@ function DynamicFeatureComponent() {
         feature={featureName}
         fallback={false}
         loading="skeleton"
-        variations={{
+        variants={{
           true: <DynamicContent featureName={featureName} />,
           false: <DisabledMessage />,
           skeleton: <ContentSkeleton />,

@@ -58,9 +58,9 @@ export class DarkFeatureClient {
     return this.defaultContext
   }
 
-  private getVariationValue(variation: FeatureValue, fallback: FeatureValue): FeatureValue {
-    if (variation !== undefined && variation !== null) {
-      return variation
+  private getVariantValue(variant: FeatureValue, fallback: FeatureValue): FeatureValue {
+    if (variant !== undefined && variant !== null) {
+      return variant
     }
 
     return fallback ?? null
@@ -132,14 +132,14 @@ export class DarkFeatureClient {
       )
 
       const fetchFeatures = async (): Promise<Record<string, FeatureValue>> => {
-        const url = `${this.baseUrl}/features`
+        const url = `${this.baseUrl}/flags`
         const headers = {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.apiKey}`,
         }
         const body = JSON.stringify({
-          features: featureNames,
+          apiKey: this.apiKey,
           environment: this.environment,
+          flags: featureNames,
           context,
         })
 
@@ -167,9 +167,9 @@ export class DarkFeatureClient {
         const result: Record<string, FeatureValue> = {}
 
         featureNames.forEach(name => {
-          const variation = data.features[name]?.variation
+          const variant = data.flags[name]?.variant
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          result[name] = this.getVariationValue(variation, (options.features as any)[name])
+          result[name] = this.getVariantValue(variant, (options.features as any)[name])
         })
 
         return result
