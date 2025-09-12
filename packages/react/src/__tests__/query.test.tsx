@@ -3,7 +3,7 @@ import { useQuery } from '../query'
 import { jest, describe, it, expect, beforeEach } from '@jest/globals'
 
 // Mock the DarkFeatureClient
-jest.mock('@darkfeature/sdk-javascript', () => ({
+jest.mock('@supashiphq/sdk-javascript', () => ({
   DarkFeatureClient: jest.fn().mockImplementation(() => ({
     getFeatures: jest.fn(),
   })),

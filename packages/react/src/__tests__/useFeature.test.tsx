@@ -3,7 +3,7 @@ import { render, screen, act } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { useFeature } from '../hooks'
 import { DarkFeatureProvider } from '../provider'
-import { FeatureValue } from '@darkfeature/sdk-javascript'
+import { FeatureValue } from '@supashiphq/sdk-javascript'
 import { jest, describe, it, expect, beforeEach } from '@jest/globals'
 
 type GetFeatureFn = (
@@ -13,7 +13,7 @@ type GetFeatureFn = (
 
 // Mock the DarkFeatureClient
 const mockGetFeature = jest.fn<GetFeatureFn>()
-jest.mock('@darkfeature/sdk-javascript', () => ({
+jest.mock('@supashiphq/sdk-javascript', () => ({
   DarkFeatureClient: jest.fn().mockImplementation(() => ({
     getFeature: mockGetFeature,
   })),

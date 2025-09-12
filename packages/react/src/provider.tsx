@@ -6,7 +6,7 @@ import {
   DarkFeatureConfig,
   DarkFeaturePlugin,
   FeatureContext,
-} from '@darkfeature/sdk-javascript'
+} from '@supashiphq/sdk-javascript'
 
 interface DarkFeatureContextValue {
   client: DarkFeatureClient
@@ -69,7 +69,7 @@ export function useDarkFeature(): DarkFeatureClient {
 }
 
 /**
- * Hook to update the DarkFeature context dynamically
+ * Hook to update the context dynamically
  * Useful when context depends on authentication or other async operations
  */
 export function useFeatureContext(): Omit<DarkFeatureContextValue, 'client'> {

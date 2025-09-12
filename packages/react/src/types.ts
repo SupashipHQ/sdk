@@ -1,6 +1,6 @@
-import { FeatureValue } from '@darkfeature/sdk-javascript'
+import { FeatureValue } from '@supashiphq/sdk-javascript'
 
-export type { DarkFeatureConfig, DarkFeaturePlugin } from '@darkfeature/sdk-javascript'
+export type { DarkFeatureConfig, DarkFeaturePlugin } from '@supashiphq/sdk-javascript'
 
 export interface UseFeatureOptions<T extends FeatureValue = FeatureValue> {
   fallback?: T

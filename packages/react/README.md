@@ -1,21 +1,21 @@
-# DarkFeature React SDK
+# Supaship React SDK
 
-A React SDK for DarkFeature that provides hooks and components for feature flag management in React applications.
+A React SDK for Supaship that provides hooks and components for feature flag management in React applications.
 
 ## Installation
 
 ```bash
-npm install @darkfeature/sdk-react
+npm install @supashiphq/sdk-react
 # or
-yarn add @darkfeature/sdk-react
+yarn add @supashiphq/sdk-react
 # or
-pnpm add @darkfeature/sdk-react
+pnpm add @supashiphq/sdk-react
 ```
 
 ## Quick Start
 
 ```tsx
-import { DarkFeatureProvider, useFeature, DarkFeature } from '@darkfeature/sdk-react'
+import { DarkFeatureProvider, useFeature, DarkFeature } from '@supashiphq/sdk-react'
 
 function App() {
   return (
@@ -100,7 +100,7 @@ The provider component that makes feature flags available to your React componen
 
 ```tsx
 interface DarkFeatureConfig {
-  apiKey: string // Your DarkFeature API key (Project Settings -> Environments)
+  apiKey: string // Your Supaship API key (Project Settings -> API Keys)
   baseUrl?: string // Custom API endpoint
   context?: FeatureContext // Default context for feature evaluation
   retry?: RetryConfig // Retry configuration for network requests
@@ -541,7 +541,7 @@ function UserDashboard() {
 ```tsx
 // app/providers.tsx
 'use client'
-import { DarkFeatureProvider } from '@darkfeature/sdk-react'
+import { DarkFeatureProvider } from '@supashiphq/sdk-react'
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -574,7 +574,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
 // app/page.tsx
 ;('use client')
-import { DarkFeature } from '@darkfeature/sdk-react'
+import { DarkFeature } from '@supashiphq/sdk-react'
 
 export default function HomePage() {
   return (

@@ -23,7 +23,7 @@ export class CachingPlugin implements DarkFeaturePlugin {
   }
 
   private getCacheKey(features: string[], context: FeatureContext): string {
-    return `darkfeature:${JSON.stringify({ features, context })}`
+    return `supaship:${JSON.stringify({ features, context })}`
   }
 
   async beforeGetFeatures(featureNames: string[], context?: FeatureContext): Promise<void> {
@@ -113,7 +113,7 @@ class Cache {
     if (this.isStorage(this.storage)) {
       const storage = this.storage as Storage
       Object.keys(storage).forEach(key => {
-        if (key.startsWith('darkfeature:')) {
+        if (key.startsWith('supaship:')) {
           storage.removeItem(key)
         }
       })

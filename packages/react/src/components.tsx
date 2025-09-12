@@ -2,7 +2,7 @@
 
 import React, { ReactNode } from 'react'
 import { useFeature } from './hooks'
-import { FeatureValue } from '@darkfeature/sdk-javascript'
+import { FeatureValue } from '@supashiphq/sdk-javascript'
 import { hasValue } from './utils'
 
 export interface DarkFeatureProps {

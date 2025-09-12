@@ -1,13 +1,13 @@
 import React from 'react'
 import { render } from '@testing-library/react'
 import { DarkFeatureProvider, useDarkFeature, useFeatureContext } from '../provider'
-import { DarkFeatureClient } from '@darkfeature/sdk-javascript'
+import { DarkFeatureClient } from '@supashiphq/sdk-javascript'
 import { jest, describe, it, expect } from '@jest/globals'
 
 // Mock the DarkFeatureClient
 const mockUpdateContext = jest.fn()
 const mockGetContext = jest.fn()
-jest.mock('@darkfeature/sdk-javascript', () => ({
+jest.mock('@supashiphq/sdk-javascript', () => ({
   DarkFeatureClient: jest.fn().mockImplementation(() => ({
     getFeature: jest.fn(),
     updateContext: mockUpdateContext,

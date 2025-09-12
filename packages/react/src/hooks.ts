@@ -3,7 +3,7 @@
 import { useDarkFeature } from './provider'
 import { UseFeatureOptions, UseFeaturesOptions } from './types'
 import { useQuery, QueryState } from './query'
-import { FeatureValue } from '@darkfeature/sdk-javascript'
+import { FeatureValue } from '@supashiphq/sdk-javascript'
 import { hasValue } from './utils'
 
 // Custom return types for hooks with generics
