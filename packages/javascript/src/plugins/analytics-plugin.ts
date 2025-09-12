@@ -26,7 +26,7 @@ export class AnalyticsPlugin implements DarkFeaturePlugin {
 
   constructor(config: AnalyticsPluginConfig = {}) {
     this.enabled = config.enabled ?? true
-    this.endpoint = config.endpoint || 'https://edge.darkfeature.com/v1/events'
+    this.endpoint = config.endpoint || 'https://edge.supaship.com/v1/events'
     this.batchSize = config.batchSize || 100
     this.flushInterval = config.flushInterval || 5000
   }

@@ -21,7 +21,7 @@ export class DarkFeatureClient {
   constructor(config: DarkFeatureConfig) {
     this.apiKey = config.apiKey
     this.environment = config.environment
-    this.baseUrl = config.baseUrl || 'https://edge.darkfeature.com/v1'
+    this.baseUrl = config.baseUrl || 'https://edge.supaship.com/v1'
     this.defaultContext = config.context
     this.retryEnabled = config.retry?.enabled ?? true
     this.maxRetries = config.retry?.maxAttempts ?? 3
