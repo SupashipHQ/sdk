@@ -53,7 +53,7 @@ describe('DarkFeatureClient', () => {
   describe('constructor and configuration', () => {
     it('should use default baseUrl when not provided', (): void => {
       const client = new DarkFeatureClient({ apiKey: 'test' })
-      expect(client['baseUrl']).toBe('https://edge.darkfeature.com/v1')
+      expect(client['baseUrl']).toBe('https://edge.supaship.com/v1')
     })
 
     it('should use default retry configuration', (): void => {

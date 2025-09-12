@@ -1,21 +1,21 @@
-# DarkFeature JavaScript SDK
+# Supaship JavaScript SDK
 
-A JavaScript SDK for DarkFeature that provides a simple way to manage feature flags in your JavaScript applications.
+A JavaScript SDK for Supaship that provides a simple way to manage feature flags in your JavaScript applications.
 
 ## Installation
 
 ```bash
-npm install @darkfeature/sdk-javascript
+npm install @supashiphq/sdk-javascript
 # or
-yarn add @darkfeature/sdk-javascript
+yarn add @supashiphq/sdk-javascript
 # or
-pnpm add @darkfeature/sdk-javascript
+pnpm add @supashiphq/sdk-javascript
 ```
 
 ## Quick Start
 
 ```typescript
-import { DarkFeatureClient } from '@darkfeature/sdk-javascript'
+import { DarkFeatureClient } from '@supashiphq/sdk-javascript'
 
 const client = new DarkFeatureClient({
   apiKey: 'your-api-key',
@@ -69,12 +69,12 @@ new DarkFeatureClient(config: DarkFeatureConfig)
 
 **Configuration Options:**
 
-| Option    | Type             | Required | Description                                                 |
-| --------- | ---------------- | -------- | ----------------------------------------------------------- |
-| `apiKey`  | `string`         | Yes      | Your DarkFeature API key (Project Settings -> Environments) |
-| `baseUrl` | `string`         | No       | Custom API endpoint (defaults to DarkFeature's API)         |
-| `context` | `FeatureContext` | No       | Default context for feature evaluation                      |
-| `retry`   | `RetryConfig`    | No       | Retry configuration for network requests                    |
+| Option    | Type             | Required | Description                                              |
+| --------- | ---------------- | -------- | -------------------------------------------------------- |
+| `apiKey`  | `string`         | Yes      | Your Supaship API key (Project Settings -> Environments) |
+| `baseUrl` | `string`         | No       | Custom API endpoint (defaults to Supaship's API)         |
+| `context` | `FeatureContext` | No       | Default context for feature evaluation                   |
+| `retry`   | `RetryConfig`    | No       | Retry configuration for network requests                 |
 
 **Retry Configuration:**
 
@@ -346,13 +346,13 @@ function onRouteChange(route) {
 
 For React applications, use our dedicated React SDK which provides hooks and components optimized for React:
 
-📦 **[@darkfeature/sdk-react](http://npmjs.com/package/@darkfeature/sdk-react)**
+📦 **[@supashiphq/sdk-react](http://npmjs.com/package/@supashiphq/sdk-react)**
 
 ### Vue Integration
 
 ```javascript
 // plugins/feature-flags.js
-import { DarkFeatureClient } from '@darkfeature/sdk-javascript'
+import { DarkFeatureClient } from '@supashiphq/sdk-javascript'
 
 export default {
   install(app, options) {
@@ -439,7 +439,7 @@ export default {
 ```typescript
 // feature-flag.service.ts
 import { Injectable } from '@angular/core'
-import { DarkFeatureClient } from '@darkfeature/sdk-javascript'
+import { DarkFeatureClient } from '@supashiphq/sdk-javascript'
 
 @Injectable({
   providedIn: 'root',
@@ -531,7 +531,7 @@ export class AppComponent implements OnInit {
 
 ```typescript
 import express from 'express'
-import { DarkFeatureClient } from '@darkfeature/sdk-javascript'
+import { DarkFeatureClient } from '@supashiphq/sdk-javascript'
 
 const app = express()
 const featureClient = new DarkFeatureClient({

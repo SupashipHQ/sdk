@@ -1,12 +1,12 @@
-# DarkFeature SDK
+# Supaship SDK
 
-A collection of SDKs for DarkFeature that provides feature flag management for various platforms and frameworks. This monorepo is designed to house multiple SDKs, with more packages planned for the future.
+A collection of SDKs for Supaship that provides feature flag management for various platforms and frameworks. This monorepo is designed to house multiple SDKs, with more packages planned for the future.
 
 ## Packages
 
 This monorepo contains the following packages:
 
-- [@darkfeature/sdk-javascript](./packages/javascript/README.md) - Core JavaScript SDK for feature flag management
+- [@supashiphq/sdk-javascript](./packages/javascript/README.md) - Core JavaScript SDK for feature flag management
 
 More packages will be added in the future to support additional platforms and frameworks.
 
@@ -15,7 +15,7 @@ More packages will be added in the future to support additional platforms and fr
 ### JavaScript SDK
 
 ```javascript
-import { DarkFeatureClient } from '@darkfeature/sdk-javascript'
+import { DarkFeatureClient } from '@supashiphq/sdk-javascript'
 
 const client = new DarkFeatureClient({
   apiKey: 'environment-api-key',
@@ -83,9 +83,9 @@ This project is licensed under the MIT License - see the [LICENSE](./LICENSE) fi
 
 ## Support
 
-- [Documentation](https://darkfeature.com/docs)
-- [GitHub Issues](https://github.com/darkfeature/sdk/issues)
+- [Documentation](https://supaship.com/docs)
+- [GitHub Issues](https://github.com/supashiphq/sdk/issues)
 
 ## Security
 
-If you discover a security vulnerability, please email security@darkfeature.com. We take security seriously and will respond promptly.
+If you discover a security vulnerability, please email feedback@supaship.com. We take security seriously and will respond promptly.

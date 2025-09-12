@@ -1,6 +1,6 @@
-# Contributing to DarkFeature SDK
+# Contributing to Supaship SDK
 
-Thank you for your interest in contributing to DarkFeature SDK! This document provides guidelines and instructions for contributing.
+Thank you for your interest in contributing to Supaship SDK! This document provides guidelines and instructions for contributing.
 
 ## Code of Conduct
 
@@ -54,7 +54,7 @@ We use Jest for testing. To run tests:
 pnpm test
 
 # Run tests for a specific package
-pnpm --filter @darkfeature/sdk-javascript test
+pnpm --filter @supashiphq/sdk-javascript test
 
 # Run tests in watch mode
 pnpm test -- --watch
@@ -69,7 +69,7 @@ To build the packages:
 pnpm build
 
 # Build a specific package
-pnpm --filter @darkfeature/sdk-javascript build
+pnpm --filter @supashiphq/sdk-javascript build
 ```
 
 ## Documentation

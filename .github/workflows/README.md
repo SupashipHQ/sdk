@@ -1,6 +1,6 @@
 # GitHub Workflows
 
-This directory contains the GitHub Actions workflows for the DarkFeature SDK project.
+This directory contains the GitHub Actions workflows for the Supaship SDK project.
 
 ## Shared Configuration
 
@@ -10,8 +10,8 @@ All workflows use a shared package configuration system to ensure consistency ac
 
 Packages are processed in a specific order defined in `.github/scripts/package-config.sh`:
 
-1. **JavaScript package** (`@darkfeature/sdk-javascript`) - processed first
-2. **React package** (`@darkfeature/sdk-react`) - processed second
+1. **JavaScript package** (`@supashiphq/sdk-javascript`) - processed first
+2. **React package** (`@supashiphq/sdk-react`) - processed second
 
 This order is important because:
 
@@ -118,7 +118,7 @@ Add these secrets in your GitHub repository settings:
 
 Ensure your npm token has permission to publish to:
 
-- `@darkfeature/sdk-javascript`
+- `@supashiphq/sdk-javascript`
 - Any other packages in the `packages/` directory
 
 ### 3. Repository Permissions
@@ -153,16 +153,16 @@ Users can install prerelease versions with specific tags:
 
 ```bash
 # Install latest alpha
-npm install @darkfeature/sdk-javascript@alpha
+npm install @supashiphq/sdk-javascript@alpha
 
 # Install latest beta
-npm install @darkfeature/sdk-javascript@beta
+npm install @supashiphq/sdk-javascript@beta
 
 # Install latest release candidate
-npm install @darkfeature/sdk-javascript@rc
+npm install @supashiphq/sdk-javascript@rc
 
 # Install specific version
-npm install @darkfeature/sdk-javascript@1.2.3-beta.1
+npm install @supashiphq/sdk-javascript@1.2.3-beta.1
 ```
 
 ## Workflow Benefits
