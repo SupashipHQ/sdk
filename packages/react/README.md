@@ -15,11 +15,11 @@ pnpm add @supashiphq/sdk-react
 ## Quick Start
 
 ```tsx
-import { DarkFeatureProvider, useFeature, DarkFeature } from '@supashiphq/sdk-react'
+import { SupashipProvider, useFeature, SupashipFeature } from '@supashiphq/sdk-react'
 
 function App() {
   return (
-    <DarkFeatureProvider
+    <SupashipProvider
       config={{
         apiKey: 'your-api-key',
         context: {
@@ -30,7 +30,7 @@ function App() {
       }}
     >
       <YourApp />
-    </DarkFeatureProvider>
+    </SupashipProvider>
   )
 }
 
@@ -38,7 +38,7 @@ function YourApp() {
   return (
     <div>
       {/* Component-based approach - declarative and clean */}
-      <DarkFeature
+      <SupashipFeature
         feature="my-feature"
         fallback={false}
         variations={{
@@ -81,25 +81,25 @@ function YourAppWithHooks() {
 
 ## API Reference
 
-### DarkFeatureProvider
+### SupashipProvider
 
 The provider component that makes feature flags available to your React component tree.
 
 ```tsx
-<DarkFeatureProvider config={config}>{children}</DarkFeatureProvider>
+<SupashipProvider config={config}>{children}</SupashipProvider>
 ```
 
 **Props:**
 
-| Prop       | Type                | Required | Description                  |
-| ---------- | ------------------- | -------- | ---------------------------- |
-| `config`   | `DarkFeatureConfig` | Yes      | Configuration for the client |
-| `children` | `React.ReactNode`   | Yes      | Child components             |
+| Prop       | Type              | Required | Description                  |
+| ---------- | ----------------- | -------- | ---------------------------- |
+| `config`   | `SupashipConfig`  | Yes      | Configuration for the client |
+| `children` | `React.ReactNode` | Yes      | Child components             |
 
 **Configuration Options:**
 
 ```tsx
-interface DarkFeatureConfig {
+interface SupashipConfig {
   apiKey: string // Your Supaship API key (Project Settings -> API Keys)
   baseUrl?: string // Custom API endpoint
   context?: FeatureContext // Default context for feature evaluation
@@ -273,12 +273,12 @@ function UserProfileSettings() {
 
 ## Components
 
-### DarkFeature Component
+### SupashipFeature Component
 
 A declarative component for conditional rendering based on feature flags using a compact variations approach.
 
 ```tsx
-<DarkFeature
+<SupashipFeature
   feature="my-feature"
   fallback={false}
   loading="spinner"
@@ -293,7 +293,7 @@ A declarative component for conditional rendering based on feature flags using a
 **Props:**
 
 ```tsx
-interface DarkFeatureProps {
+interface SupashipFeatureProps {
   feature: string // The feature flag key to evaluate
   fallback?: FeatureValue // Fallback value to use when feature is not available (string | number | boolean | null)
   context?: FeatureContext // Context for feature evaluation
@@ -320,7 +320,7 @@ The `variations` object keys must be strings, but they correspond to all support
 #### String Feature Values
 
 ```tsx
-<DarkFeature
+<SupashipFeature
   feature="theme-variant"
   fallback="auto"
   loading="spinner"
@@ -336,7 +336,7 @@ The `variations` object keys must be strings, but they correspond to all support
 #### Boolean Feature Values
 
 ```tsx
-<DarkFeature
+<SupashipFeature
   feature="new-header"
   fallback="false"
   loading="skeleton"
@@ -348,7 +348,7 @@ The `variations` object keys must be strings, but they correspond to all support
   }}
 />
 
-<DarkFeature
+<SupashipFeature
   feature="show-banner"
   variations={{
     true: <PromoBanner />,
@@ -360,7 +360,7 @@ The `variations` object keys must be strings, but they correspond to all support
 #### Number Feature Values
 
 ```tsx
-<DarkFeature
+<SupashipFeature
   feature="max-items"
   fallback="10"
   loading="spinner"
@@ -376,11 +376,11 @@ The `variations` object keys must be strings, but they correspond to all support
 
 ### Simple Usage Patterns
 
-For simple show/hide scenarios, you can use the DarkFeature component with compact variations:
+For simple show/hide scenarios, you can use the SupashipFeature component with compact variations:
 
 ```tsx
 // Simple show/hide based on boolean
-<DarkFeature
+<SupashipFeature
   feature="new-feature"
   variations={{
     true: <NewFeatureContent />,
@@ -388,7 +388,7 @@ For simple show/hide scenarios, you can use the DarkFeature component with compa
 />
 
 // With loading state
-<DarkFeature
+<SupashipFeature
   feature="beta-banner"
   loading="skeleton"
   variations={{
@@ -398,7 +398,7 @@ For simple show/hide scenarios, you can use the DarkFeature component with compa
 />
 
 // Conditional rendering with multiple possible values
-<DarkFeature
+<SupashipFeature
   feature="user-limit"
   fallback="default"
   variations={{
@@ -410,7 +410,7 @@ For simple show/hide scenarios, you can use the DarkFeature component with compa
 />
 
 // String matching
-<DarkFeature
+<SupashipFeature
   feature="theme"
   fallback="light"
   variations={{
@@ -420,7 +420,7 @@ For simple show/hide scenarios, you can use the DarkFeature component with compa
 />
 
 // Conditional fetching - only fetch when user is authenticated
-<DarkFeature
+<SupashipFeature
   feature="user-dashboard"
   fallback="public"
   shouldFetch={isAuthenticated}
@@ -454,7 +454,7 @@ function App() {
   const { user } = useAuth()
 
   return (
-    <DarkFeatureProvider
+    <SupashipProvider
       config={{
         apiKey: 'your-api-key',
         context: {
@@ -466,7 +466,7 @@ function App() {
       }}
     >
       <YourApp />
-    </DarkFeatureProvider>
+    </SupashipProvider>
   )
 }
 ```
@@ -541,13 +541,13 @@ function UserDashboard() {
 ```tsx
 // app/providers.tsx
 'use client'
-import { DarkFeatureProvider } from '@supashiphq/sdk-react'
+import { SupashipProvider } from '@supashiphq/sdk-react'
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <DarkFeatureProvider
+    <SupashipProvider
       config={{
-        apiKey: process.env.NEXT_PUBLIC_DARKFEATURE_API_KEY!,
+        apiKey: process.env.NEXT_PUBLIC_SUPASHIP_API_KEY!,
         context: {
           environment: process.env.NODE_ENV,
           version: process.env.NEXT_PUBLIC_APP_VERSION,
@@ -555,7 +555,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       }}
     >
       {children}
-    </DarkFeatureProvider>
+    </SupashipProvider>
   )
 }
 
@@ -574,12 +574,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
 // app/page.tsx
 ;('use client')
-import { DarkFeature } from '@supashiphq/sdk-react'
+import { SupashipFeature } from '@supashiphq/sdk-react'
 
 export default function HomePage() {
   return (
     <main>
-      <DarkFeature
+      <SupashipFeature
         feature="new-hero-section"
         fallback={false}
         loading="skeleton"
@@ -598,36 +598,36 @@ export default function HomePage() {
 
 ```tsx
 // pages/_app.tsx
-import { DarkFeatureProvider } from '@darkfeature/sdk-react'
+import { SupashipProvider } from '@supashiphq/sdk-react'
 import type { AppProps } from 'next/app'
 
 export default function App({ Component, pageProps }: AppProps) {
   return (
-    <DarkFeatureProvider
+    <SupashipProvider
       config={{
-        apiKey: process.env.NEXT_PUBLIC_DARKFEATURE_API_KEY!,
+        apiKey: process.env.NEXT_PUBLIC_SUPASHIP_API_KEY!,
         context: {
           environment: process.env.NODE_ENV,
         },
       }}
     >
       <Component {...pageProps} />
-    </DarkFeatureProvider>
+    </SupashipProvider>
   )
 }
 
 // pages/index.tsx
-import { DarkFeature } from '@darkfeature/sdk-react'
+import { SupashipFeature } from '@supashiphq/sdk-react'
 
 export default function HomePage() {
   return (
     <div>
-      <DarkFeature
+      <SupashipFeature
         feature="new-homepage"
         fallback={false}
         variations={{
           true: (
-            <DarkFeature
+            <SupashipFeature
               feature="hero-variant"
               fallback="default"
               variations={{
@@ -649,10 +649,10 @@ export default function HomePage() {
 
 ```tsx
 // lib/feature-flags.ts
-import { DarkFeatureClient } from '@darkfeature/sdk-javascript'
+import { SupashipClient } from '@supashiphq/sdk-javascript'
 
-export const serverFeatureClient = new DarkFeatureClient({
-  apiKey: process.env.DARKFEATURE_API_KEY!,
+export const serverFeatureClient = new SupashipClient({
+  apiKey: process.env.SUPASHIP_API_KEY!,
 })
 
 // pages/products/[id].tsx
@@ -702,12 +702,12 @@ export const getServerSideProps: GetServerSideProps = async context => {
 
 ```tsx
 // App.tsx
-import { DarkFeatureProvider } from '@darkfeature/sdk-react'
+import { SupashipProvider } from '@supashiphq/sdk-react'
 import { Platform } from 'react-native'
 
 export default function App() {
   return (
-    <DarkFeatureProvider
+    <SupashipProvider
       config={{
         apiKey: 'your-api-key',
         context: {
@@ -717,19 +717,19 @@ export default function App() {
       }}
     >
       <YourApp />
-    </DarkFeatureProvider>
+    </SupashipProvider>
   )
 }
 
 // components/HomePage.tsx
 import React from 'react'
 import { View } from 'react-native'
-import { DarkFeature } from '@darkfeature/sdk-react'
+import { SupashipFeature } from '@supashiphq/sdk-react'
 
 export function HomePage() {
   return (
     <View>
-      <DarkFeature
+      <SupashipFeature
         feature="new-onboarding-flow"
         fallback={false}
         loading="skeleton"
@@ -748,27 +748,27 @@ export function HomePage() {
 
 ```tsx
 // gatsby-browser.js
-import { DarkFeatureProvider } from '@darkfeature/sdk-react'
+import { SupashipProvider } from '@supashiphq/sdk-react'
 
 export const wrapRootElement = ({ element }) => (
-  <DarkFeatureProvider
+  <SupashipProvider
     config={{
-      apiKey: process.env.GATSBY_DARKFEATURE_API_KEY,
+      apiKey: process.env.SUPASHIP_API_KEY,
       context: {
         site: 'gatsby-site',
       },
     }}
   >
     {element}
-  </DarkFeatureProvider>
+  </SupashipProvider>
 )
 
 // src/components/Layout.tsx
-import { DarkFeature } from '@darkfeature/sdk-react'
+import { SupashipFeature } from '@supashiphq/sdk-react'
 
 export function Layout({ children }) {
   return (
-    <DarkFeature
+    <SupashipFeature
       feature="new-layout-design"
       fallback={false}
       variations={{
@@ -796,7 +796,7 @@ function DynamicFeatureComponent() {
         <option value="feature-c">Feature C</option>
       </select>
 
-      <DarkFeature
+      <SupashipFeature
         feature={featureName}
         fallback={false}
         loading="skeleton"
@@ -842,7 +842,7 @@ function App() {
 ### Mocking Feature Flags in Tests
 
 ```tsx
-// __mocks__/@darkfeature/sdk-react.ts
+// __mocks__/@supashiphq/sdk-react.ts
 export const mockFeatures = new Map()
 
 export const useFeature = jest.fn((featureName: string, options: any) => {
@@ -857,14 +857,14 @@ export const useFeatures = jest.fn((options: any) => {
   return result
 })
 
-export const DarkFeatureProvider = ({ children }: any) => children
+export const SupashipProvider = ({ children }: any) => children
 ```
 
 ### Test Utilities
 
 ```tsx
 // test-utils/feature-flag-utils.tsx
-import { mockFeatures } from '../__mocks__/@darkfeature/sdk-react'
+import { mockFeatures } from '../__mocks__/@supashiphq/sdk-react'
 
 export function setMockFeature(featureName: string, value: any) {
   mockFeatures.set(featureName, value)
@@ -920,18 +920,18 @@ describe('MyComponent', () => {
 #### 1. Provider Not Found Error
 
 ```
-Error: useFeature must be used within a DarkFeatureProvider
+Error: useFeature must be used within a SupashipProvider
 ```
 
-**Solution:** Ensure your component is wrapped in a `DarkFeatureProvider`:
+**Solution:** Ensure your component is wrapped in a `SupashipProvider`:
 
 ```tsx
 // ✅ Correct
 function App() {
   return (
-    <DarkFeatureProvider config={{ apiKey: 'your-key' }}>
+    <SupashipProvider config={{ apiKey: 'your-key' }}>
       <MyComponent />
-    </DarkFeatureProvider>
+    </SupashipProvider>
   )
 }
 

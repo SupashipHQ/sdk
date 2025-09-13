@@ -1,6 +1,6 @@
 import { FeatureValue } from '@supashiphq/sdk-javascript'
 
-export type { DarkFeatureConfig, DarkFeaturePlugin } from '@supashiphq/sdk-javascript'
+export type { SupaClientConfig, SupaPlugin } from '@supashiphq/sdk-javascript'
 
 export interface UseFeatureOptions<T extends FeatureValue = FeatureValue> {
   fallback?: T

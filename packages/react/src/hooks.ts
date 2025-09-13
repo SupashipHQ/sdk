@@ -1,6 +1,6 @@
 'use client'
 
-import { useDarkFeature } from './provider'
+import { useClient } from './provider'
 import { UseFeatureOptions, UseFeaturesOptions } from './types'
 import { useQuery, QueryState } from './query'
 import { FeatureValue } from '@supashiphq/sdk-javascript'
@@ -23,7 +23,7 @@ export function useFeature<T extends FeatureValue = FeatureValue>(
   featureName: string,
   options?: UseFeatureOptions<T>
 ): UseFeatureResult<T> {
-  const client = useDarkFeature()
+  const client = useClient()
   const { fallback, context, shouldFetch = true } = options ?? {}
 
   const result = useQuery(
@@ -69,7 +69,7 @@ export function useFeature<T extends FeatureValue = FeatureValue>(
 export function useFeatures<T extends Record<string, FeatureValue> = Record<string, FeatureValue>>(
   options: UseFeaturesOptions<T>
 ): UseFeaturesResult<T> {
-  const client = useDarkFeature()
+  const client = useClient()
   const { features, context, shouldFetch = true } = options
 
   const result = useQuery(

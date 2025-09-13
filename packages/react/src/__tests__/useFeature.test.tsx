@@ -2,7 +2,7 @@ import React from 'react'
 import { render, screen, act } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { useFeature } from '../hooks'
-import { DarkFeatureProvider } from '../provider'
+import { SupaProvider } from '../provider'
 import { FeatureValue } from '@supashiphq/sdk-javascript'
 import { jest, describe, it, expect, beforeEach } from '@jest/globals'
 
@@ -11,10 +11,10 @@ type GetFeatureFn = (
   options?: { context?: Record<string, unknown> }
 ) => Promise<FeatureValue | null>
 
-// Mock the DarkFeatureClient
+// Mock the SupaProvider
 const mockGetFeature = jest.fn<GetFeatureFn>()
 jest.mock('@supashiphq/sdk-javascript', () => ({
-  DarkFeatureClient: jest.fn().mockImplementation(() => ({
+  SupaProvider: jest.fn().mockImplementation(() => ({
     getFeature: mockGetFeature,
   })),
 }))
@@ -40,6 +40,7 @@ const TestComponent = ({
 
 const config = {
   apiKey: 'test-api-key',
+  environment: 'test-environment',
   baseUrl: 'https://api.test.com',
 }
 
@@ -51,9 +52,9 @@ describe('useFeature', () => {
 
   it('should return query state with fallback value initially', async () => {
     render(
-      <DarkFeatureProvider config={config}>
+      <SupaProvider config={config}>
         <TestComponent featureKey="test-feature" options={{ fallback: true }} />
-      </DarkFeatureProvider>
+      </SupaProvider>
     )
 
     // Initial state should show fallback value
@@ -70,9 +71,9 @@ describe('useFeature', () => {
     mockGetFeature.mockReturnValueOnce(promise)
 
     render(
-      <DarkFeatureProvider config={config}>
+      <SupaProvider config={config}>
         <TestComponent featureKey="test-feature" options={{ fallback: true }} />
-      </DarkFeatureProvider>
+      </SupaProvider>
     )
 
     await act(async () => {
@@ -92,9 +93,9 @@ describe('useFeature', () => {
     mockGetFeature.mockReturnValueOnce(promise)
 
     render(
-      <DarkFeatureProvider config={config}>
+      <SupaProvider config={config}>
         <TestComponent featureKey="test-feature" options={{ context }} />
-      </DarkFeatureProvider>
+      </SupaProvider>
     )
 
     await act(async () => {
@@ -107,9 +108,9 @@ describe('useFeature', () => {
 
   it('should not fetch when shouldFetch is false', async () => {
     render(
-      <DarkFeatureProvider config={config}>
+      <SupaProvider config={config}>
         <TestComponent featureKey="test-feature" options={{ shouldFetch: false }} />
-      </DarkFeatureProvider>
+      </SupaProvider>
     )
 
     expect(mockGetFeature).not.toHaveBeenCalled()
