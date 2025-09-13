@@ -1,4 +1,4 @@
-import { DarkFeaturePlugin, PluginConfig } from './types'
+import { SupaPlugin, SupaPluginConfig } from './types'
 import { FeatureContext, FeatureValue } from '../types'
 
 export interface CacheEntry {
@@ -7,12 +7,12 @@ export interface CacheEntry {
   ttl: number
 }
 
-export interface CachingPluginConfig extends PluginConfig {
+export interface CachingPluginConfig extends SupaPluginConfig {
   storage?: 'memory' | 'localStorage' | 'sessionStorage'
   ttl?: number
 }
 
-export class CachingPlugin implements DarkFeaturePlugin {
+export class CachingPlugin implements SupaPlugin {
   name = 'caching'
   private cache: Cache
   private enabled: boolean

@@ -1,7 +1,7 @@
-import { DarkFeaturePlugin, PluginConfig } from './types'
+import { SupaPlugin, SupaPluginConfig } from './types'
 import { FeatureContext, FeatureValue } from '../types'
 
-export interface ObservabilityPluginConfig extends PluginConfig {
+export interface ObservabilityPluginConfig extends SupaPluginConfig {
   metricsEndpoint?: string
   includeTimings?: boolean
   includePayloads?: boolean
@@ -13,7 +13,7 @@ interface MetricEvent {
   data: Record<string, unknown>
 }
 
-export class ObservabilityPlugin implements DarkFeaturePlugin {
+export class ObservabilityPlugin implements SupaPlugin {
   name = 'observability'
   private enabled: boolean
   metricsEndpoint: string

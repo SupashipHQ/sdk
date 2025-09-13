@@ -15,9 +15,9 @@ pnpm add @supashiphq/sdk-javascript
 ## Quick Start
 
 ```typescript
-import { DarkFeatureClient } from '@supashiphq/sdk-javascript'
+import { SupashipClient } from '@supashiphq/sdk-javascript'
 
-const client = new DarkFeatureClient({
+const client = new SupashipClient({
   apiKey: 'your-api-key',
   context: {
     userId: '123',
@@ -59,12 +59,12 @@ console.log(features)
 
 ## API Reference
 
-### DarkFeatureClient
+### SupashipClient
 
 #### Constructor
 
 ```typescript
-new DarkFeatureClient(config: DarkFeatureConfig)
+new SupashipClient(config: SupashipConfig)
 ```
 
 **Configuration Options:**
@@ -295,7 +295,7 @@ const isEnabled = await client.getFeature('new-feature')
 ### 2. Use Context for Targeting
 
 ```typescript
-const client = new DarkFeatureClient({
+const client = new SupashipClient({
   apiKey: 'your-api-key',
   context: {
     userId: user.id,
@@ -352,11 +352,11 @@ For React applications, use our dedicated React SDK which provides hooks and com
 
 ```javascript
 // plugins/feature-flags.js
-import { DarkFeatureClient } from '@supashiphq/sdk-javascript'
+import { SupashipClient } from '@supashiphq/sdk-javascript'
 
 export default {
   install(app, options) {
-    const client = new DarkFeatureClient({
+    const client = new SupashipClient({
       apiKey: options.apiKey,
       context: options.defaultContext || {}
     })
@@ -374,7 +374,7 @@ import FeatureFlagsPlugin from './plugins/feature-flags'
 const app = createApp(App)
 
 app.use(FeatureFlagsPlugin, {
-  apiKey: process.env.VUE_APP_DARKFEATURE_API_KEY,
+  apiKey: process.env.SUPASHIP_API_KEY,
   defaultContext: { version: '1.0.0' }
 })
 
@@ -439,17 +439,17 @@ export default {
 ```typescript
 // feature-flag.service.ts
 import { Injectable } from '@angular/core'
-import { DarkFeatureClient } from '@supashiphq/sdk-javascript'
+import { SupashipClient } from '@supashiphq/sdk-javascript'
 
 @Injectable({
   providedIn: 'root',
 })
 export class FeatureFlagService {
-  private client: DarkFeatureClient
+  private client: SupashipClient
 
   constructor() {
-    this.client = new DarkFeatureClient({
-      apiKey: environment.darkfeatureApiKey,
+    this.client = new SupashipClient({
+      apiKey: environment.SUPASHIP_API_KEY,
       context: {
         userId: this.getCurrentUserId(),
         version: environment.version,
@@ -531,11 +531,11 @@ export class AppComponent implements OnInit {
 
 ```typescript
 import express from 'express'
-import { DarkFeatureClient } from '@supashiphq/sdk-javascript'
+import { SupashipClient } from '@supashiphq/sdk-javascript'
 
 const app = express()
-const featureClient = new DarkFeatureClient({
-  apiKey: process.env.DARKFEATURE_API_KEY,
+const featureClient = new SupashipClient({
+  apiKey: process.env.SUPASHIP_API_KEY,
 })
 
 app.get('/api/features', async (req, res) => {
@@ -560,7 +560,7 @@ app.get('/api/features', async (req, res) => {
 
 ```javascript
 // Include the SDK in your HTML or bundle
-const client = new DarkFeatureClient({
+const client = new SupashipClient({
   apiKey: 'your-api-key',
   context: { userId: getCurrentUserId() },
 })

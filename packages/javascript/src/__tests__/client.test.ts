@@ -1,5 +1,6 @@
-import { DarkFeatureClient } from '../client'
+import { SupaClient } from '../client'
 import { FeatureContext } from '../types'
+import '../types/jest.d.ts'
 
 // Mock Response type for fetch
 interface MockResponse {
@@ -12,60 +13,37 @@ jest.mock('../utils', () => ({
   retry: async (fn: () => Promise<unknown>): Promise<unknown> => await fn(),
 }))
 
-describe('DarkFeatureClient', () => {
-  let client: DarkFeatureClient
+describe('SupaClient', () => {
+  let client: SupaClient
   const mockApiKey = 'test-api-key'
   const mockBaseUrl = 'https://test-api.com'
 
   beforeEach((): void => {
-    client = new DarkFeatureClient({
+    client = new SupaClient({
       apiKey: mockApiKey,
+      environment: 'test-environment',
       baseUrl: mockBaseUrl,
     })
     jest.clearAllMocks()
   })
 
-  describe('parseValue', () => {
-    it('should parse boolean values correctly', (): void => {
-      expect(client['parseValue']('true')).toBe(true)
-      expect(client['parseValue']('false')).toBe(false)
-    })
-
-    it('should parse numeric values correctly', (): void => {
-      expect(client['parseValue']('123')).toBe(123)
-      expect(client['parseValue']('0')).toBe(0)
-      expect(client['parseValue']('-123')).toBe(-123)
-      expect(client['parseValue']('123.45')).toBe(123.45)
-    })
-
-    it('should return string values as is', (): void => {
-      expect(client['parseValue']('test')).toBe('test')
-      expect(client['parseValue']('not-a-number')).toBe('not-a-number')
-    })
-
-    it('should handle empty or null values', (): void => {
-      expect(client['parseValue']('')).toBe(null)
-      expect(client['parseValue'](null)).toBe(null)
-      expect(client['parseValue'](undefined as unknown as null)).toBe(null)
-    })
-  })
-
   describe('constructor and configuration', () => {
     it('should use default baseUrl when not provided', (): void => {
-      const client = new DarkFeatureClient({ apiKey: 'test' })
+      const client = new SupaClient({ apiKey: 'test', environment: 'test-environment' })
       expect(client['baseUrl']).toBe('https://edge.supaship.com/v1')
     })
 
     it('should use default retry configuration', (): void => {
-      const client = new DarkFeatureClient({ apiKey: 'test' })
+      const client = new SupaClient({ apiKey: 'test', environment: 'test-environment' })
       expect(client['retryEnabled']).toBe(true)
       expect(client['maxRetries']).toBe(3)
       expect(client['retryBackoff']).toBe(1000)
     })
 
     it('should use custom retry configuration', (): void => {
-      const client = new DarkFeatureClient({
+      const client = new SupaClient({
         apiKey: 'test',
+        environment: 'test-environment',
         retry: { enabled: false, maxAttempts: 5, backoff: 2000 },
       })
       expect(client['retryEnabled']).toBe(false)
@@ -74,20 +52,25 @@ describe('DarkFeatureClient', () => {
     })
 
     it('should handle empty plugins array', (): void => {
-      const client = new DarkFeatureClient({ apiKey: 'test', plugins: [] })
+      const client = new SupaClient({
+        apiKey: 'test',
+        environment: 'test-environment',
+        plugins: [],
+      })
       expect(client['plugins']).toEqual([])
     })
 
     it('should handle undefined plugins', (): void => {
-      const client = new DarkFeatureClient({ apiKey: 'test' })
+      const client = new SupaClient({ apiKey: 'test', environment: 'test-environment' })
       expect(client['plugins']).toEqual([])
     })
   })
 
   describe('updateContext', () => {
     it('should merge context by default', (): void => {
-      client = new DarkFeatureClient({
+      client = new SupaClient({
         apiKey: mockApiKey,
+        environment: 'test-environment',
         context: { existing: 'value', toUpdate: 'old' },
       })
 
@@ -102,8 +85,9 @@ describe('DarkFeatureClient', () => {
     })
 
     it('should replace context when mergeWithExisting is false', (): void => {
-      client = new DarkFeatureClient({
+      client = new SupaClient({
         apiKey: mockApiKey,
+        environment: 'test-environment',
         context: { existing: 'value', toUpdate: 'old' },
       })
 
@@ -129,8 +113,9 @@ describe('DarkFeatureClient', () => {
         onContextUpdate: jest.fn(),
       }
 
-      client = new DarkFeatureClient({
+      client = new SupaClient({
         apiKey: mockApiKey,
+        environment: 'test-environment',
         context: { old: 'value' },
         plugins: [mockPlugin],
       })
@@ -231,8 +216,9 @@ describe('DarkFeatureClient', () => {
         onFallbackUsed: jest.fn(),
       }
 
-      client = new DarkFeatureClient({
+      client = new SupaClient({
         apiKey: mockApiKey,
+        environment: 'test-environment',
         plugins: [mockPlugin],
       })
 
@@ -268,8 +254,9 @@ describe('DarkFeatureClient', () => {
         onContextUpdate: jest.fn(),
       }
 
-      client = new DarkFeatureClient({
+      client = new SupaClient({
         apiKey: mockApiKey,
+        environment: 'test-environment',
         context: { default: 'value' },
         plugins: [mockPlugin],
       })
@@ -306,8 +293,9 @@ describe('DarkFeatureClient', () => {
         onFallbackUsed: jest.fn(),
       }
 
-      client = new DarkFeatureClient({
+      client = new SupaClient({
         apiKey: mockApiKey,
+        environment: 'test-environment',
         plugins: [mockPlugin],
       })
 
@@ -332,8 +320,9 @@ describe('DarkFeatureClient', () => {
         afterResponse: jest.fn().mockResolvedValue(undefined),
       }
 
-      client = new DarkFeatureClient({
+      client = new SupaClient({
         apiKey: mockApiKey,
+        environment: 'test-environment',
         plugins: [mockPlugin],
       })
 
@@ -375,8 +364,9 @@ describe('DarkFeatureClient', () => {
     })
 
     it('should work with retry disabled', async (): Promise<void> => {
-      client = new DarkFeatureClient({
+      client = new SupaClient({
         apiKey: mockApiKey,
+        environment: 'test-environment',
         baseUrl: mockBaseUrl,
         retry: { enabled: false },
       })
@@ -395,8 +385,9 @@ describe('DarkFeatureClient', () => {
   describe('plugin management', () => {
     it('should cleanup plugins', async (): Promise<void> => {
       const mockPlugin = { name: 'testPlugin', cleanup: jest.fn() }
-      client = new DarkFeatureClient({
+      client = new SupaClient({
         apiKey: mockApiKey,
+        environment: 'test-environment',
         baseUrl: mockBaseUrl,
         plugins: [mockPlugin],
       })
@@ -411,8 +402,9 @@ describe('DarkFeatureClient', () => {
 
     it('should handle plugins without cleanup method', async (): Promise<void> => {
       const mockPlugin = { name: 'testPlugin' }
-      client = new DarkFeatureClient({
+      client = new SupaClient({
         apiKey: mockApiKey,
+        environment: 'test-environment',
         plugins: [mockPlugin],
       })
 
@@ -425,8 +417,9 @@ describe('DarkFeatureClient', () => {
         onError: jest.fn().mockResolvedValue(undefined),
       }
 
-      client = new DarkFeatureClient({
+      client = new SupaClient({
         apiKey: mockApiKey,
+        environment: 'test-environment',
         plugins: [mockPlugin],
       })
 

@@ -1,14 +1,17 @@
 import {
-  DarkFeatureConfig,
+  SupaClientConfig,
   FeatureContext,
   FeaturesOptions,
   FeatureValue,
   FeatureOptions,
 } from './types'
 import { retry } from './utils'
-import { DarkFeaturePlugin } from './plugins/types'
+import { SupaPlugin } from './plugins/types'
 
-export class DarkFeatureClient {
+const DEFAULT_BASE_URL = 'https://edge.supaship.com/v1'
+const FEATURES_API_PATH = '/features'
+
+export class SupaClient {
   private apiKey: string
   private environment: string
   private baseUrl: string
@@ -16,12 +19,12 @@ export class DarkFeatureClient {
   private retryEnabled: boolean
   private maxRetries: number
   private retryBackoff: number
-  private plugins: DarkFeaturePlugin[]
+  private plugins: SupaPlugin[]
 
-  constructor(config: DarkFeatureConfig) {
+  constructor(config: SupaClientConfig) {
     this.apiKey = config.apiKey
     this.environment = config.environment
-    this.baseUrl = config.baseUrl || 'https://edge.supaship.com/v1'
+    this.baseUrl = config.baseUrl || DEFAULT_BASE_URL
     this.defaultContext = config.context
     this.retryEnabled = config.retry?.enabled ?? true
     this.maxRetries = config.retry?.maxAttempts ?? 3
@@ -132,14 +135,14 @@ export class DarkFeatureClient {
       )
 
       const fetchFeatures = async (): Promise<Record<string, FeatureValue>> => {
-        const url = `${this.baseUrl}/features`
+        const url = `${this.baseUrl}${FEATURES_API_PATH}`
         const headers = {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.apiKey}`,
         }
         const body = JSON.stringify({
-          features: featureNames,
+          apiKey: this.apiKey,
           environment: this.environment,
+          features: featureNames,
           context,
         })
 

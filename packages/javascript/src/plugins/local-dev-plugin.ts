@@ -1,12 +1,12 @@
-import { DarkFeaturePlugin, PluginConfig } from './types'
+import { SupaPlugin, SupaPluginConfig } from './types'
 import { FeatureValue } from '../types'
 
-export interface LocalDevPluginConfig extends PluginConfig {
+export interface LocalDevPluginConfig extends SupaPluginConfig {
   features: Record<string, FeatureValue>
   overrides?: Record<string, FeatureValue>
 }
 
-export class LocalDevPlugin implements DarkFeaturePlugin {
+export class LocalDevPlugin implements SupaPlugin {
   name = 'local-dev'
   private enabled: boolean
   private features: Record<string, FeatureValue>

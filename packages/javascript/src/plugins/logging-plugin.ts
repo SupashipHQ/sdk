@@ -1,4 +1,4 @@
-import { DarkFeaturePlugin, PluginConfig } from './types'
+import { SupaPlugin, SupaPluginConfig } from './types'
 import { FeatureContext, FeatureValue } from '../types'
 
 export interface Logger {
@@ -8,11 +8,11 @@ export interface Logger {
   error(message: string, ...args: unknown[]): void
 }
 
-export interface LoggingPluginConfig extends PluginConfig {
+export interface LoggingPluginConfig extends SupaPluginConfig {
   level?: 'debug' | 'info' | 'warn' | 'error'
 }
 
-export class LoggingPlugin implements DarkFeaturePlugin {
+export class LoggingPlugin implements SupaPlugin {
   name = 'logging'
   private logger: DefaultLogger
   private enabled: boolean

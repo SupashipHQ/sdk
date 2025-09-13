@@ -1,14 +1,13 @@
-import { DarkFeaturePlugin } from './plugins/types'
+import { SupaPlugin } from './plugins/types'
 
-export interface DarkFeatureConfig {
+export interface SupaClientConfig {
   apiKey: string
   environment: string
   baseUrl?: string
   context?: FeatureContext
   retry?: RetryConfig
-  plugins?: DarkFeaturePlugin[]
+  plugins?: SupaPlugin[]
 }
-
 export interface FeatureContext {
   [key: string]: unknown
 }
