@@ -36,7 +36,7 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
           cache: 'pnpm'
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -127,7 +127,7 @@ jobs:
           # Process packages in the defined order (javascript first, then react)
           process_packages_in_order "publish"
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
 
       - name: Publication Summary
         run: |

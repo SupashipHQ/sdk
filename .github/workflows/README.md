@@ -108,7 +108,7 @@ See [scripts/README.md](../scripts/README.md) for detailed documentation.
 
 Add these secrets in your GitHub repository settings:
 
-- `NPM_ACCESS_TOKEN`: Your npm access token with publish permissions
+- `NPM_AUTH_TOKEN`: Your npm access token with publish permissions
   - Go to [npm Access Tokens](https://www.npmjs.com/settings/tokens)
   - Generate a **Granular Access Token** or **Classic Token**
   - Ensure it has publish access to your packages
@@ -183,7 +183,7 @@ npm install @supashiphq/sdk-javascript@1.2.3-beta.1
 
 If publishing fails:
 
-1. Check `NPM_ACCESS_TOKEN` is valid and has correct permissions
+1. Check `NPM_AUTH_TOKEN` is valid and has correct permissions
 2. Verify package names in `package.json` files are correct
 3. Ensure you have publish rights to the npm packages
 4. Check for any npm registry outages
