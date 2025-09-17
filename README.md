@@ -7,6 +7,7 @@ A collection of SDKs for Supaship that provides feature flag management for vari
 This monorepo contains the following packages:
 
 - [@supashiphq/sdk-javascript](./packages/javascript/README.md) - Core JavaScript SDK for feature flag management
+- [@supashiphq/sdk-react](./packages/react/README.md) - React SDK (hooks and components)
 
 More packages will be added in the future to support additional platforms and frameworks.
 
@@ -15,36 +16,35 @@ More packages will be added in the future to support additional platforms and fr
 ### JavaScript SDK
 
 ```javascript
-import { DarkFeatureClient } from '@supashiphq/sdk-javascript'
+import { SupaClient } from '@supashiphq/sdk-javascript'
 
-const client = new DarkFeatureClient({
-  apiKey: 'environment-api-key',
+const client = new SupaClient({
+  apiKey: 'api-key',
+  environment: 'production',
   context: {
-    userId: '123',
+    userID: '123',
     version: '1.0.1',
   },
 })
 
-// Get a feature flag
+// Get a boolean feature flag
 const isEnabled = await client.getFeature('my-feature', { fallback: false })
 
-// Get multiple feature flags
+// Get multiple boolean feature flags
 const features = await client.getFeatures({
   features: {
     feature1: false,
     feature2: true,
   },
   context: {
-    userId: '123',
+    userID: '123',
   },
 })
 ```
 
-For framework-specific examples and detailed documentation, please refer to the individual SDK documentation:
+For framework-specific examples and detailed documentation, see:
 
 - [React SDK Documentation](./packages/react/README.md)
-- [Vue SDK Documentation](./packages/vue/README.md)
-- [Angular SDK Documentation](./packages/angular/README.md)
 
 ## Development
 
