@@ -15,80 +15,85 @@ pnpm add @supashiphq/sdk-javascript
 ## Quick Start
 
 ```typescript
-import { SupashipClient } from '@supashiphq/sdk-javascript'
+import { SupaClient } from '@supashiphq/sdk-javascript'
 
-const client = new SupashipClient({
+const client = new SupaClient({
   apiKey: 'your-api-key',
+  environment: 'production',
   context: {
-    userId: '123',
+    userID: '123',
     email: 'user@example.com',
     version: '1.0.0',
   },
 })
 
-// Get a single feature flag with fallback
+// Get a single boolean feature flag with fallback
 const isEnabled = await client.getFeature<boolean>('my-feature', { fallback: false })
 
-// Get a feature flag with context override
-const featureValue = await client.getFeature<string>('experiment-feature', {
-  fallback: 'control',
-  context: { segment: 'premium' },
-})
-
-// Get multiple features at once
+// Get multiple boolean features at once
 type FeatureFlags = {
   'feature-1': boolean
-  'feature-2': string
-  'feature-3': number
+  'feature-2': boolean
+  'feature-3': boolean
 }
 
 const features = await client.getFeatures<FeatureFlags>({
   features: {
     'feature-1': false,
-    'feature-2': 'default-value',
-    'feature-3': 10,
+    'feature-2': false,
+    'feature-3': true,
   },
   context: {
-    userId: '456', // Override default context for this request
+    userID: '456', // Override default context for this request
   },
 })
 
 console.log(features)
-// { 'feature-1': true, 'feature-2': 'variant-a', 'feature-3': null }
+// { 'feature-1': true, 'feature-2': false, 'feature-3': true }
 ```
 
 ## API Reference
 
-### SupashipClient
+### SupaClient
 
 #### Constructor
 
 ```typescript
-new SupashipClient(config: SupashipConfig)
+new SupaClient(config: SupaClientConfig)
 ```
 
 **Configuration Options:**
 
-| Option    | Type             | Required | Description                                              |
-| --------- | ---------------- | -------- | -------------------------------------------------------- |
-| `apiKey`  | `string`         | Yes      | Your Supaship API key (Project Settings -> Environments) |
-| `baseUrl` | `string`         | No       | Custom API endpoint (defaults to Supaship's API)         |
-| `context` | `FeatureContext` | No       | Default context for feature evaluation                   |
-| `retry`   | `RetryConfig`    | No       | Retry configuration for network requests                 |
+| Option          | Type             | Required | Description                                                     |
+| --------------- | ---------------- | -------- | --------------------------------------------------------------- |
+| `apiKey`        | `string`         | Yes      | Your Supaship API key (Project Settings -> API Keys)            |
+| `environment`   | `string`         | Yes      | Environment slug (e.g., `production`, `staging`, `development`) |
+| `context`       | `FeatureContext` | No       | Default context for feature evaluation                          |
+| `networkConfig` | `NetworkConfig`  | No       | Network settings (endpoints, retry, timeout, custom fetch)      |
 
-**Retry Configuration:**
+**Feature Context:**
 
-```typescript
-interface FeatureContext {
-  [key: string]: string | number | boolean | null | undefined // key value pairs
-}
+| Field           | Type                               | Description                                 |
+| --------------- | ---------------------------------- | ------------------------------------------- |
+| `[key: string]` | `string` `number` `boolean` `null` | Key value pairs for feature flag evaluation |
 
-interface RetryConfig {
-  enabled?: boolean // Enable/disable retries (default: true)
-  maxAttempts?: number // Maximum retry attempts (default: 3)
-  backoff?: number // Base backoff delay in ms (default: 1000)
-}
-```
+**Network Configuration:**
+
+| Field              | Type                                                                   | Required | Default                                 | Description                                                   |
+| ------------------ | ---------------------------------------------------------------------- | -------- | --------------------------------------- | ------------------------------------------------------------- |
+| `featuresAPIUrl`   | `string`                                                               | No       | `https://edge.supaship.com/v1/features` | Override features API URL                                     |
+| `eventsAPIUrl`     | `string`                                                               | No       | `https://edge.supaship.com/v1/events`   | Override events/analytics API URL                             |
+| `requestTimeoutMs` | `number`                                                               | No       | —                                       | Abort requests after N ms (uses AbortController if available) |
+| `fetchFn`          | `(input: RequestInfo \| URL, init?: RequestInit) => Promise<Response>` | No       | —                                       | Custom fetch (pass in Node < 18 or specialized runtimes)      |
+| `retry`            | `RetryConfig`                                                          | No       | see below                               | Retry behavior for network requests                           |
+
+Retry (networkConfig.retry):
+
+| Field         | Type      | Required | Default | Description                            |
+| ------------- | --------- | -------- | ------- | -------------------------------------- |
+| `enabled`     | `boolean` | No       | `true`  | Enable/disable retries                 |
+| `maxAttempts` | `number`  | No       | `3`     | Maximum retry attempts                 |
+| `backoff`     | `number`  | No       | `1000`  | Base backoff delay in ms (exponential) |
 
 #### Methods
 
@@ -117,23 +122,8 @@ interface FeatureOptions<T extends FeatureValue = FeatureValue> {
 **Examples:**
 
 ```typescript
-// With fallback value
+// With boolean fallback value
 const isEnabled = await client.getFeature<boolean>('my-feature', { fallback: false })
-
-// Type-safe string feature - value will be typed as string
-const theme = await client.getFeature<string>('theme-variant', { fallback: 'light' })
-
-// Type-safe number feature - value will be typed as number
-const maxItems = await client.getFeature<number>('max-items', { fallback: 10 })
-
-// Advanced: Union types for specific values
-const variant = await client.getFeature<'control' | 'treatment' | 'holdout'>('experiment', {
-  fallback: 'control',
-  context: { userId: '123' },
-})
-
-// No fallback (will return null if not found)
-const value = await client.getFeature<string>('my-feature')
 ```
 
 ##### getFeatures()
@@ -158,42 +148,39 @@ interface FeaturesOptions<T extends Record<string, FeatureValue> = Record<string
 ```typescript
 type FeatureFlags = {
   'enable-new-ui': boolean
-  'theme-variant': 'light' | 'dark' | 'auto'
-  'max-items': number
-  'experiment-variant': 'control' | 'treatment'
+  'premium-content': boolean
+  'beta-mode': boolean
 }
 
 const myFeatures = await client.getFeatures<FeatureFlags>({
   features: {
     'enable-new-ui': false,
-    'theme-variant': 'light',
-    'max-items': 10,
-    'experiment-variant': 'control',
+    'premium-content': false,
+    'beta-mode': false,
   },
   context: {
-    userId: '123',
-    segment: 'premium',
+    userID: '123',
+    plan: 'premium',
   },
 })
-// myFeatures is typed as FeatureFlags
-// e.g., { 'enable-new-ui': true, 'theme-variant': 'dark', 'max-items': 20, 'experiment-variant': 'treatment' }
+// myFeatures value
+// { 'enable-new-ui': true, 'premium-content': false, 'beta-mode': true }
 
 // You can access with full type safety
 const isUIEnabled: boolean = myFeatures['enable-new-ui']
-const theme: 'light' | 'dark' | 'auto' = myFeatures['theme-variant']
-const maxItems: number = myFeatures['max-items']
+const isPremium: boolean = myFeatures['premium-content']
+const betaMode: boolean = myFeatures['beta-mode']
 
 // without explicit generic (defaults to Record<string, FeatureValue>)
 const features = await client.getFeatures({
   features: {
     'feature-1': false, // Boolean fallback
-    'feature-2': 'control', // String fallback
-    'feature-3': 42, // Number fallback
-    'feature-4': null, // No fallback
+    'feature-2': false, // Boolean fallback
+    'feature-3': true, // Boolean fallback
   },
   context: {
-    userId: '123',
-    segment: 'premium',
+    userID: '123',
+    plan: 'premium',
   },
 })
 ```
@@ -215,10 +202,10 @@ updateContext(context: FeatureContext, mergeWithExisting?: boolean): void
 
 ```typescript
 // Merge with existing context
-client.updateContext({ userId: '456' })
+client.updateContext({ userID: '456' })
 
 // Replace entire context
-client.updateContext({ userId: '456', newField: 'value' }, false)
+client.updateContext({ userID: '456', newField: 'value' }, false)
 ```
 
 ##### getContext()
@@ -229,22 +216,14 @@ Retrieves the current default context.
 getContext(): FeatureContext | undefined
 ```
 
-##### cleanup()
-
-Cleanup method for resource management.
-
-```typescript
-cleanup(): Promise<void>
-```
-
 ## Types
 
 ### FeatureValue
 
-The value of a feature flag can be:
+The value of a feature flag returned by the API is currently boolean, JSON object or null:
 
 ```typescript
-type FeatureValue = string | number | boolean | null
+type FeatureValue = string | number | boolean | null | Record<string, unknown> | unknown[]
 ```
 
 ### FeatureContext
@@ -259,26 +238,12 @@ interface FeatureContext {
 
 Common context properties:
 
-- `userId`: User identifier
+- `userID`: User identifier
 - `email`: User email
 - `plan`: Membership plan (e.g., 'premium', 'free')
 - `version`: Application version (e.g., 1.0.0)
 
 > Note: The above are just common examples. You can use any properties in your context object that make sense for your application's feature targeting needs.
-
-## Error Handling
-
-The SDK handles errors gracefully by returning fallback values when provided:
-
-```typescript
-try {
-  // If the API is down, this will return the fallback value 'offline-mode'
-  const feature = await client.getFeature('online-feature', { fallback: 'offline-mode' })
-} catch (error) {
-  // This only throws if no fallback is provided and an error occurs
-  console.error('Feature flag request failed:', error)
-}
-```
 
 ## Best Practices
 
@@ -288,17 +253,18 @@ try {
 // ✅ Good - provides fallback
 const isEnabled = await client.getFeature('new-feature', { fallback: false })
 
-// ❌ Risky - no fallback, may throw error
+// ❌ Risky - no fallback, throws error
 const isEnabled = await client.getFeature('new-feature')
 ```
 
 ### 2. Use Context for Targeting
 
 ```typescript
-const client = new SupashipClient({
+const client = new SupaClient({
   apiKey: 'your-api-key',
+  environment: 'staging',
   context: {
-    userId: user.id,
+    userID: user.id,
     email: user.email,
     plan: user.subscriptionPlan,
     version: process.env.APP_VERSION,
@@ -311,12 +277,12 @@ const client = new SupashipClient({
 ```typescript
 // ✅ Good - single API call
 const features = await client.getFeatures({
-  features: { 'feature-1': false, 'feature-2': 'default' },
+  features: { 'feature-1': false, 'feature-2': false },
 })
 
 // ❌ Less efficient - multiple API calls
 const feature1 = await client.getFeature('feature-1', { fallback: false })
-const feature2 = await client.getFeature('feature-2', { fallback: 'default' })
+const feature2 = await client.getFeature('feature-2', { fallback: false })
 ```
 
 ### 4. Handle Context Updates
@@ -325,7 +291,7 @@ const feature2 = await client.getFeature('feature-2', { fallback: 'default' })
 // Update context when user state changes
 function onUserLogin(user) {
   client.updateContext({
-    userId: user.id,
+    userID: user.id,
     email: user.email,
     plan: user.plan,
   })
@@ -352,12 +318,13 @@ For React applications, use our dedicated React SDK which provides hooks and com
 
 ```javascript
 // plugins/feature-flags.js
-import { SupashipClient } from '@supashiphq/sdk-javascript'
+import { SupaClient } from '@supashiphq/sdk-javascript'
 
 export default {
   install(app, options) {
-    const client = new SupashipClient({
+    const client = new SupaClient({
       apiKey: options.apiKey,
+      environment: 'development',
       context: options.defaultContext || {}
     })
 
@@ -415,7 +382,7 @@ export default {
 
     const updateUserContext = async (user) => {
       featureFlags.updateContext({
-        userId: user.id,
+        userID: user.id,
         plan: user.plan
       })
 
@@ -439,19 +406,20 @@ export default {
 ```typescript
 // feature-flag.service.ts
 import { Injectable } from '@angular/core'
-import { SupashipClient } from '@supashiphq/sdk-javascript'
+import { SupaClient } from '@supashiphq/sdk-javascript'
 
 @Injectable({
   providedIn: 'root',
 })
 export class FeatureFlagService {
-  private client: SupashipClient
+  private client: SupaClient
 
   constructor() {
-    this.client = new SupashipClient({
+    this.client = new SupaClient({
       apiKey: environment.SUPASHIP_API_KEY,
+      environment: 'production',
       context: {
-        userId: this.getCurrentUserId(),
+        userID: this.getCurrentUserId(),
         version: environment.version,
       },
     })
@@ -471,7 +439,7 @@ export class FeatureFlagService {
 
   private getCurrentUserId(): string {
     // Your user ID logic here
-    return localStorage.getItem('userId') || 'anonymous'
+    return localStorage.getItem('userID') || 'anonymous'
   }
 }
 
@@ -514,7 +482,7 @@ export class AppComponent implements OnInit {
 
   async onUserLogin(user: any) {
     this.featureFlags.updateContext({
-      userId: user.id,
+      userID: user.id,
       plan: user.subscriptionPlan,
     })
 
@@ -531,24 +499,25 @@ export class AppComponent implements OnInit {
 
 ```typescript
 import express from 'express'
-import { SupashipClient } from '@supashiphq/sdk-javascript'
+import { SupaClient } from '@supashiphq/sdk-javascript'
 
 const app = express()
-const featureClient = new SupashipClient({
+const featureClient = new SupaClient({
   apiKey: process.env.SUPASHIP_API_KEY,
+  environment: 'production',
 })
 
 app.get('/api/features', async (req, res) => {
   const features = await featureClient.getFeatures({
     features: {
       'new-api': false,
-      'rate-limit': 100,
       'cache-enabled': true,
+      'beta-mode': false,
     },
     context: {
-      userId: req.user.id,
+      userID: req.user.id,
       plan: req.user.plan,
-      region: req.headers['cf-ipcountry'],
+      region: req.headers['country'],
     },
   })
 
@@ -560,9 +529,10 @@ app.get('/api/features', async (req, res) => {
 
 ```javascript
 // Include the SDK in your HTML or bundle
-const client = new SupashipClient({
+const client = new SupaClient({
   apiKey: 'your-api-key',
-  context: { userId: getCurrentUserId() },
+  environment: 'production',
+  context: { userID: getCurrentUserId() },
 })
 
 $(document).ready(async function () {
