@@ -14,7 +14,7 @@ export interface SupaFeatureProps {
   /**
    * Key in variations object to use when no feature value matches
    */
-  fallback?: FeatureValue
+  fallback: FeatureValue
 
   /**
    * Context for feature evaluation
@@ -64,6 +64,7 @@ export function SupaFeature({
   const { feature: featureValue, isLoading } = useFeature(feature, {
     context,
     shouldFetch,
+    fallback,
   })
 
   // Show loading state if provided and currently loading

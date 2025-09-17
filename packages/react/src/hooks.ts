@@ -24,14 +24,20 @@ export function useFeature<T extends FeatureValue = FeatureValue>(
   options?: UseFeatureOptions<T>
 ): UseFeatureResult<T> {
   const client = useClient()
-  const { fallback, context, shouldFetch = true } = options ?? {}
+  const {
+    fallback,
+    context,
+    shouldFetch = true,
+  } = options ?? {
+    fallback: null as unknown as T,
+  }
 
   const result = useQuery(
     ['feature', featureName, context],
     async (): Promise<T> => {
       try {
         // Try to get the feature value from the client
-        const value = await client.getFeature(featureName, { context })
+        const value = await client.getFeature(featureName, { fallback, context })
         // Return the actual value if it exists (could be false, 0, etc.)
         if (hasValue(value)) {
           // Since T extends FeatureValue and value is FeatureValue, this is safe

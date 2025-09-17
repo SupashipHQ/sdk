@@ -3,7 +3,7 @@ import { FeatureValue } from '@supashiphq/sdk-javascript'
 export type { SupaClientConfig, SupaPlugin } from '@supashiphq/sdk-javascript'
 
 export interface UseFeatureOptions<T extends FeatureValue = FeatureValue> {
-  fallback?: T
+  fallback: T
   context?: Record<string, unknown>
   shouldFetch?: boolean
 }

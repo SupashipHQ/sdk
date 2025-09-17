@@ -15,22 +15,23 @@ pnpm add @supashiphq/sdk-react
 ## Quick Start
 
 ```tsx
-import { SupashipProvider, useFeature, SupashipFeature } from '@supashiphq/sdk-react'
+import { SupaProvider, useFeature, useFeatures, SupaFeature } from '@supashiphq/sdk-react'
 
 function App() {
   return (
-    <SupashipProvider
+    <SupaProvider
       config={{
         apiKey: 'your-api-key',
+        environment: 'production',
         context: {
-          userId: '123',
+          userID: '123',
           email: 'user@example.com',
           version: '1.0.0',
         },
       }}
     >
       <YourApp />
-    </SupashipProvider>
+    </SupaProvider>
   )
 }
 
@@ -38,7 +39,7 @@ function YourApp() {
   return (
     <div>
       {/* Component-based approach - declarative and clean */}
-      <SupashipFeature
+      <SupaFeature
         feature="my-feature"
         fallback={false}
         variations={{
@@ -54,17 +55,18 @@ function YourAppWithHooks() {
   // Hook-based approach - programmatic control
   const { feature: isEnabled } = useFeature('my-feature', { fallback: false })
 
-  const { feature: expFeature } = useFeature('experiment-feature', {
-    fallback: 'control',
-    context: { segment: 'premium' },
+  // Boolean features only (current API)
+  const { feature: showPremium } = useFeature('premium-feature', {
+    fallback: false,
+    context: { plan: 'premium' },
   })
 
   // Multiple features at once
   const { features } = useFeatures({
     features: {
       'feature-1': false,
-      'feature-2': 'default-value',
-      'feature-3': null,
+      'feature-2': false,
+      'feature-3': true,
     },
     context: { page: 'dashboard' },
   })
@@ -81,45 +83,41 @@ function YourAppWithHooks() {
 
 ## API Reference
 
-### SupashipProvider
+### SupaProvider
 
 The provider component that makes feature flags available to your React component tree.
 
 ```tsx
-<SupashipProvider config={config}>{children}</SupashipProvider>
+<SupaProvider config={config}>{children}</SupaProvider>
 ```
 
 **Props:**
 
-| Prop       | Type              | Required | Description                  |
-| ---------- | ----------------- | -------- | ---------------------------- |
-| `config`   | `SupashipConfig`  | Yes      | Configuration for the client |
-| `children` | `React.ReactNode` | Yes      | Child components             |
+| Prop       | Type               | Required | Description                  |
+| ---------- | ------------------ | -------- | ---------------------------- |
+| `config`   | `SupaClientConfig` | Yes      | Configuration for the client |
+| `children` | `React.ReactNode`  | Yes      | Child components             |
 
 **Configuration Options:**
 
 ```tsx
-interface SupashipConfig {
-  apiKey: string // Your Supaship API key (Project Settings -> API Keys)
-  baseUrl?: string // Custom API endpoint
-  context?: FeatureContext // Default context for feature evaluation
-  retry?: RetryConfig // Retry configuration for network requests
-}
-
-interface FeatureContext {
-  [key: string]: string | number | boolean | null | undefined // key value pairs
-}
-
-interface RetryConfig {
-  enabled?: boolean // Enable/disable retries (default: true)
-  maxAttempts?: number // Maximum retry attempts (default: 3)
-  backoff?: number // Base backoff delay in ms (default: 1000)
+interface SupaClientConfig {
+  apiKey: string
+  environment: string
+  context?: Record<string, unknown>
+  networkConfig?: {
+    featuresAPIUrl?: string
+    eventsAPIUrl?: string
+    retry?: { enabled?: boolean; maxAttempts?: number; backoff?: number }
+    requestTimeoutMs?: number
+    fetchFn?: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
+  }
 }
 ```
 
 Common context properties:
 
-- `userId`: User identifier
+- `userID`: User identifier
 - `email`: User email
 - `plan`: Membership plan (e.g., 'premium', 'free')
 - `version`: Application version (e.g., 1.0.0)
@@ -151,12 +149,6 @@ function MyComponent() {
   // Simple boolean feature
   const { feature: isEnabled } = useFeature<boolean>('my-feature', { fallback: false })
 
-  // String variant with fallback
-  const { feature: buttonColor } = useFeature<string>('button-color', { fallback: 'blue' })
-
-  // Number variant with fallback
-  const { feature: maxItems } = useFeature<number>('max-items', { fallback: 10 })
-
   // With context override
   const { feature: showPremium } = useFeature<boolean>('premium-feature', {
     fallback: false,
@@ -165,14 +157,7 @@ function MyComponent() {
 
   // Conditional fetching
   const { user, isLoading } = useUser()
-  const { feature: dashboardVariant } = useFeature<'modern' | 'classic' | 'beta'>(
-    'dashboard-variant',
-    {
-      fallback: 'classic',
-      context: { userId: user?.id },
-      shouldFetch: !isLoading && !!user,
-    }
-  )
+  // Boolean-only API; variant examples removed
 
   return (
     <div>
@@ -212,15 +197,15 @@ function Dashboard() {
 
   type DashboardFeatures = {
     'new-dashboard': boolean
-    'sidebar-variant': 'light' | 'dark' | 'auto'
-    'max-items': number
+    'beta-mode': boolean
+    'show-sidebar': boolean
   }
 
   const { features } = useFeatures<DashboardFeatures>({
     features: {
       'new-dashboard': false,
-      'sidebar-variant': 'auto',
-      'max-items': 10,
+      'beta-mode': false,
+      'show-sidebar': true,
     },
     context: {
       userId: user?.id,
@@ -234,8 +219,8 @@ function Dashboard() {
 
   return (
     <div className={features['new-dashboard'] ? 'new-layout' : 'old-layout'}>
-      <Sidebar variant={features['sidebar-variant']} />
-      <MainContent maxItems={features['max-items']} />
+      {features['show-sidebar'] && <Sidebar />}
+      <MainContent />
     </div>
   )
 }
@@ -541,21 +526,21 @@ function UserDashboard() {
 ```tsx
 // app/providers.tsx
 'use client'
-import { SupashipProvider } from '@supashiphq/sdk-react'
+import { SupaProvider } from '@supashiphq/sdk-react'
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <SupashipProvider
+    <SupaProvider
       config={{
         apiKey: process.env.NEXT_PUBLIC_SUPASHIP_API_KEY!,
+        environment: process.env.NODE_ENV!,
         context: {
-          environment: process.env.NODE_ENV,
           version: process.env.NEXT_PUBLIC_APP_VERSION,
         },
       }}
     >
       {children}
-    </SupashipProvider>
+    </SupaProvider>
   )
 }
 
@@ -574,12 +559,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
 // app/page.tsx
 ;('use client')
-import { SupashipFeature } from '@supashiphq/sdk-react'
+import { SupaFeature } from '@supashiphq/sdk-react'
 
 export default function HomePage() {
   return (
     <main>
-      <SupashipFeature
+      <SupaFeature
         feature="new-hero-section"
         fallback={false}
         loading="skeleton"
@@ -598,45 +583,33 @@ export default function HomePage() {
 
 ```tsx
 // pages/_app.tsx
-import { SupashipProvider } from '@supashiphq/sdk-react'
+import { SupaProvider } from '@supashiphq/sdk-react'
 import type { AppProps } from 'next/app'
 
 export default function App({ Component, pageProps }: AppProps) {
   return (
-    <SupashipProvider
+    <SupaProvider
       config={{
         apiKey: process.env.NEXT_PUBLIC_SUPASHIP_API_KEY!,
-        context: {
-          environment: process.env.NODE_ENV,
-        },
+        environment: process.env.NODE_ENV!,
       }}
     >
       <Component {...pageProps} />
-    </SupashipProvider>
+    </SupaProvider>
   )
 }
 
 // pages/index.tsx
-import { SupashipFeature } from '@supashiphq/sdk-react'
+import { SupaFeature } from '@supashiphq/sdk-react'
 
 export default function HomePage() {
   return (
     <div>
-      <SupashipFeature
+      <SupaFeature
         feature="new-homepage"
         fallback={false}
         variations={{
-          true: (
-            <SupashipFeature
-              feature="hero-variant"
-              fallback="default"
-              variations={{
-                default: <NewHomePage variant="default" />,
-                'variant-a': <NewHomePage variant="variant-a" />,
-                'variant-b': <NewHomePage variant="variant-b" />,
-              }}
-            />
-          ),
+          true: <NewHomePage />,
           false: <OldHomePage />,
         }}
       />
@@ -702,7 +675,7 @@ export const getServerSideProps: GetServerSideProps = async context => {
 
 ```tsx
 // App.tsx
-import { SupashipProvider } from '@supashiphq/sdk-react'
+import { SupaProvider } from '@supashiphq/sdk-react'
 import { Platform } from 'react-native'
 
 export default function App() {
@@ -751,24 +724,25 @@ export function HomePage() {
 import { SupashipProvider } from '@supashiphq/sdk-react'
 
 export const wrapRootElement = ({ element }) => (
-  <SupashipProvider
+  <SupaProvider
     config={{
       apiKey: process.env.SUPASHIP_API_KEY,
+      environment: process.env.NODE_ENV,
       context: {
         site: 'gatsby-site',
       },
     }}
   >
     {element}
-  </SupashipProvider>
+  </SupaProvider>
 )
 
 // src/components/Layout.tsx
-import { SupashipFeature } from '@supashiphq/sdk-react'
+import { SupaFeature } from '@supashiphq/sdk-react'
 
 export function Layout({ children }) {
   return (
-    <SupashipFeature
+    <SupaFeature
       feature="new-layout-design"
       fallback={false}
       variations={{
