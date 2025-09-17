@@ -1,6 +1,6 @@
 # GitHub Workflows
 
-This directory contains the GitHub Actions workflows for the DarkFeature SDK project.
+This directory contains the GitHub Actions workflows for the Supaship SDK project.
 
 ## Shared Configuration
 
@@ -10,8 +10,8 @@ All workflows use a shared package configuration system to ensure consistency ac
 
 Packages are processed in a specific order defined in `.github/scripts/package-config.sh`:
 
-1. **JavaScript package** (`@darkfeature/sdk-javascript`) - processed first
-2. **React package** (`@darkfeature/sdk-react`) - processed second
+1. **JavaScript package** (`@supashiphq/sdk-javascript`) - processed first
+2. **React package** (`@supashiphq/sdk-react`) - processed second
 
 This order is important because:
 
@@ -108,7 +108,7 @@ See [scripts/README.md](../scripts/README.md) for detailed documentation.
 
 Add these secrets in your GitHub repository settings:
 
-- `NPM_ACCESS_TOKEN`: Your npm access token with publish permissions
+- `NPM_AUTH_TOKEN`: Your npm access token with publish permissions
   - Go to [npm Access Tokens](https://www.npmjs.com/settings/tokens)
   - Generate a **Granular Access Token** or **Classic Token**
   - Ensure it has publish access to your packages
@@ -118,7 +118,7 @@ Add these secrets in your GitHub repository settings:
 
 Ensure your npm token has permission to publish to:
 
-- `@darkfeature/sdk-javascript`
+- `@supashiphq/sdk-javascript`
 - Any other packages in the `packages/` directory
 
 ### 3. Repository Permissions
@@ -153,16 +153,16 @@ Users can install prerelease versions with specific tags:
 
 ```bash
 # Install latest alpha
-npm install @darkfeature/sdk-javascript@alpha
+npm install @supashiphq/sdk-javascript@alpha
 
 # Install latest beta
-npm install @darkfeature/sdk-javascript@beta
+npm install @supashiphq/sdk-javascript@beta
 
 # Install latest release candidate
-npm install @darkfeature/sdk-javascript@rc
+npm install @supashiphq/sdk-javascript@rc
 
 # Install specific version
-npm install @darkfeature/sdk-javascript@1.2.3-beta.1
+npm install @supashiphq/sdk-javascript@1.2.3-beta.1
 ```
 
 ## Workflow Benefits
@@ -183,7 +183,7 @@ npm install @darkfeature/sdk-javascript@1.2.3-beta.1
 
 If publishing fails:
 
-1. Check `NPM_ACCESS_TOKEN` is valid and has correct permissions
+1. Check `NPM_AUTH_TOKEN` is valid and has correct permissions
 2. Verify package names in `package.json` files are correct
 3. Ensure you have publish rights to the npm packages
 4. Check for any npm registry outages

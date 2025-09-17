@@ -1,7 +1,7 @@
 {
-  "name": "@darkfeature/sdk-react",
-  "version": "0.4.2",
-  "description": "DarkFeature SDK for React",
+  "name": "@supashiphq/sdk-react",
+  "version": "0.5.0",
+  "description": "Supaship SDK for React",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
@@ -27,7 +27,7 @@
     "react-dom": ">=16.8.0"
   },
   "dependencies": {
-    "@darkfeature/sdk-javascript": "workspace:^0.4.2"
+    "@supashiphq/sdk-javascript": "workspace:^0.5.0"
   },
   "devDependencies": {
     "@jest/globals": "^30.0.0",
@@ -53,15 +53,15 @@
     "react",
     "sdk"
   ],
-  "author": "DarkFeature",
+  "author": "Supaship",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/darkfeature/sdk.git",
+    "url": "https://github.com/supashiphq/sdk.git",
     "directory": "packages/react"
   },
   "bugs": {
-    "url": "https://github.com/darkfeature/sdk/issues"
+    "url": "https://github.com/supashiphq/sdk/issues"
   },
-  "homepage": "https://darkfeature.com"
+  "homepage": "https://supaship.com"
 }

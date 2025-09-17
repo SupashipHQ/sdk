@@ -16,7 +16,7 @@ module.exports = {
     ],
   },
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
-  transformIgnorePatterns: ['/node_modules/(?!(@testing-library|@darkfeature)/)'],
+  transformIgnorePatterns: ['/node_modules/(?!(@testing-library|@supashiphq)/)'],
   collectCoverage: true,
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov'],

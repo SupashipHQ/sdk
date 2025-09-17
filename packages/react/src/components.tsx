@@ -2,10 +2,10 @@
 
 import React, { ReactNode } from 'react'
 import { useFeature } from './hooks'
-import { FeatureValue } from '@darkfeature/sdk-javascript'
+import { FeatureValue } from '@supashiphq/sdk-javascript'
 import { hasValue } from './utils'
 
-export interface DarkFeatureProps {
+export interface SupaFeatureProps {
   /**
    * The feature flag key to evaluate
    */
@@ -14,7 +14,7 @@ export interface DarkFeatureProps {
   /**
    * Key in variations object to use when no feature value matches
    */
-  fallback?: FeatureValue
+  fallback: FeatureValue
 
   /**
    * Context for feature evaluation
@@ -38,92 +38,33 @@ export interface DarkFeatureProps {
 }
 
 /**
- * DarkFeature component that conditionally renders variations based on feature flag values.
- *
- * Supports all FeatureValue types (string | number | boolean | null) as variation keys.
- * Feature values are automatically converted to strings for object key matching:
- * - boolean `true` → `"true"`
- * - boolean `false` → `"false"`
- * - number `42` → `"42"`
- * - string `"variant-a"` → `"variant-a"`
- * - `null` → `"null"`
+ * SupaFeature component that conditionally renders variations based on feature flag values.
  *
  * @example
- * String variations:
  * ```tsx
- * <DarkFeature
- *   feature="theme-variant"
- *   fallback="default"
- *   loading="spinner"
- *   variations={{
- *     "light": <LightTheme />,
- *     "dark": <DarkTheme />,
- *     "auto": <AutoTheme />,
- *     default: <DefaultTheme />,
- *     spinner: <ThemeLoader />
- *   }}
- * />
- * ```
- *
- * @example
- * Boolean variations:
- * ```tsx
- * <DarkFeature
+ * <SupaFeature
  *   feature="new-header"
  *   fallback={false}
- *   loading="skeleton"
  *   variations={{
  *     "true": <NewHeader />,
  *     "false": <OldHeader />,
- *     skeleton: <HeaderSkeleton />
- *   }}
- * />
- * ```
- *
- * @example
- * Number variations:
- * ```tsx
- * <DarkFeature
- *   feature="max-items"
- *   fallback="default"
- *   variations={{
- *     "5": <ItemList maxItems={5} />,
- *     "10": <ItemList maxItems={10} />,
- *     "20": <ItemList maxItems={20} />,
- *     default: <ItemList maxItems={10} />
- *   }}
- * />
- * ```
- *
- * @example
- * Mixed types with null handling:
- * ```tsx
- * <DarkFeature
- *   feature="experiment-config"
- *   fallback="disabled"
- *   variations={{
- *     "control": <ControlExperiment />,
- *     "variant-a": <VariantAExperiment />,
- *     "42": <NumericExperiment value={42} />,
- *     "true": <EnabledExperiment />,
- *     "false": <DisabledExperiment />,
- *     "null": <NoExperiment />,
- *     disabled: <NoExperiment />
+ *     loading: <HeaderSkeleton />
  *   }}
  * />
  * ```
  */
-export function DarkFeature({
+export function SupaFeature({
   feature,
   fallback,
   context,
   shouldFetch = true,
   variations,
   loading,
-}: DarkFeatureProps): React.JSX.Element | null {
+}: SupaFeatureProps): React.JSX.Element | null {
   const { feature: featureValue, isLoading } = useFeature(feature, {
     context,
     shouldFetch,
+    fallback,
   })
 
   // Show loading state if provided and currently loading

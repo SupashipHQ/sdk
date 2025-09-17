@@ -2,9 +2,9 @@ import { renderHook, act } from '@testing-library/react'
 import { useQuery } from '../query'
 import { jest, describe, it, expect, beforeEach } from '@jest/globals'
 
-// Mock the DarkFeatureClient
-jest.mock('@darkfeature/sdk-javascript', () => ({
-  DarkFeatureClient: jest.fn().mockImplementation(() => ({
+// Mock the SupaClient
+jest.mock('@supashiphq/sdk-javascript', () => ({
+  SupaClient: jest.fn().mockImplementation(() => ({
     getFeatures: jest.fn(),
   })),
 }))

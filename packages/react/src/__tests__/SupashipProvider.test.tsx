@@ -1,24 +1,25 @@
 import React from 'react'
 import { render } from '@testing-library/react'
-import { DarkFeatureProvider, useDarkFeature, useFeatureContext } from '../provider'
-import { DarkFeatureClient } from '@darkfeature/sdk-javascript'
+import { SupaProvider, useClient, useFeatureContext } from '../provider'
+import { SupaClient } from '@supashiphq/sdk-javascript'
 import { jest, describe, it, expect } from '@jest/globals'
 
-// Mock the DarkFeatureClient
+// Mock the SupaClient
 const mockUpdateContext = jest.fn()
 const mockGetContext = jest.fn()
-jest.mock('@darkfeature/sdk-javascript', () => ({
-  DarkFeatureClient: jest.fn().mockImplementation(() => ({
+jest.mock('@supashiphq/sdk-javascript', () => ({
+  SupaClient: jest.fn().mockImplementation(() => ({
     getFeature: jest.fn(),
     updateContext: mockUpdateContext,
     getContext: mockGetContext,
   })),
 }))
 
-describe('DarkFeatureProvider', () => {
+describe('SupaProvider', () => {
   const config = {
-    apiKey: 'test-api-key',
     baseUrl: 'https://api.test.com',
+    apiKey: 'test-api-key',
+    environment: 'test-environment',
   }
 
   beforeEach(() => {
@@ -27,12 +28,12 @@ describe('DarkFeatureProvider', () => {
 
   it('should initialize client with config', () => {
     render(
-      <DarkFeatureProvider config={config}>
+      <SupaProvider config={config}>
         <div>Test</div>
-      </DarkFeatureProvider>
+      </SupaProvider>
     )
 
-    expect(DarkFeatureClient).toHaveBeenCalledWith({
+    expect(SupaClient).toHaveBeenCalledWith({
       ...config,
       plugins: [],
     })
@@ -42,12 +43,12 @@ describe('DarkFeatureProvider', () => {
     const mockPlugin = { name: 'test-plugin' }
 
     render(
-      <DarkFeatureProvider config={config} plugins={[mockPlugin]}>
+      <SupaProvider config={config} plugins={[mockPlugin]}>
         <div>Test</div>
-      </DarkFeatureProvider>
+      </SupaProvider>
     )
 
-    expect(DarkFeatureClient).toHaveBeenCalledWith({
+    expect(SupaClient).toHaveBeenCalledWith({
       ...config,
       plugins: [mockPlugin],
     })
@@ -59,21 +60,21 @@ describe('DarkFeatureProvider', () => {
     const configWithPlugins = { ...config, plugins: [configPlugin] }
 
     render(
-      <DarkFeatureProvider config={configWithPlugins} plugins={[propPlugin]}>
+      <SupaProvider config={configWithPlugins} plugins={[propPlugin]}>
         <div>Test</div>
-      </DarkFeatureProvider>
+      </SupaProvider>
     )
 
-    expect(DarkFeatureClient).toHaveBeenCalledWith({
+    expect(SupaClient).toHaveBeenCalledWith({
       ...configWithPlugins,
       plugins: [configPlugin, propPlugin],
     })
   })
 
-  it('should show error when useDarkFeature is used outside provider', () => {
+  it('should show error when useClient is used outside provider', () => {
     const TestComponent = (): JSX.Element => {
       try {
-        useDarkFeature()
+        useClient()
         return <div>No error</div>
       } catch (error) {
         return <div>Error: {(error as Error).message}</div>
@@ -81,9 +82,7 @@ describe('DarkFeatureProvider', () => {
     }
 
     const { container } = render(<TestComponent />)
-    expect(container.textContent).toContain(
-      'useDarkFeature must be used within a DarkFeatureProvider'
-    )
+    expect(container.textContent).toContain('useClient must be used within a SupaProvider')
   })
 
   it('should show error when useFeatureContext is used outside provider', () => {
@@ -97,9 +96,7 @@ describe('DarkFeatureProvider', () => {
     }
 
     const { container } = render(<TestComponent />)
-    expect(container.textContent).toContain(
-      'useFeatureContext must be used within a DarkFeatureProvider'
-    )
+    expect(container.textContent).toContain('useFeatureContext must be used within a SupaProvider')
   })
 
   it('should provide context update functionality', () => {
@@ -127,9 +124,9 @@ describe('DarkFeatureProvider', () => {
     }
 
     const { getByTestId } = render(
-      <DarkFeatureProvider config={config}>
+      <SupaProvider config={config}>
         <TestComponent />
-      </DarkFeatureProvider>
+      </SupaProvider>
     )
 
     // Simulate updating context

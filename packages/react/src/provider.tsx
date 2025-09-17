@@ -2,34 +2,34 @@
 
 import React, { createContext, useContext, ReactNode, useMemo, useCallback } from 'react'
 import {
-  DarkFeatureClient,
-  DarkFeatureConfig,
-  DarkFeaturePlugin,
+  SupaClient,
+  SupaClientConfig,
+  SupaPlugin,
   FeatureContext,
-} from '@darkfeature/sdk-javascript'
+} from '@supashiphq/sdk-javascript'
 
-interface DarkFeatureContextValue {
-  client: DarkFeatureClient
+interface SupaContextValue {
+  client: SupaClient
   updateContext: (context: FeatureContext, mergeWithExisting?: boolean) => void
   getContext: () => FeatureContext | undefined
 }
 
-const DarkFeatureContext = createContext<DarkFeatureContextValue | null>(null)
+const SupaContext = createContext<SupaContextValue | null>(null)
 
-interface DarkFeatureProviderProps {
-  config: DarkFeatureConfig
-  plugins?: DarkFeaturePlugin[]
+interface SupaProviderProps {
+  config: SupaClientConfig
+  plugins?: SupaPlugin[]
   children: ReactNode
 }
 
-export function DarkFeatureProvider({
+export function SupaProvider({
   config,
   plugins = [],
   children,
-}: DarkFeatureProviderProps): React.JSX.Element {
+}: SupaProviderProps): React.JSX.Element {
   // Initialize the singleton instance if it hasn't been initialized yet
   const client = useMemo(() => {
-    return new DarkFeatureClient({
+    return new SupaClient({
       ...config,
       plugins: [...(config.plugins || []), ...plugins],
     })
@@ -57,25 +57,25 @@ export function DarkFeatureProvider({
     [client, updateContext, getContext]
   )
 
-  return <DarkFeatureContext.Provider value={contextValue}>{children}</DarkFeatureContext.Provider>
+  return <SupaContext.Provider value={contextValue}>{children}</SupaContext.Provider>
 }
 
-export function useDarkFeature(): DarkFeatureClient {
-  const context = useContext(DarkFeatureContext)
+export function useClient(): SupaClient {
+  const context = useContext(SupaContext)
   if (!context) {
-    throw new Error('useDarkFeature must be used within a DarkFeatureProvider')
+    throw new Error('useClient must be used within a SupaProvider')
   }
   return context.client
 }
 
 /**
- * Hook to update the DarkFeature context dynamically
+ * Hook to update the context dynamically
  * Useful when context depends on authentication or other async operations
  */
-export function useFeatureContext(): Omit<DarkFeatureContextValue, 'client'> {
-  const context = useContext(DarkFeatureContext)
+export function useFeatureContext(): Omit<SupaContextValue, 'client'> {
+  const context = useContext(SupaContext)
   if (!context) {
-    throw new Error('useFeatureContext must be used within a DarkFeatureProvider')
+    throw new Error('useFeatureContext must be used within a SupaProvider')
   }
   return {
     updateContext: context.updateContext,

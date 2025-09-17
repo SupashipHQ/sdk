@@ -1,9 +1,9 @@
 'use client'
 
-import { useDarkFeature } from './provider'
+import { useClient } from './provider'
 import { UseFeatureOptions, UseFeaturesOptions } from './types'
 import { useQuery, QueryState } from './query'
-import { FeatureValue } from '@darkfeature/sdk-javascript'
+import { FeatureValue } from '@supashiphq/sdk-javascript'
 import { hasValue } from './utils'
 
 // Custom return types for hooks with generics
@@ -23,15 +23,21 @@ export function useFeature<T extends FeatureValue = FeatureValue>(
   featureName: string,
   options?: UseFeatureOptions<T>
 ): UseFeatureResult<T> {
-  const client = useDarkFeature()
-  const { fallback, context, shouldFetch = true } = options ?? {}
+  const client = useClient()
+  const {
+    fallback,
+    context,
+    shouldFetch = true,
+  } = options ?? {
+    fallback: null as unknown as T,
+  }
 
   const result = useQuery(
     ['feature', featureName, context],
     async (): Promise<T> => {
       try {
         // Try to get the feature value from the client
-        const value = await client.getFeature(featureName, { context })
+        const value = await client.getFeature(featureName, { fallback, context })
         // Return the actual value if it exists (could be false, 0, etc.)
         if (hasValue(value)) {
           // Since T extends FeatureValue and value is FeatureValue, this is safe
@@ -69,7 +75,7 @@ export function useFeature<T extends FeatureValue = FeatureValue>(
 export function useFeatures<T extends Record<string, FeatureValue> = Record<string, FeatureValue>>(
   options: UseFeaturesOptions<T>
 ): UseFeaturesResult<T> {
-  const client = useDarkFeature()
+  const client = useClient()
   const { features, context, shouldFetch = true } = options
 
   const result = useQuery(

@@ -1,7 +1,7 @@
-import { DarkFeaturePlugin, PluginConfig } from './types'
+import { SupaPlugin, SupaPluginConfig } from './types'
 import { FeatureContext, FeatureValue } from '../types'
 
-export interface AnalyticsPluginConfig extends PluginConfig {
+export interface AnalyticsPluginConfig extends SupaPluginConfig {
   endpoint?: string
   batchSize?: number
   flushInterval?: number
@@ -15,7 +15,7 @@ interface AnalyticsEvent {
   timestamp: number
 }
 
-export class AnalyticsPlugin implements DarkFeaturePlugin {
+export class AnalyticsPlugin implements SupaPlugin {
   name = 'analytics'
   private enabled: boolean
   private endpoint: string

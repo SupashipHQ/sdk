@@ -1,7 +1,7 @@
 {
-  "name": "@darkfeature/sdk-javascript",
-  "version": "0.4.2",
-  "description": "JavaScript SDK for DarkFeature",
+  "name": "@supashiphq/sdk-javascript",
+  "version": "0.5.0",
+  "description": "JavaScript SDK for Supaship",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
@@ -36,17 +36,17 @@
   "keywords": [
     "feature-flags",
     "feature-toggles",
-    "darkfeature"
+    "supaship"
   ],
-  "author": "DarkFeature",
+  "author": "Supaship",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/darkfeature/sdk.git",
+    "url": "https://github.com/supashiphq/sdk.git",
     "directory": "packages/javascript"
   },
   "bugs": {
-    "url": "https://github.com/darkfeature/sdk/issues"
+    "url": "https://github.com/supashiphq/sdk/issues"
   },
-  "homepage": "https://darkfeature.com"
+  "homepage": "https://supaship.com"
 }

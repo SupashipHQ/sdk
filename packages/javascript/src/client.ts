@@ -1,32 +1,64 @@
 import {
-  DarkFeatureConfig,
+  SupaClientConfig,
   FeatureContext,
   FeaturesOptions,
   FeatureValue,
   FeatureOptions,
+  NetworkConfig,
 } from './types'
 import { retry } from './utils'
-import { DarkFeaturePlugin } from './plugins/types'
+import { SupaPlugin } from './plugins/types'
 
-export class DarkFeatureClient {
+const DEFAULT_FEATURES_URL = 'https://edge.supaship.com/v1/features'
+const DEFAULT_EVENTS_URL = 'https://edge.supaship.com/v1/events'
+
+type DeepRequired<T> = {
+  [K in keyof T]-?: T[K] extends object ? DeepRequired<T[K]> : T[K]
+}
+
+export class SupaClient {
   private apiKey: string
   private environment: string
-  private baseUrl: string
   private defaultContext?: FeatureContext
-  private retryEnabled: boolean
-  private maxRetries: number
-  private retryBackoff: number
-  private plugins: DarkFeaturePlugin[]
+  private plugins: SupaPlugin[]
 
-  constructor(config: DarkFeatureConfig) {
+  private fetchImpl: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
+  private networkConfig: DeepRequired<NetworkConfig>
+
+  constructor(config: SupaClientConfig) {
     this.apiKey = config.apiKey
     this.environment = config.environment
-    this.baseUrl = config.baseUrl || 'https://edge.supaship.com/v1'
     this.defaultContext = config.context
-    this.retryEnabled = config.retry?.enabled ?? true
-    this.maxRetries = config.retry?.maxAttempts ?? 3
-    this.retryBackoff = config.retry?.backoff ?? 1000
     this.plugins = config.plugins || []
+
+    this.networkConfig = {
+      featuresAPIUrl: config.networkConfig?.featuresAPIUrl || DEFAULT_FEATURES_URL,
+      eventsAPIUrl: config.networkConfig?.eventsAPIUrl || DEFAULT_EVENTS_URL,
+      retry: {
+        enabled: config.networkConfig?.retry?.enabled ?? true,
+        maxAttempts: config.networkConfig?.retry?.maxAttempts ?? 3,
+        backoff: config.networkConfig?.retry?.backoff ?? 1000,
+      },
+      requestTimeoutMs: config.networkConfig?.requestTimeoutMs ?? 10000,
+      fetchFn: config.networkConfig?.fetchFn as (
+        input: RequestInfo | URL,
+        init?: RequestInit
+      ) => Promise<Response>,
+    }
+
+    // Prefer injected fetch, then global fetch if available
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const globalFetch = (globalThis as any)?.fetch as typeof fetch | undefined
+    if (config.networkConfig?.fetchFn) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      this.fetchImpl = config.networkConfig.fetchFn as any
+    } else if (typeof globalFetch === 'function') {
+      this.fetchImpl = globalFetch.bind(globalThis)
+    } else {
+      throw new Error(
+        'No fetch implementation available. Provide fetchFn in config or use a runtime with global fetch (e.g., Node 18+, browsers).'
+      )
+    }
   }
 
   /**
@@ -93,16 +125,13 @@ export class DarkFeatureClient {
       // Run onError hooks
       await Promise.all(this.plugins.map(plugin => plugin.onError?.(error as Error, mergedContext)))
 
-      if (fallback !== undefined) {
-        // Notify plugins that fallback was used
-        await Promise.all(
-          this.plugins.map(plugin =>
-            plugin.onFallbackUsed?.(featureName, fallback as FeatureValue, error as Error)
-          )
+      // Notify plugins that fallback was used
+      await Promise.all(
+        this.plugins.map(plugin =>
+          plugin.onFallbackUsed?.(featureName, fallback as FeatureValue, error as Error)
         )
-        return fallback as unknown as T
-      }
-      throw error
+      )
+      return fallback as unknown as T
     }
   }
 
@@ -132,14 +161,15 @@ export class DarkFeatureClient {
       )
 
       const fetchFeatures = async (): Promise<Record<string, FeatureValue>> => {
-        const url = `${this.baseUrl}/features`
-        const headers = {
+        const url = this.networkConfig.featuresAPIUrl
+        const headers: Record<string, string> = {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${this.apiKey}`,
         }
         const body = JSON.stringify({
-          features: featureNames,
+          apiKey: this.apiKey,
           environment: this.environment,
+          features: featureNames,
           context,
         })
 
@@ -147,11 +177,26 @@ export class DarkFeatureClient {
         await Promise.all(this.plugins.map(plugin => plugin.beforeRequest?.(url, body, headers)))
 
         const startTime = Date.now()
-        const response = await fetch(url, {
-          method: 'POST',
-          headers,
-          body,
-        })
+        // Support timeout via AbortController when available
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const AbortCtrl: typeof AbortController | undefined = (globalThis as any)?.AbortController
+        let controller: AbortController | undefined
+        let timeoutId: ReturnType<typeof setTimeout> | undefined
+        if (this.networkConfig.requestTimeoutMs && typeof AbortCtrl === 'function') {
+          controller = new AbortCtrl()
+          timeoutId = setTimeout(() => controller?.abort(), this.networkConfig.requestTimeoutMs)
+        }
+        let response: Response
+        try {
+          response = await this.fetchImpl(url, {
+            method: 'POST',
+            headers,
+            body,
+            signal: controller?.signal,
+          })
+        } finally {
+          if (timeoutId) clearTimeout(timeoutId)
+        }
         const duration = Date.now() - startTime
 
         // Notify plugins after response
@@ -175,11 +220,11 @@ export class DarkFeatureClient {
         return result
       }
 
-      const result = this.retryEnabled
+      const result = this.networkConfig.retry.enabled
         ? await retry(
             fetchFeatures,
-            this.maxRetries,
-            this.retryBackoff,
+            this.networkConfig.retry.maxAttempts,
+            this.networkConfig.retry.backoff,
             (attempt, error, willRetry) => {
               // Notify plugins of retry attempts
               Promise.all(
@@ -197,9 +242,8 @@ export class DarkFeatureClient {
       // Run onError hooks
       await Promise.all(this.plugins.map(plugin => plugin.onError?.(error as Error, context)))
 
-      // If fallbacks are provided and an error occurs, return fallback values
+      // Notify plugins that fallbacks were used
       if (options.features && Object.keys(options.features).length > 0) {
-        // Notify plugins that fallbacks were used
         await Promise.all(
           Object.entries(options.features).map(([featureName, fallbackValue]) =>
             Promise.all(
@@ -209,14 +253,9 @@ export class DarkFeatureClient {
             )
           )
         )
-        return options.features as unknown as T
       }
 
-      throw error
+      return (options.features || {}) as unknown as T
     }
-  }
-
-  async cleanup(): Promise<void> {
-    // Cleanup resources if needed
   }
 }
