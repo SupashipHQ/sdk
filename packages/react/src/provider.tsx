@@ -3,7 +3,7 @@
 import React, { createContext, useContext, ReactNode, useMemo, useCallback } from 'react'
 import {
   SupaClient,
-  SupaClientConfig,
+  SupaClientConfig as SupaProviderConfig,
   SupaPlugin,
   FeatureContext,
 } from '@supashiphq/sdk-javascript'
@@ -17,7 +17,7 @@ interface SupaContextValue {
 const SupaContext = createContext<SupaContextValue | null>(null)
 
 interface SupaProviderProps {
-  config: SupaClientConfig
+  config: SupaProviderConfig
   plugins?: SupaPlugin[]
   children: ReactNode
 }
