@@ -6,7 +6,11 @@ import {
   SupaClientConfig as SupaProviderConfig,
   SupaPlugin,
   FeatureContext,
+  ToolbarPlugin,
+  SupaToolbarPluginConfig,
+  SupaToolbarOverrideChange,
 } from '@supashiphq/sdk-javascript'
+import { useQueryClient } from './query'
 
 interface SupaContextValue {
   client: SupaClient
@@ -19,21 +23,51 @@ const SupaContext = createContext<SupaContextValue | null>(null)
 interface SupaProviderProps {
   config: SupaProviderConfig
   plugins?: SupaPlugin[]
+  toolbar?: SupaToolbarPluginConfig | boolean
   children: ReactNode
 }
 
 export function SupaProvider({
   config,
   plugins = [],
+  toolbar = { show: 'auto' },
   children,
 }: SupaProviderProps): React.JSX.Element {
+  const queryClient = useQueryClient()
+
+  // Create toolbar plugin if toolbar prop is provided
+  const toolbarPlugin = useMemo(() => {
+    if (toolbar === false) return null
+
+    const toolbarConfig = {
+      ...(typeof toolbar === 'object' ? { ...toolbar, show: toolbar.show ?? 'auto' } : {}),
+    }
+
+    // Otherwise use the provided config
+    return new ToolbarPlugin({
+      ...toolbarConfig,
+      onOverrideChange: (featureOverride: SupaToolbarOverrideChange): void => {
+        // Invalidate the query cache for the changed feature to trigger refetch
+        // Use prefix matching to invalidate all queries for this feature regardless of context
+        if (featureOverride.feature) {
+          queryClient.invalidateQueriesByPrefix(['feature', featureOverride.feature])
+        }
+      },
+    })
+  }, [toolbar])
+
   // Initialize the singleton instance if it hasn't been initialized yet
   const client = useMemo(() => {
+    const allPlugins = [...(config.plugins || []), ...plugins]
+    if (toolbarPlugin) {
+      allPlugins.push(toolbarPlugin)
+    }
+
     return new SupaClient({
       ...config,
-      plugins: [...(config.plugins || []), ...plugins],
+      plugins: allPlugins,
     })
-  }, [config, plugins])
+  }, [config, plugins, toolbarPlugin])
 
   // Memoized context update function
   const updateContext = useCallback(

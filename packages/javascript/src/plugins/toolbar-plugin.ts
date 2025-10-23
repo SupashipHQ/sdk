@@ -1,0 +1,883 @@
+import { SupaPlugin, SupaPluginConfig } from './types'
+import { FeatureContext, FeatureValue } from '../types'
+
+export interface SupaToolbarPosition {
+  placement?: 'bottom-left' | 'bottom-right' | 'top-left' | 'top-right'
+  offset?: { x: string; y: string }
+}
+
+export type SupaToolbarOverrideChange = {
+  feature: string
+  value: FeatureValue
+}
+
+export type SupaToolbarOverrideChangeCallback = (
+  featureOverride: SupaToolbarOverrideChange,
+  allOverrides: Record<string, FeatureValue>
+) => void
+
+export interface SupaToolbarPluginConfig extends SupaPluginConfig {
+  show?: boolean | 'auto' // auto means show only on localhost
+  position?: SupaToolbarPosition
+  onOverrideChange?: SupaToolbarOverrideChangeCallback
+}
+
+interface SupaToolbarState {
+  overrides: Record<string, FeatureValue>
+  features: Set<string>
+  featureValues: Record<string, FeatureValue>
+  context?: FeatureContext
+  searchQuery: string
+  useLocalOverrides: boolean
+}
+
+const DEFAULT_STORAGE_KEY = 'supaship-feature-overrides'
+
+const NO_FEATURES_MESSAGE = `No feature flags detected yet. Visit the a page that has feature flags to see them here.`
+
+/**
+ * Toolbar plugin for local feature flag testing
+ * Provides a visual interface to override feature flags during development
+ */
+export class SupaToolbarPlugin implements SupaPlugin {
+  name = 'toolbar'
+  private config: Required<Omit<SupaToolbarPluginConfig, 'enabled' | 'onOverrideChange'>> & {
+    onOverrideChange?: SupaToolbarOverrideChangeCallback
+  }
+  private state: SupaToolbarState
+
+  constructor(config: SupaToolbarPluginConfig = {}) {
+    this.config = {
+      show: config.show ?? 'auto',
+      position: {
+        placement: config.position?.placement ?? 'bottom-right',
+        offset: config.position?.offset ?? { x: '1rem', y: '1rem' },
+      },
+      onOverrideChange: config.onOverrideChange,
+    }
+
+    this.state = {
+      overrides: this.loadOverrides(),
+      features: new Set(),
+      featureValues: {},
+      searchQuery: '',
+      useLocalOverrides: true,
+    }
+
+    // Inject toolbar immediately if conditions are met
+    if (this.shouldShowToolbar()) {
+      this.injectToolbar()
+    }
+  }
+
+  cleanup(): void {
+    this.removeToolbar()
+  }
+
+  private shouldShowToolbar(): boolean {
+    if (this.config.show === true) return true
+    if (this.config.show === false) return false
+
+    // Auto mode: show only on localhost
+    if (typeof window !== 'undefined') {
+      return (
+        window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1' ||
+        window.location.hostname === '' ||
+        window.location.hostname.endsWith('.local') ||
+        window.location.hostname.endsWith('.localhost')
+      )
+    }
+    return false
+  }
+
+  async beforeGetFeatures(featureNames: string[], context?: FeatureContext): Promise<void> {
+    // Track all feature names we've seen
+    featureNames.forEach(name => this.state.features.add(name))
+    this.state.context = context
+
+    // Update toolbar UI if it exists
+    this.updateToolbarUI()
+  }
+
+  async afterGetFeatures(
+    results: Record<string, FeatureValue>,
+    context?: FeatureContext
+  ): Promise<void> {
+    // Store original feature values before applying overrides
+    Object.keys(results).forEach(name => {
+      if (!(name in this.state.featureValues)) {
+        this.state.featureValues[name] = results[name]
+      }
+    })
+
+    // Apply overrides to results only if local overrides are enabled
+    if (this.state.useLocalOverrides) {
+      Object.keys(this.state.overrides).forEach(featureName => {
+        if (featureName in results) {
+          results[featureName] = this.state.overrides[featureName]
+        }
+      })
+    }
+
+    // Track features and update UI
+    Object.keys(results).forEach(name => this.state.features.add(name))
+    this.state.context = context
+    this.updateToolbarUI()
+  }
+
+  private loadOverrides(): Record<string, FeatureValue> {
+    if (typeof window === 'undefined' || !window.localStorage) {
+      return {}
+    }
+
+    try {
+      const stored = window.localStorage.getItem(DEFAULT_STORAGE_KEY)
+      return stored ? JSON.parse(stored) : {}
+    } catch {
+      return {}
+    }
+  }
+
+  private saveOverrides(
+    feature?: string,
+    value?: FeatureValue,
+    allOverrides?: Record<string, FeatureValue>
+  ): void {
+    if (typeof window === 'undefined' || !window.localStorage) {
+      return
+    }
+
+    try {
+      window.localStorage.setItem(DEFAULT_STORAGE_KEY, JSON.stringify(allOverrides))
+      this.config.onOverrideChange?.(
+        { feature: feature ?? '', value: value ?? null },
+        allOverrides ?? {}
+      )
+    } catch (error) {
+      console.error('Supaship: Failed to save feature overrides:', error)
+    }
+  }
+
+  public setOverride(featureName: string, value: FeatureValue): void {
+    this.state.overrides[featureName] = value
+    this.saveOverrides(featureName, value, this.state.overrides)
+    this.updateToolbarUI()
+  }
+
+  public removeOverride(featureName: string): void {
+    delete this.state.overrides[featureName]
+    this.saveOverrides(featureName, null, this.state.overrides)
+    this.updateToolbarUI()
+  }
+
+  public clearAllOverrides(): void {
+    this.state.overrides = {}
+    this.saveOverrides('', null, this.state.overrides)
+    this.updateToolbarUI()
+  }
+
+  public getOverrides(): Record<string, FeatureValue> {
+    return { ...this.state.overrides }
+  }
+
+  private injectToolbar(): void {
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+      return
+    }
+
+    // Check if toolbar already exists
+    if (document.getElementById('supaship-toolbar')) {
+      return
+    }
+
+    // Create toolbar container
+    const toolbar = document.createElement('div')
+    toolbar.id = 'supaship-toolbar'
+    toolbar.innerHTML = this.getToolbarHTML()
+
+    // Add styles
+    this.injectStyles()
+
+    // Add to DOM
+    document.body.appendChild(toolbar)
+
+    // Add event listeners
+    this.attachEventListeners()
+  }
+
+  private removeToolbar(): void {
+    if (typeof document === 'undefined') {
+      return
+    }
+
+    const toolbar = document.getElementById('supaship-toolbar')
+    if (toolbar) {
+      toolbar.remove()
+    }
+
+    const styles = document.getElementById('supaship-toolbar-styles')
+    if (styles) {
+      styles.remove()
+    }
+  }
+
+  private getToolbarHTML(): string {
+    const { placement, offset } = this.config.position
+    const positionClass = `supaship-toolbar-${placement}`
+    const offsetX = offset?.x ?? '1rem'
+    const offsetY = offset?.y ?? '1rem'
+
+    return `
+      <div class="supaship-toolbar-container ${positionClass}" style="--offset-x: ${offsetX}; --offset-y: ${offsetY};">
+        <button class="supaship-toolbar-toggle" id="supaship-toolbar-toggle" aria-label="Toggle feature flags">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 256 256"
+            width="24"
+            style="vertical-align: middle;">
+            <rect width="256" height="256" rx="16" fill="none"></rect>
+            <line
+              x1="40"
+              y1="128"
+              x2="128"
+              y2="40"
+              fill="none"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="16"></line>
+            <line
+              x1="216"
+              y1="40"
+              x2="40"
+              y2="216"
+              fill="none"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="16"></line>
+            <line
+              x1="216"
+              y1="128"
+              x2="128"
+              y2="216"
+              fill="none"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="16"></line>
+          </svg>
+        </button>
+        <div class="supaship-toolbar-panel" id="supaship-toolbar-panel">
+          <div class="supaship-toolbar-header">
+            <input
+              type="text"
+              class="supaship-search-input"
+              id="supaship-search-input"
+              placeholder="Search features"
+            />
+            <button
+              class="supaship-header-btn"
+              id="supaship-clear-all"
+              aria-label="Reset all overrides"
+              title="Reset all overrides to default"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="18" height="18">
+                <path d="M240,56v48a8,8,0,0,1-8,8H184a8,8,0,0,1,0-16H211.4L184.81,71.64l-.25-.24a80,80,0,1,0-1.67,114.78,8,8,0,0,1,11,11.63A95.44,95.44,0,0,1,128,224h-1.32A96,96,0,1,1,195.75,60L224,85.8V56a8,8,0,1,1,16,0Z" fill="currentColor"/>
+              </svg>
+            </button>
+          </div>
+          <div class="supaship-toolbar-content" id="supaship-toolbar-content">
+            <div class="supaship-toolbar-empty">${NO_FEATURES_MESSAGE}</div>
+          </div>
+        </div>
+      </div>
+    `
+  }
+
+  private injectStyles(): void {
+    if (typeof document === 'undefined') {
+      return
+    }
+
+    if (document.getElementById('supaship-toolbar-styles')) {
+      return
+    }
+
+    const styles = document.createElement('style')
+    styles.id = 'supaship-toolbar-styles'
+    styles.textContent = `
+      .supaship-toolbar-container {
+        position: fixed;
+        z-index: 999999;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        font-size: 14px;
+      }
+
+      .supaship-toolbar-bottom-right {
+        bottom: var(--offset-y);
+        right: var(--offset-x);
+      }
+
+      .supaship-toolbar-bottom-left {
+        bottom: var(--offset-y);
+        left: var(--offset-x);
+      }
+
+      .supaship-toolbar-top-right {
+        top: var(--offset-y);
+        right: var(--offset-x);
+      }
+
+      .supaship-toolbar-top-left {
+        top: var(--offset-y);
+        left: var(--offset-x);
+      }
+
+      .supaship-toolbar-toggle {
+        position: relative;
+        width: 36px;
+        height: 36px;
+        border-radius: 100%;
+        background: #000;
+        border: none;
+        color: white;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        transition: transform 0.2s, box-shadow 0.2s;
+      }
+
+      .supaship-toolbar-toggle:hover {
+        transform: scale(1.05);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+      }
+
+      .supaship-toolbar-panel {
+        position: absolute;
+        bottom: 48px;
+        right: 0;
+        width: 300px;
+        max-height: 600px;
+        background: #1a1a1a;
+        border-radius: 12px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        display: none;
+        flex-direction: column;
+        overflow: hidden;
+        border: 1px solid #333;
+      }
+
+      .supaship-toolbar-bottom-left .supaship-toolbar-panel,
+      .supaship-toolbar-top-left .supaship-toolbar-panel {
+        right: auto;
+        left: 0;
+      }
+
+      .supaship-toolbar-top-right .supaship-toolbar-panel,
+      .supaship-toolbar-top-left .supaship-toolbar-panel {
+        bottom: auto;
+        top: 60px;
+      }
+
+      .supaship-toolbar-panel.open {
+        display: flex;
+      }
+
+      .supaship-toolbar-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        border-bottom: 1px solid #333;
+        background: #0f0f0f;
+      }
+
+      .supaship-search-input {
+        flex: 1;
+        background: transparent;
+        border: none;
+        color: #e5e5e5;
+        padding: 0;
+        font-size: 13px;
+        outline: none;
+      }
+
+      .supaship-search-input::placeholder {
+        color: #888;
+      }
+
+      .supaship-header-btn {
+        background: transparent;
+        border: none;
+        color: #e5e5e5;
+        width: 24px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        padding: 0;
+      }
+
+      .supaship-header-btn:hover {
+        color: #ef4444;
+      }
+
+      .supaship-toolbar-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 8px;
+        min-height: 200px;
+      }
+
+      .supaship-toolbar-empty {
+        padding: 32px 16px;
+        text-align: center;
+        color: #888;
+      }
+
+      .supaship-feature-item {
+        padding: 0 6px;
+      }
+
+      .supaship-feature-item.disabled {
+        opacity: 0.5;
+        pointer-events: none;
+      }
+
+      .supaship-feature-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        min-height: 32px;
+      }
+
+      .supaship-feature-name {
+        font-weight: 500;
+        color: #e5e5e5;
+        font-size: 13px;
+        flex: 1;
+        min-width: 0;
+      }
+
+      .supaship-feature-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-shrink: 0;
+        min-height: 20px;
+      }
+
+      .supaship-feature-content {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .supaship-feature-input {
+        flex: 1;
+        padding: 6px 8px;
+        background: #1a1a1a;
+        border: 1px solid #555;
+        color: #e5e5e5;
+        border-radius: 4px;
+        font-size: 13px;
+        font-family: 'Monaco', 'Courier New', monospace;
+        outline: none;
+        resize: vertical;
+        min-height: 60px;
+        margin-bottom: 8px;
+      }
+
+      .supaship-feature-input:focus {
+        border-color: #667eea;
+      }
+
+      .supaship-btn {
+        padding: 4px 12px;
+        border: none;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+
+      .supaship-btn-primary {
+        background: #444;
+        color: white;
+      }
+
+      .supaship-btn-primary:hover {
+        background: #555;
+      }
+
+      .supaship-btn-secondary {
+        background: #444;
+        color: #e5e5e5;
+      }
+
+      .supaship-btn-secondary:hover {
+        background: #555;
+      }
+
+      .supaship-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .supaship-btn:disabled:hover {
+        background: #444;
+      }
+
+      .supaship-header-btn:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+      }
+
+      .supaship-header-btn:disabled:hover {
+        color: #e5e5e5;
+      }
+
+      .supaship-toggle {
+        position: relative;
+        display: inline-block;
+        width: 32px;
+        height: 18px;
+        flex-shrink: 0;
+      }
+
+      .supaship-toggle input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+
+      .supaship-toggle-slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #333;
+        border: 1px solid #555;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border-radius: 20px;
+      }
+
+      .supaship-toggle-slider:before {
+        position: absolute;
+        content: "";
+        height: 14px;
+        width: 14px;
+        left: 2px;
+        bottom: 1px;
+        background-color: #666;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border-radius: 50%;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+      }
+
+      .supaship-toggle input:checked + .supaship-toggle-slider {
+        background-color: #fff;
+        border-color: #fff;
+      }
+
+      .supaship-toggle input:checked + .supaship-toggle-slider:before {
+        transform: translateX(13px);
+        background-color: #000;
+      }
+
+      .supaship-toggle input:disabled + .supaship-toggle-slider {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .supaship-toggle:hover .supaship-toggle-slider:before {
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+      }
+
+      .supaship-btn-icon {
+        background: transparent;
+        border: none;
+        color: #e5e5e5;
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+        cursor: pointer;
+        padding: 0;
+        transition: all 0.2s;
+        flex-shrink: 0;
+      }
+
+      .supaship-btn-icon:hover {
+        background: #444;
+        color: #ef4444;
+      }
+    `
+    document.head.appendChild(styles)
+  }
+
+  private attachEventListeners(): void {
+    if (typeof document === 'undefined') {
+      return
+    }
+
+    const toggle = document.getElementById('supaship-toolbar-toggle')
+    const panel = document.getElementById('supaship-toolbar-panel')
+    const clearAll = document.getElementById('supaship-clear-all')
+    const searchInput = document.getElementById('supaship-search-input') as HTMLInputElement
+
+    toggle?.addEventListener('click', () => {
+      panel?.classList.toggle('open')
+    })
+
+    clearAll?.addEventListener('click', () => {
+      this.clearAllOverrides()
+    })
+
+    searchInput?.addEventListener('input', e => {
+      this.state.searchQuery = (e.target as HTMLInputElement).value.toLowerCase()
+      this.updateToolbarUI()
+    })
+  }
+
+  private updateToolbarUI(): void {
+    if (typeof document === 'undefined') {
+      return
+    }
+
+    const content = document.getElementById('supaship-toolbar-content')
+    const clearAllBtn = document.getElementById('supaship-clear-all') as HTMLButtonElement
+
+    if (!content) return
+
+    // Update clear all button state
+    const hasOverrides = Object.keys(this.state.overrides).length > 0
+    if (clearAllBtn) {
+      clearAllBtn.disabled = !hasOverrides
+    }
+
+    const features = Array.from(this.state.features).sort()
+
+    // Filter features based on search query
+    const filteredFeatures = features.filter(name =>
+      name.toLowerCase().includes(this.state.searchQuery)
+    )
+
+    if (filteredFeatures.length === 0) {
+      content.innerHTML = this.state.searchQuery
+        ? '<div class="supaship-toolbar-empty">No matching features found</div>'
+        : `<div class="supaship-toolbar-empty">${NO_FEATURES_MESSAGE}</div>`
+      return
+    }
+
+    content.innerHTML = filteredFeatures
+      .map(featureName => {
+        const hasOverride = featureName in this.state.overrides
+        const currentValue = this.state.featureValues[featureName]
+        const overrideValue = hasOverride ? this.state.overrides[featureName] : currentValue
+        const isDisabled = !this.state.useLocalOverrides
+        const itemClass = `supaship-feature-item ${isDisabled ? 'disabled' : ''}`
+
+        // Check if the feature is boolean
+        const isBoolean =
+          typeof currentValue === 'boolean' || (hasOverride && typeof overrideValue === 'boolean')
+
+        if (isBoolean) {
+          // Render toggle switch for boolean values (single row layout)
+          const isChecked = hasOverride ? overrideValue === true : currentValue === true
+          return `
+          <div class="${itemClass}">
+            <div class="supaship-feature-row">
+              <span class="supaship-feature-name">${this.escapeHtml(featureName)}</span>
+              <div class="supaship-feature-actions">
+                ${
+                  hasOverride
+                    ? `
+                  <button
+                    class="supaship-btn-icon"
+                    data-feature="${this.escapeHtml(featureName)}"
+                    data-action="remove"
+                    title="Reset to default"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="14" height="14">
+                      <path d="M240,56v48a8,8,0,0,1-8,8H184a8,8,0,0,1,0-16H211.4L184.81,71.64l-.25-.24a80,80,0,1,0-1.67,114.78,8,8,0,0,1,11,11.63A95.44,95.44,0,0,1,128,224h-1.32A96,96,0,1,1,195.75,60L224,85.8V56a8,8,0,1,1,16,0Z" fill="currentColor"/>
+                    </svg>
+                  </button>
+                `
+                    : ''
+                }
+                <label class="supaship-toggle">
+                  <input
+                    type="checkbox"
+                    ${isChecked ? 'checked' : ''}
+                    data-feature="${this.escapeHtml(featureName)}"
+                    data-type="boolean"
+                  />
+                  <span class="supaship-toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+        `
+        } else {
+          // Render textarea for non-boolean values
+          const currentDisplayValue = hasOverride
+            ? JSON.stringify(overrideValue)
+            : currentValue !== undefined
+              ? JSON.stringify(currentValue)
+              : ''
+          return `
+          <div class="${itemClass}">
+            <div class="supaship-feature-row">
+              <span class="supaship-feature-name">${this.escapeHtml(featureName)}</span>
+              <div class="supaship-feature-actions">
+                ${
+                  hasOverride
+                    ? `
+                    <button
+                      class="supaship-btn-icon"
+                      data-feature="${this.escapeHtml(featureName)}"
+                      data-action="remove"
+                      title="Reset to default"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="14" height="14">
+                        <path d="M240,56v48a8,8,0,0,1-8,8H184a8,8,0,0,1,0-16H211.4L184.81,71.64l-.25-.24a80,80,0,1,0-1.67,114.78,8,8,0,0,1,11,11.63A95.44,95.44,0,0,1,128,224h-1.32A96,96,0,1,1,195.75,60L224,85.8V56a8,8,0,1,1,16,0Z" fill="currentColor"/>
+                      </svg>
+                    </button>
+                  `
+                    : ''
+                }
+                <button
+                  class="supaship-btn supaship-btn-primary"
+                  data-feature="${this.escapeHtml(featureName)}"
+                  data-action="set"
+                  disabled>
+                  Override
+                </button>
+              </div>
+            </div>
+            <div class="supaship-feature-content">
+              <textarea
+                class="supaship-feature-input"
+                placeholder="Override JSON value"
+                data-feature="${this.escapeHtml(featureName)}"
+                data-original="${this.escapeHtml(currentDisplayValue)}"
+              >${hasOverride ? this.escapeHtml(JSON.stringify(overrideValue)) : this.escapeHtml(currentDisplayValue)}</textarea>
+            </div>
+          </div>
+        `
+        }
+      })
+      .join('')
+
+    // Attach event listeners to buttons
+    content.querySelectorAll('button[data-action]').forEach(button => {
+      button.addEventListener('click', e => {
+        e.preventDefault()
+        e.stopPropagation()
+
+        const target = e.target as HTMLElement
+        // Handle case where SVG or path is clicked instead of button
+        const buttonElement = target.closest('button[data-action]') as HTMLButtonElement
+        if (!buttonElement) return
+
+        const featureName = buttonElement.dataset.feature!
+        const action = buttonElement.dataset.action
+
+        if (action === 'remove') {
+          this.removeOverride(featureName)
+        } else if (action === 'set') {
+          const textarea = content.querySelector(
+            `textarea[data-feature="${featureName}"]`
+          ) as HTMLTextAreaElement
+          if (textarea && textarea.value.trim()) {
+            try {
+              const value = JSON.parse(textarea.value)
+              this.setOverride(featureName, value)
+            } catch {
+              // If not valid JSON, treat as string
+              this.setOverride(featureName, textarea.value)
+            }
+          }
+        }
+      })
+    })
+
+    // Handle textarea input changes to enable/disable override button
+    content.querySelectorAll('textarea[data-feature]').forEach(textarea => {
+      const textareaElement = textarea as HTMLTextAreaElement
+      const featureName = textareaElement.dataset.feature!
+      const originalValue = textareaElement.dataset.original || ''
+      const overrideBtn = content.querySelector(
+        `button[data-action="set"][data-feature="${featureName}"]`
+      ) as HTMLButtonElement
+
+      const updateButtonState = (): void => {
+        if (overrideBtn) {
+          const hasChanged = textareaElement.value !== originalValue
+          const hasContent = textareaElement.value.trim().length > 0
+          overrideBtn.disabled = !hasChanged || !hasContent
+        }
+      }
+
+      // Initial state
+      updateButtonState()
+
+      // Listen for changes
+      textareaElement.addEventListener('input', updateButtonState)
+      textareaElement.addEventListener('paste', () => {
+        setTimeout(updateButtonState, 0) // Allow paste to complete
+      })
+
+      // Allow Ctrl+Enter to set override
+      textareaElement.addEventListener('keydown', e => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+          e.preventDefault()
+          if (!overrideBtn?.disabled) {
+            overrideBtn?.click()
+          }
+        }
+      })
+    })
+
+    // Handle toggle switches for boolean values
+    content.querySelectorAll('input[type="checkbox"][data-type="boolean"]').forEach(checkbox => {
+      checkbox.addEventListener('change', e => {
+        const target = e.target as HTMLInputElement
+        const featureName = target.dataset.feature!
+        const newValue = target.checked
+        this.setOverride(featureName, newValue)
+      })
+    })
+  }
+
+  private escapeHtml(text: string): string {
+    const div = typeof document !== 'undefined' ? document.createElement('div') : null
+    if (div) {
+      div.textContent = text
+      return div.innerHTML
+    }
+    return text.replace(/[&<>"']/g, char => {
+      const escapeMap: Record<string, string> = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;',
+      }
+      return escapeMap[char]
+    })
+  }
+}

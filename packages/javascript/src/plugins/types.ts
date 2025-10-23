@@ -5,8 +5,8 @@ export interface SupaPluginConfig {
 }
 interface Plugin {
   name: string
-  initialize?(): Promise<void>
-  cleanup?(): Promise<void>
+  // initialize?(): Promise<void>
+  // cleanup?(): Promise<void>
 }
 
 export interface SupaPlugin extends Plugin {

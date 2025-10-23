@@ -5,8 +5,8 @@ import { useCallback, useEffect, useReducer, useRef } from 'react'
 // Query status types
 export type QueryStatus = 'idle' | 'loading' | 'success' | 'error'
 
-// Query state
-export interface QueryState<TData = unknown, TError = Error> {
+// Base query state (managed by reducer)
+export interface BaseQueryState<TData = unknown, TError = Error> {
   status: QueryStatus
   data: TData | undefined
   error: TError | null
@@ -18,11 +18,16 @@ export interface QueryState<TData = unknown, TError = Error> {
   dataUpdatedAt: number
 }
 
+// Query state with refetch method (returned by useQuery)
+export interface QueryState<TData = unknown, TError = Error> extends BaseQueryState<TData, TError> {
+  refetch: () => Promise<void>
+}
+
 // Initial state factory for queries
 export function getInitialQueryState<TData, TError>(
   initialData?: TData,
   enabled: boolean = true
-): QueryState<TData, TError> {
+): BaseQueryState<TData, TError> {
   return {
     status: !enabled ? 'idle' : initialData !== undefined ? 'success' : 'idle',
     data: initialData,
@@ -61,9 +66,9 @@ type QueryAction<TData, TError> =
 
 // Reducer for query state
 function queryReducer<TData, TError>(
-  state: QueryState<TData, TError>,
+  state: BaseQueryState<TData, TError>,
   action: QueryAction<TData, TError>
-): QueryState<TData, TError> {
+): BaseQueryState<TData, TError> {
   switch (action.type) {
     case 'FETCH_START':
       return {
@@ -106,6 +111,7 @@ function queryReducer<TData, TError>(
 class QueryCache {
   private cache: Map<string, { data: unknown; timestamp: number }> = new Map()
   private timers: Map<string, ReturnType<typeof setTimeout>> = new Map()
+  private observers: Map<string, Set<() => void>> = new Map()
 
   getQuery(queryKey: string): unknown {
     const entry = this.cache.get(queryKey)
@@ -135,12 +141,38 @@ class QueryCache {
     this.timers.set(queryKey, timer)
   }
 
+  subscribe(queryKey: string, callback: () => void): () => void {
+    if (!this.observers.has(queryKey)) {
+      this.observers.set(queryKey, new Set())
+    }
+    this.observers.get(queryKey)!.add(callback)
+
+    // Return unsubscribe function
+    return () => {
+      const callbacks = this.observers.get(queryKey)
+      if (callbacks) {
+        callbacks.delete(callback)
+        if (callbacks.size === 0) {
+          this.observers.delete(queryKey)
+        }
+      }
+    }
+  }
+
+  private notifyObservers(queryKey: string): void {
+    const callbacks = this.observers.get(queryKey)
+    if (callbacks) {
+      callbacks.forEach(callback => callback())
+    }
+  }
+
   invalidateQuery(queryKey: string): void {
     this.cache.delete(queryKey)
     if (this.timers.has(queryKey)) {
       clearTimeout(this.timers.get(queryKey)!)
       this.timers.delete(queryKey)
     }
+    this.notifyObservers(queryKey)
   }
 
   invalidateQueries(queryKeyPrefix: string): void {
@@ -155,11 +187,54 @@ class QueryCache {
     this.cache.clear()
     this.timers.forEach(timer => clearTimeout(timer))
     this.timers.clear()
+    this.observers.clear()
   }
 }
 
 // Singleton instance of QueryCache
 export const queryCache = new QueryCache()
+
+// Query Client class for managing queries
+export class QueryClient {
+  private cache: QueryCache
+
+  constructor(cache: QueryCache = queryCache) {
+    this.cache = cache
+  }
+
+  /**
+   * Invalidates a specific query by its query key
+   * This will remove it from cache and trigger refetch in all components using this query
+   */
+  invalidateQueries(queryKey: QueryKey): void {
+    const stringifiedKey = stableStringifyQueryKey(queryKey)
+    this.cache.invalidateQuery(stringifiedKey)
+  }
+
+  /**
+   * Invalidates all queries matching a partial query key
+   * For example, invalidateQueriesByPrefix(['feature']) will invalidate all feature queries
+   */
+  invalidateQueriesByPrefix(queryKeyPrefix: QueryKey): void {
+    const stringifiedPrefix = stableStringifyQueryKey(queryKeyPrefix)
+    this.cache.invalidateQueries(stringifiedPrefix.slice(0, -1)) // Remove closing bracket
+  }
+
+  /**
+   * Clears all queries from the cache
+   */
+  clear(): void {
+    this.cache.clear()
+  }
+}
+
+// Singleton instance of QueryClient
+const queryClient = new QueryClient()
+
+// Hook to access the query client
+export function useQueryClient(): QueryClient {
+  return queryClient
+}
 
 // Stable stringify for query keys
 function stableStringifyQueryKey(queryKey: QueryKey): string {
@@ -201,7 +276,7 @@ export function useQuery<TData = unknown, TError = Error>(
   const initialState = getInitialQueryState<TData, TError>(initialStateData, enabled)
   const [state, dispatch] = useReducer(queryReducer<TData, TError>, initialState)
 
-  const executeFetch = useCallback(async () => {
+  const executeFetch = useCallback(async (): Promise<void> => {
     if (!enabled) return
 
     dispatch({ type: 'FETCH_START' })
@@ -230,8 +305,8 @@ export function useQuery<TData = unknown, TError = Error>(
 
         if (retryCount < maxRetries) {
           retryCount++
-          setTimeout(runQuery, retryDelay)
-          return
+          await new Promise(resolve => setTimeout(resolve, retryDelay))
+          return runQuery()
         }
 
         dispatch({ type: 'FETCH_ERROR', payload: { error } })
@@ -246,7 +321,7 @@ export function useQuery<TData = unknown, TError = Error>(
       }
     }
 
-    runQuery()
+    await runQuery()
   }, [enabled, stringifiedQueryKey, retry, retryDelay, cacheTime])
 
   // Execute query on mount and when dependencies change
@@ -270,5 +345,23 @@ export function useQuery<TData = unknown, TError = Error>(
     return () => window.removeEventListener('focus', handleFocus)
   }, [enabled, isStale, executeFetch, refetchOnWindowFocus])
 
-  return state
+  // Subscribe to cache invalidations
+  useEffect(() => {
+    const unsubscribe = queryCache.subscribe(stringifiedQueryKey, () => {
+      // When query is invalidated, refetch
+      executeFetch()
+    })
+
+    return unsubscribe
+  }, [stringifiedQueryKey, executeFetch])
+
+  // Memoize refetch function
+  const refetch = useCallback(async () => {
+    await executeFetch()
+  }, [executeFetch])
+
+  return {
+    ...state,
+    refetch,
+  }
 }
