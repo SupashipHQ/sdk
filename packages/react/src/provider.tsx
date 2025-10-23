@@ -10,6 +10,7 @@ import {
   ToolbarPluginConfig,
   ToolbarOverrideChange,
 } from '@supashiphq/sdk-javascript'
+import { useQueryClient } from './query'
 
 interface SupaContextValue {
   client: SupaClient
@@ -32,6 +33,8 @@ export function SupaProvider({
   toolbar = { show: 'auto' },
   children,
 }: SupaProviderProps): React.JSX.Element {
+  const queryClient = useQueryClient()
+
   // Create toolbar plugin if toolbar prop is provided
   const toolbarPlugin = useMemo(() => {
     if (toolbar === false) return null
@@ -43,8 +46,12 @@ export function SupaProvider({
     // Otherwise use the provided config
     return new ToolbarPlugin({
       ...toolbarConfig,
-      onOverrideChange: (_featureOverride: ToolbarOverrideChange): void => {
+      onOverrideChange: (featureOverride: ToolbarOverrideChange): void => {
         // Invalidate the query cache for the changed feature to trigger refetch
+        // Use prefix matching to invalidate all queries for this feature regardless of context
+        if (featureOverride.feature) {
+          queryClient.invalidateQueriesByPrefix(['feature', featureOverride.feature])
+        }
       },
     })
   }, [toolbar])
