@@ -81,7 +81,7 @@ importers:
   packages/react:
     dependencies:
       '@supashiphq/sdk-javascript':
-        specifier: workspace:^0.5.1
+        specifier: workspace:^0.6.0
         version: link:../javascript
       react:
         specifier: '>=16.8.0'

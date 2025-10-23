@@ -1,6 +1,6 @@
 {
   "name": "@supashiphq/sdk-javascript",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "description": "JavaScript SDK for Supaship",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
