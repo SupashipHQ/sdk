@@ -6,6 +6,9 @@ import {
   SupaClientConfig as SupaProviderConfig,
   SupaPlugin,
   FeatureContext,
+  ToolbarPlugin,
+  ToolbarPluginConfig,
+  ToolbarOverrideChange,
 } from '@supashiphq/sdk-javascript'
 
 interface SupaContextValue {
@@ -19,21 +22,45 @@ const SupaContext = createContext<SupaContextValue | null>(null)
 interface SupaProviderProps {
   config: SupaProviderConfig
   plugins?: SupaPlugin[]
+  toolbar?: ToolbarPluginConfig | boolean
   children: ReactNode
 }
 
 export function SupaProvider({
   config,
   plugins = [],
+  toolbar = { show: 'auto' },
   children,
 }: SupaProviderProps): React.JSX.Element {
+  // Create toolbar plugin if toolbar prop is provided
+  const toolbarPlugin = useMemo(() => {
+    if (toolbar === false) return null
+
+    const toolbarConfig = {
+      ...(typeof toolbar === 'object' ? { ...toolbar, show: toolbar.show ?? 'auto' } : {}),
+    }
+
+    // Otherwise use the provided config
+    return new ToolbarPlugin({
+      ...toolbarConfig,
+      onOverrideChange: (_featureOverride: ToolbarOverrideChange): void => {
+        // Invalidate the query cache for the changed feature to trigger refetch
+      },
+    })
+  }, [toolbar])
+
   // Initialize the singleton instance if it hasn't been initialized yet
   const client = useMemo(() => {
+    const allPlugins = [...(config.plugins || []), ...plugins]
+    if (toolbarPlugin) {
+      allPlugins.push(toolbarPlugin)
+    }
+
     return new SupaClient({
       ...config,
-      plugins: [...(config.plugins || []), ...plugins],
+      plugins: allPlugins,
     })
-  }, [config, plugins])
+  }, [config, plugins, toolbarPlugin])
 
   // Memoized context update function
   const updateContext = useCallback(
