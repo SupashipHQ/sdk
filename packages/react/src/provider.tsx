@@ -7,8 +7,8 @@ import {
   SupaPlugin,
   FeatureContext,
   ToolbarPlugin,
-  ToolbarPluginConfig,
-  ToolbarOverrideChange,
+  SupaToolbarPluginConfig,
+  SupaToolbarOverrideChange,
 } from '@supashiphq/sdk-javascript'
 import { useQueryClient } from './query'
 
@@ -23,7 +23,7 @@ const SupaContext = createContext<SupaContextValue | null>(null)
 interface SupaProviderProps {
   config: SupaProviderConfig
   plugins?: SupaPlugin[]
-  toolbar?: ToolbarPluginConfig | boolean
+  toolbar?: SupaToolbarPluginConfig | boolean
   children: ReactNode
 }
 
@@ -46,7 +46,7 @@ export function SupaProvider({
     // Otherwise use the provided config
     return new ToolbarPlugin({
       ...toolbarConfig,
-      onOverrideChange: (featureOverride: ToolbarOverrideChange): void => {
+      onOverrideChange: (featureOverride: SupaToolbarOverrideChange): void => {
         // Invalidate the query cache for the changed feature to trigger refetch
         // Use prefix matching to invalidate all queries for this feature regardless of context
         if (featureOverride.feature) {
