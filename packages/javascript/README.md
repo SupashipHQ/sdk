@@ -570,6 +570,67 @@ $('#user-segment').change(async function () {
 })
 ```
 
+## Toolbar Plugin for Local Development
+
+The Supaship SDK includes a visual toolbar for testing feature flags locally.
+
+### Quick Setup
+
+```typescript
+import { SupaClient, ToolbarPlugin } from '@supashiphq/sdk-javascript'
+
+const client = new SupaClient({
+  apiKey: 'your-api-key',
+  environment: 'development',
+  plugins: [
+    new ToolbarPlugin({
+      show: 'auto', // Shows only on localhost
+    }),
+  ],
+})
+```
+
+### Features
+
+- 🎯 Visual interface showing all detected feature flags
+- 🔄 Override feature flag values locally without server changes
+- 💾 Persistent storage in localStorage
+- 🎨 Customizable position (bottom-right, bottom-left, top-right, top-left)
+- 🏠 Auto-detection (shows only on localhost by default)
+
+### Configuration
+
+```typescript
+new ToolbarPlugin({
+  show: 'auto', // true | false | 'auto'
+  position: {
+    placement: 'bottom-right',
+    offset: { x: '1rem', y: '1rem' },
+  },
+  onOverrideChange: overrides => {
+    console.log('Overrides:', overrides)
+  },
+})
+```
+
+### Programmatic Control
+
+```typescript
+const toolbar = new ToolbarPlugin({ show: true })
+
+// Set overrides
+toolbar.setOverride('new-feature', true)
+
+// Remove override
+toolbar.removeOverride('new-feature')
+
+// Clear all
+toolbar.clearAllOverrides()
+
+// Get current overrides
+const overrides = toolbar.getOverrides()
+```
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
