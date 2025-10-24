@@ -21,7 +21,7 @@ export class SupaClient<TFeatures extends Features<Record<string, FeatureValue>>
   private fetchImpl: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
   private networkConfig: ResolvedNetworkConfig
 
-  constructor(config: SupaClientConfig<TFeatures>) {
+  constructor(config: SupaClientConfig & { features: TFeatures }) {
     this.apiKey = config.apiKey
     this.environment = config.environment
     this.defaultContext = config.context
