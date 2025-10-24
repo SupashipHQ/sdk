@@ -1,5 +1,6 @@
 export type * from './types'
 export { SupaClient } from './client'
+export { createFeatures } from './helpers'
 export type { SupaPlugin, SupaPluginConfig } from './plugins/types'
 export { SupaToolbarPlugin as ToolbarPlugin } from './plugins/toolbar-plugin'
 export type {

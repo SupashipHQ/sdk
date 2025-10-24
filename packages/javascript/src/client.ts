@@ -53,6 +53,11 @@ export class SupaClient<TFeatures extends Record<string, FeatureValue>> {
         'No fetch implementation available. Provide fetchFn in config or use a runtime with global fetch (e.g., Node 18+, browsers).'
       )
     }
+
+    // Initialize plugins with available features and their fallback values
+    Promise.all(
+      this.plugins.map(plugin => plugin.onInit?.(this.featureDefinitions, this.defaultContext))
+    ).catch(console.error)
   }
 
   /**
@@ -92,10 +97,10 @@ export class SupaClient<TFeatures extends Record<string, FeatureValue>> {
     return fallback ?? null
   }
 
-  async getFeature<T extends FeatureValue = FeatureValue>(
-    featureName: keyof TFeatures,
+  async getFeature<TKey extends keyof TFeatures>(
+    featureName: TKey,
     options?: { context?: FeatureContext }
-  ): Promise<T> {
+  ): Promise<TFeatures[TKey]> {
     const { context } = options ?? {}
 
     // Only merge context if it's defined and not null
@@ -111,7 +116,7 @@ export class SupaClient<TFeatures extends Record<string, FeatureValue>> {
 
       // Get the specific feature value
       const value = response[featureName as string]
-      return value as T
+      return value as TFeatures[TKey]
     } catch (error) {
       // Run onError hooks
       await Promise.all(this.plugins.map(plugin => plugin.onError?.(error as Error, mergedContext)))
@@ -129,7 +134,7 @@ export class SupaClient<TFeatures extends Record<string, FeatureValue>> {
           )
         )
       )
-      return fallbackValue as T
+      return fallbackValue as TFeatures[TKey]
     }
   }
 

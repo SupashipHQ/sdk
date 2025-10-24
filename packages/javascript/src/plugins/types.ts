@@ -10,6 +10,12 @@ interface Plugin {
 }
 
 export interface SupaPlugin extends Plugin {
+  // Lifecycle hooks
+  onInit?(
+    availableFeatures: Record<string, FeatureValue>,
+    context?: FeatureContext
+  ): Promise<void> | void
+
   beforeGetFeatures?(featureNames: string[], context?: FeatureContext): Promise<void>
   afterGetFeatures?(results: Record<string, FeatureValue>, context?: FeatureContext): Promise<void>
   onError?(error: Error, context?: FeatureContext): Promise<void>

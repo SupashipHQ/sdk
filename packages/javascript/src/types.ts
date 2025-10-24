@@ -67,4 +67,11 @@ export interface RetryConfig {
   backoff?: number
 }
 
-export type FeatureValue = string | number | boolean | null | Record<string, unknown> | unknown[]
+/**
+ * Supported feature flag value types.
+ * - boolean: true/false flags
+ * - object: structured configuration data
+ * - array: lists of items
+ * - null: disabled/empty state
+ */
+export type FeatureValue = boolean | null | Record<string, unknown> | unknown[]

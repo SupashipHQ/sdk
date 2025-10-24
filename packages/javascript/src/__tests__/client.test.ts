@@ -14,7 +14,7 @@ jest.mock('../utils', () => ({
 }))
 
 describe('SupaClient', () => {
-  let client: SupaClient
+  let client: SupaClient<Record<string, any>>
   const mockApiKey = 'test-api-key'
   const mockBaseUrl = 'https://test-api.com'
 
@@ -22,21 +22,36 @@ describe('SupaClient', () => {
     client = new SupaClient({
       apiKey: mockApiKey,
       environment: 'test-environment',
-      baseUrl: mockBaseUrl,
+      networkConfig: {
+        featuresAPIUrl: `${mockBaseUrl}/features`,
+      },
+      features: {},
     })
     jest.clearAllMocks()
   })
 
   describe('constructor and configuration', () => {
-    it('should use default baseUrl when not provided', (): void => {
-      const client = new SupaClient({ apiKey: 'test', environment: 'test-environment' })
-      expect(client['baseUrl']).toBe('https://edge.supaship.com/v1')
+    it('should use default featuresAPIUrl when not provided', (): void => {
+      const client = new SupaClient({
+        apiKey: 'test',
+        environment: 'test-environment',
+        features: {},
+      })
+      // @ts-expect-error - accessing private property for testing
+      expect(client['featuresAPIUrl']).toBe('https://edge.supaship.com/v1/features')
     })
 
     it('should use default retry configuration', (): void => {
-      const client = new SupaClient({ apiKey: 'test', environment: 'test-environment' })
+      const client = new SupaClient({
+        apiKey: 'test',
+        environment: 'test-environment',
+        features: {},
+      })
+      // @ts-expect-error - accessing private property for testing
       expect(client['retryEnabled']).toBe(true)
+      // @ts-expect-error - accessing private property for testing
       expect(client['maxRetries']).toBe(3)
+      // @ts-expect-error - accessing private property for testing
       expect(client['retryBackoff']).toBe(1000)
     })
 
@@ -44,10 +59,16 @@ describe('SupaClient', () => {
       const client = new SupaClient({
         apiKey: 'test',
         environment: 'test-environment',
-        retry: { enabled: false, maxAttempts: 5, backoff: 2000 },
+        features: {},
+        networkConfig: {
+          retry: { enabled: false, maxAttempts: 5, backoff: 2000 },
+        },
       })
+      // @ts-expect-error - accessing private property for testing
       expect(client['retryEnabled']).toBe(false)
+      // @ts-expect-error - accessing private property for testing
       expect(client['maxRetries']).toBe(5)
+      // @ts-expect-error - accessing private property for testing
       expect(client['retryBackoff']).toBe(2000)
     })
 
@@ -55,13 +76,18 @@ describe('SupaClient', () => {
       const client = new SupaClient({
         apiKey: 'test',
         environment: 'test-environment',
+        features: {},
         plugins: [],
       })
       expect(client['plugins']).toEqual([])
     })
 
     it('should handle undefined plugins', (): void => {
-      const client = new SupaClient({ apiKey: 'test', environment: 'test-environment' })
+      const client = new SupaClient({
+        apiKey: 'test',
+        environment: 'test-environment',
+        features: {},
+      })
       expect(client['plugins']).toEqual([])
     })
   })
@@ -71,6 +97,7 @@ describe('SupaClient', () => {
       client = new SupaClient({
         apiKey: mockApiKey,
         environment: 'test-environment',
+        features: {},
         context: { existing: 'value', toUpdate: 'old' },
       })
 
@@ -88,6 +115,7 @@ describe('SupaClient', () => {
       client = new SupaClient({
         apiKey: mockApiKey,
         environment: 'test-environment',
+        features: {},
         context: { existing: 'value', toUpdate: 'old' },
       })
 
@@ -116,6 +144,7 @@ describe('SupaClient', () => {
       client = new SupaClient({
         apiKey: mockApiKey,
         environment: 'test-environment',
+        features: {},
         context: { old: 'value' },
         plugins: [mockPlugin],
       })
@@ -138,7 +167,7 @@ describe('SupaClient', () => {
         json: () => Promise.resolve(mockResponse),
       } as MockResponse) as jest.MockedFunction<typeof fetch>
 
-      const result = await client.getFeature('testFeature', { fallback: false })
+      const result = await client.getFeature('testFeature')
       expect(result).toBe(true)
     })
 
@@ -149,7 +178,7 @@ describe('SupaClient', () => {
         json: () => Promise.resolve(mockResponse),
       } as MockResponse) as jest.MockedFunction<typeof fetch>
 
-      const result = await client.getFeature('testFeature', { fallback: null })
+      const result = await client.getFeature('testFeature')
       expect(result).toBe(true)
     })
 
@@ -162,7 +191,6 @@ describe('SupaClient', () => {
 
       const result = await client.getFeature('testFeature', {
         context: null as unknown as FeatureContext,
-        fallback: 'default',
       })
       expect(result).toBe(true)
     })
@@ -176,7 +204,6 @@ describe('SupaClient', () => {
 
       const result = await client.getFeature('testFeature', {
         context: undefined,
-        fallback: 'default',
       })
       expect(result).toBe(true)
     })
@@ -186,7 +213,7 @@ describe('SupaClient', () => {
         typeof fetch
       >
 
-      const result = await client.getFeature('testFeature', { fallback: false })
+      const result = await client.getFeature('testFeature')
       expect(result).toBe(false)
     })
 
@@ -196,7 +223,7 @@ describe('SupaClient', () => {
       >
 
       // Since retry is mocked to always succeed, this will return null instead of throwing
-      const result = await client.getFeature('testFeature', { fallback: undefined })
+      const result = await client.getFeature('testFeature')
       expect(result).toBe(null)
     })
 
@@ -219,6 +246,7 @@ describe('SupaClient', () => {
       client = new SupaClient({
         apiKey: mockApiKey,
         environment: 'test-environment',
+        features: {},
         plugins: [mockPlugin],
       })
 
@@ -226,7 +254,7 @@ describe('SupaClient', () => {
         typeof fetch
       >
 
-      const result = await client.getFeature('testFeature', { fallback: 'default' })
+      const result = await client.getFeature('testFeature')
       expect(result).toBe('default')
       expect(mockPlugin.onFallbackUsed).toHaveBeenCalled()
     })
@@ -242,9 +270,7 @@ describe('SupaClient', () => {
         json: () => Promise.resolve(mockResponse),
       } as MockResponse) as jest.MockedFunction<typeof fetch>
 
-      const result = await client.getFeatures({
-        features: { feature1: null, feature2: null },
-      })
+      const result = await client.getFeatures(['feature1', 'feature2'])
       expect(result).toEqual({ feature1: true, feature2: false })
     })
 
@@ -257,6 +283,7 @@ describe('SupaClient', () => {
       client = new SupaClient({
         apiKey: mockApiKey,
         environment: 'test-environment',
+        features: {},
         context: { default: 'value' },
         plugins: [mockPlugin],
       })
@@ -267,8 +294,7 @@ describe('SupaClient', () => {
         json: () => Promise.resolve(mockResponse),
       } as MockResponse) as jest.MockedFunction<typeof fetch>
 
-      await client.getFeatures({
-        features: { feature1: null },
+      await client.getFeatures(['feature1'], {
         context: { request: 'specific' },
       })
 
@@ -284,7 +310,7 @@ describe('SupaClient', () => {
         typeof fetch
       >
 
-      await expect(client.getFeatures({ features: {} })).rejects.toThrow('Network error')
+      await expect(client.getFeatures([])).rejects.toThrow('Network error')
     })
 
     it('should handle fallbacks with multiple features', async (): Promise<void> => {
@@ -296,6 +322,7 @@ describe('SupaClient', () => {
       client = new SupaClient({
         apiKey: mockApiKey,
         environment: 'test-environment',
+        features: {},
         plugins: [mockPlugin],
       })
 
@@ -303,9 +330,7 @@ describe('SupaClient', () => {
         typeof fetch
       >
 
-      const result = await client.getFeatures({
-        features: { feature1: 'fallback1', feature2: 'fallback2' },
-      })
+      const result = await client.getFeatures(['feature1', 'feature2'])
 
       expect(result).toEqual({ feature1: 'fallback1', feature2: 'fallback2' })
       expect(mockPlugin.onFallbackUsed).toHaveBeenCalledTimes(2)
@@ -323,6 +348,7 @@ describe('SupaClient', () => {
       client = new SupaClient({
         apiKey: mockApiKey,
         environment: 'test-environment',
+        features: {},
         plugins: [mockPlugin],
       })
 
@@ -332,7 +358,7 @@ describe('SupaClient', () => {
         json: () => Promise.resolve(mockResponse),
       } as MockResponse) as jest.MockedFunction<typeof fetch>
 
-      await client.getFeatures({ features: { feature1: null } })
+      await client.getFeatures(['feature1'])
 
       expect(mockPlugin.beforeGetFeatures).toHaveBeenCalled()
       expect(mockPlugin.afterGetFeatures).toHaveBeenCalled()
@@ -348,7 +374,7 @@ describe('SupaClient', () => {
         statusText: 'Unauthorized',
       } as MockResponse) as jest.MockedFunction<typeof fetch>
 
-      const result = await client.getFeature('testFeature', { fallback: 'defaultValue' })
+      const result = await client.getFeature('testFeature')
       expect(result).toBe('defaultValue')
     })
 
@@ -359,7 +385,7 @@ describe('SupaClient', () => {
         json: () => Promise.resolve(mockResponse),
       } as MockResponse) as jest.MockedFunction<typeof fetch>
 
-      const result = await client.getFeature('testFeature', { fallback: 'defaultValue' })
+      const result = await client.getFeature('testFeature')
       expect(result).toBe('defaultValue')
     })
 
@@ -367,8 +393,11 @@ describe('SupaClient', () => {
       client = new SupaClient({
         apiKey: mockApiKey,
         environment: 'test-environment',
-        baseUrl: mockBaseUrl,
-        retry: { enabled: false },
+        features: {},
+        networkConfig: {
+          featuresAPIUrl: `${mockBaseUrl}/features`,
+          retry: { enabled: false },
+        },
       })
 
       const mockResponse = { features: { testFeature: { variation: 'true' } } }
@@ -383,34 +412,6 @@ describe('SupaClient', () => {
   })
 
   describe('plugin management', () => {
-    it('should cleanup plugins', async (): Promise<void> => {
-      const mockPlugin = { name: 'testPlugin', cleanup: jest.fn() }
-      client = new SupaClient({
-        apiKey: mockApiKey,
-        environment: 'test-environment',
-        baseUrl: mockBaseUrl,
-        plugins: [mockPlugin],
-      })
-
-      await client.cleanup()
-      expect(mockPlugin.cleanup).toHaveBeenCalled()
-    })
-
-    it('should handle cleanup with no plugins', async (): Promise<void> => {
-      await expect(client.cleanup()).resolves.toBeUndefined()
-    })
-
-    it('should handle plugins without cleanup method', async (): Promise<void> => {
-      const mockPlugin = { name: 'testPlugin' }
-      client = new SupaClient({
-        apiKey: mockApiKey,
-        environment: 'test-environment',
-        plugins: [mockPlugin],
-      })
-
-      await expect(client.cleanup()).resolves.toBeUndefined()
-    })
-
     it('should handle plugin errors gracefully', async (): Promise<void> => {
       const mockPlugin = {
         name: 'testPlugin',
@@ -420,6 +421,7 @@ describe('SupaClient', () => {
       client = new SupaClient({
         apiKey: mockApiKey,
         environment: 'test-environment',
+        features: {},
         plugins: [mockPlugin],
       })
 
@@ -427,7 +429,7 @@ describe('SupaClient', () => {
         typeof fetch
       >
 
-      const result = await client.getFeature('testFeature', { fallback: 'defaultValue' })
+      const result = await client.getFeature('testFeature')
 
       expect(mockPlugin.onError).toHaveBeenCalled()
       expect(result).toBe('defaultValue')
