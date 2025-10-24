@@ -46,7 +46,7 @@ describe('SupaClient', () => {
         environment: 'test-environment',
         features: createFeatures({}),
       })
-      expect(client['featuresAPIUrl']).toBe('https://edge.supaship.com/v1/features')
+      expect(client['networkConfig'].featuresAPIUrl).toBe('https://edge.supaship.com/v1/features')
     })
 
     it('should use default retry configuration', (): void => {
@@ -55,9 +55,9 @@ describe('SupaClient', () => {
         environment: 'test-environment',
         features: createFeatures({}),
       })
-      expect(client['retryEnabled']).toBe(true)
-      expect(client['maxRetries']).toBe(3)
-      expect(client['retryBackoff']).toBe(1000)
+      expect(client['networkConfig'].retry.enabled).toBe(true)
+      expect(client['networkConfig'].retry.maxAttempts).toBe(3)
+      expect(client['networkConfig'].retry.backoff).toBe(1000)
     })
 
     it('should use custom retry configuration', (): void => {
@@ -69,9 +69,9 @@ describe('SupaClient', () => {
           retry: { enabled: false, maxAttempts: 5, backoff: 2000 },
         },
       })
-      expect(client['retryEnabled']).toBe(false)
-      expect(client['maxRetries']).toBe(5)
-      expect(client['retryBackoff']).toBe(2000)
+      expect(client['networkConfig'].retry.enabled).toBe(false)
+      expect(client['networkConfig'].retry.maxAttempts).toBe(5)
+      expect(client['networkConfig'].retry.backoff).toBe(2000)
     })
 
     it('should handle empty plugins array', (): void => {

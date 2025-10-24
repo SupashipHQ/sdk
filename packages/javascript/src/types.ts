@@ -1,6 +1,6 @@
 import { SupaPlugin } from './plugins/types'
 
-export interface SupaClientConfig<TFeatures extends Features<Record<string, FeatureValue>>> {
+export interface SupaClientConfig {
   /**
    * API key used to authenticate requests to Supaship services.
    * Typically created in your project settings.
@@ -15,7 +15,7 @@ export interface SupaClientConfig<TFeatures extends Features<Record<string, Feat
    * Must be created using createFeatures() for type safety.
    * Defines all feature flags used in the application.
    */
-  features: TFeatures
+  features: Features<Record<string, FeatureValue>>
   /**
    * Default context included with every feature evaluation request.
    * Can be merged/overridden per-call via options.context.
