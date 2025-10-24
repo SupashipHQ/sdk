@@ -1,4 +1,4 @@
-import { FeatureValue } from 'types'
+import type { FeatureValue, Features } from './types'
 
 /**
  * Helper function to define feature flags with type safety.
@@ -15,9 +15,9 @@ import { FeatureValue } from 'types'
  * import { createFeatures, SupaClient } from '@supashiphq/sdk-javascript'
  *
  * const features = createFeatures({
- *   'dark-mode': false as boolean,
+ *   'dark-mode': false,  // Inferred as boolean
  *   'ui-config': {
- *     theme: 'light' as 'light' | 'dark',
+ *     theme: 'light' as 'light' | 'dark',  // Use 'as' for specific unions
  *     maxUsers: 100,
  *   },
  *   'allowed-features': ['feature-a', 'feature-b'],
@@ -36,6 +36,6 @@ import { FeatureValue } from 'types'
  * const allowed = await client.getFeature('allowed-features') // string[]
  * ```
  */
-export function createFeatures<T extends Record<string, FeatureValue>>(features: T): T {
-  return features
+export function createFeatures<T extends Record<string, FeatureValue>>(features: T): Features<T> {
+  return features as Features<T>
 }

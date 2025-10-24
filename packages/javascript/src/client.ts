@@ -1,4 +1,4 @@
-import { SupaClientConfig, FeatureContext, FeatureValue, NetworkConfig, NoInfer } from './types'
+import { SupaClientConfig, FeatureContext, FeatureValue, NetworkConfig, Features } from './types'
 import { retry } from './utils'
 import { SupaPlugin } from './plugins/types'
 import { DEFAULT_FEATURES_URL, DEFAULT_EVENTS_URL } from './constants'
@@ -11,7 +11,7 @@ type ResolvedNetworkConfig = {
   requestTimeoutMs: number
 }
 
-export class SupaClient<TFeatures extends Record<string, FeatureValue>> {
+export class SupaClient<TFeatures extends Features<Record<string, FeatureValue>>> {
   private apiKey: string
   private environment: string
   private defaultContext?: FeatureContext
@@ -21,7 +21,7 @@ export class SupaClient<TFeatures extends Record<string, FeatureValue>> {
   private fetchImpl: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
   private networkConfig: ResolvedNetworkConfig
 
-  constructor(config: NoInfer<SupaClientConfig<TFeatures>>) {
+  constructor(config: SupaClientConfig<TFeatures>) {
     this.apiKey = config.apiKey
     this.environment = config.environment
     this.defaultContext = config.context
@@ -138,10 +138,10 @@ export class SupaClient<TFeatures extends Record<string, FeatureValue>> {
     }
   }
 
-  async getFeatures(
-    featureNames: (keyof TFeatures)[],
+  async getFeatures<TKeys extends readonly (keyof TFeatures)[]>(
+    featureNames: TKeys,
     options?: { context?: FeatureContext }
-  ): Promise<Record<string, FeatureValue>> {
+  ): Promise<{ [K in TKeys[number]]: TFeatures[K] }> {
     const { context: contextOverride } = options ?? {}
 
     // Only merge context if it's defined and not null
@@ -254,7 +254,7 @@ export class SupaClient<TFeatures extends Record<string, FeatureValue>> {
       )
 
       // Return the fetched features
-      return result
+      return result as { [K in TKeys[number]]: TFeatures[K] }
     } catch (error) {
       // Run onError hooks
       await Promise.all(this.plugins.map(plugin => plugin.onError?.(error as Error, mergedContext)))
@@ -277,7 +277,7 @@ export class SupaClient<TFeatures extends Record<string, FeatureValue>> {
         ).catch(console.error)
       })
 
-      return fallbackResult
+      return fallbackResult as { [K in TKeys[number]]: TFeatures[K] }
     }
   }
 }
