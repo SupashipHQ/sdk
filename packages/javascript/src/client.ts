@@ -1,35 +1,32 @@
-import {
-  SupaClientConfig,
-  FeatureContext,
-  FeaturesOptions,
-  FeatureValue,
-  FeatureOptions,
-  NetworkConfig,
-} from './types'
+import { SupaClientConfig, FeatureContext, FeatureValue, NetworkConfig, Features } from './types'
 import { retry } from './utils'
 import { SupaPlugin } from './plugins/types'
+import { DEFAULT_FEATURES_URL, DEFAULT_EVENTS_URL } from './constants'
 
-const DEFAULT_FEATURES_URL = 'https://edge.supaship.com/v1/features'
-const DEFAULT_EVENTS_URL = 'https://edge.supaship.com/v1/events'
-
-type DeepRequired<T> = {
-  [K in keyof T]-?: T[K] extends object ? DeepRequired<T[K]> : T[K]
+type RequiredRetryConfig = Required<NonNullable<NetworkConfig['retry']>>
+type ResolvedNetworkConfig = {
+  featuresAPIUrl: string
+  eventsAPIUrl: string
+  retry: RequiredRetryConfig
+  requestTimeoutMs: number
 }
 
-export class SupaClient {
+export class SupaClient<TFeatures extends Features<Record<string, FeatureValue>>> {
   private apiKey: string
   private environment: string
   private defaultContext?: FeatureContext
   private plugins: SupaPlugin[]
+  private featureDefinitions: TFeatures
 
   private fetchImpl: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
-  private networkConfig: DeepRequired<NetworkConfig>
+  private networkConfig: ResolvedNetworkConfig
 
-  constructor(config: SupaClientConfig) {
+  constructor(config: SupaClientConfig<TFeatures>) {
     this.apiKey = config.apiKey
     this.environment = config.environment
     this.defaultContext = config.context
     this.plugins = config.plugins || []
+    this.featureDefinitions = config.features
 
     this.networkConfig = {
       featuresAPIUrl: config.networkConfig?.featuresAPIUrl || DEFAULT_FEATURES_URL,
@@ -40,18 +37,15 @@ export class SupaClient {
         backoff: config.networkConfig?.retry?.backoff ?? 1000,
       },
       requestTimeoutMs: config.networkConfig?.requestTimeoutMs ?? 10000,
-      fetchFn: config.networkConfig?.fetchFn as (
-        input: RequestInfo | URL,
-        init?: RequestInit
-      ) => Promise<Response>,
     }
 
     // Prefer injected fetch, then global fetch if available
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const globalFetch = (globalThis as any)?.fetch as typeof fetch | undefined
+    const globalFetch: typeof fetch | undefined =
+      typeof globalThis !== 'undefined'
+        ? (globalThis as unknown as { fetch?: typeof fetch }).fetch
+        : undefined
     if (config.networkConfig?.fetchFn) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      this.fetchImpl = config.networkConfig.fetchFn as any
+      this.fetchImpl = config.networkConfig.fetchFn
     } else if (typeof globalFetch === 'function') {
       this.fetchImpl = globalFetch.bind(globalThis)
     } else {
@@ -59,6 +53,11 @@ export class SupaClient {
         'No fetch implementation available. Provide fetchFn in config or use a runtime with global fetch (e.g., Node 18+, browsers).'
       )
     }
+
+    // Initialize plugins with available features and their fallback values
+    Promise.all(
+      this.plugins.map(plugin => plugin.onInit?.(this.featureDefinitions, this.defaultContext))
+    ).catch(console.error)
   }
 
   /**
@@ -98,68 +97,78 @@ export class SupaClient {
     return fallback ?? null
   }
 
-  async getFeature<T extends FeatureValue = FeatureValue>(
-    featureName: string,
-    options?: FeatureOptions<T>
-  ): Promise<T> {
-    const { fallback, context } = options ?? {}
+  async getFeature<TKey extends keyof TFeatures>(
+    featureName: TKey,
+    options?: { context?: FeatureContext }
+  ): Promise<TFeatures[TKey]> {
+    const { context } = options ?? {}
 
     // Only merge context if it's defined and not null
-    const mergedContext =
+    const mergedContext: FeatureContext | undefined =
       typeof context === 'object' && context !== null
-        ? { ...this.defaultContext, ...context }
+        ? { ...(this.defaultContext ?? {}), ...context }
         : this.defaultContext
 
     try {
-      const response = await this.getFeatures({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        features: { [featureName]: fallback ?? null } as any,
+      const response = await this.getFeatures([featureName as string], {
         context: mergedContext,
       })
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const value = (response as any)[featureName] ?? fallback ?? null
-
-      return value as unknown as T
+      // Get the specific feature value
+      const value = response[featureName as string]
+      return value as TFeatures[TKey]
     } catch (error) {
       // Run onError hooks
       await Promise.all(this.plugins.map(plugin => plugin.onError?.(error as Error, mergedContext)))
 
+      // Use fallback feature value when API fails
+      const fallbackValue = this.featureDefinitions[featureName]
+
       // Notify plugins that fallback was used
       await Promise.all(
         this.plugins.map(plugin =>
-          plugin.onFallbackUsed?.(featureName, fallback as FeatureValue, error as Error)
+          plugin.onFallbackUsed?.(
+            featureName as string,
+            fallbackValue as FeatureValue,
+            error as Error
+          )
         )
       )
-      return fallback as unknown as T
+      return fallbackValue as TFeatures[TKey]
     }
   }
 
-  async getFeatures<T extends Record<string, FeatureValue> = Record<string, FeatureValue>>(
-    options: FeaturesOptions<T>
-  ): Promise<T> {
-    const context = {
-      ...this.defaultContext,
-      ...options.context,
-    }
+  async getFeatures<TKeys extends readonly (keyof TFeatures)[]>(
+    featureNames: TKeys,
+    options?: { context?: FeatureContext }
+  ): Promise<{ [K in TKeys[number]]: TFeatures[K] }> {
+    const { context: contextOverride } = options ?? {}
+
+    // Only merge context if it's defined and not null
+    const mergedContext: FeatureContext | undefined =
+      typeof contextOverride === 'object' && contextOverride !== null
+        ? { ...(this.defaultContext ?? {}), ...contextOverride }
+        : this.defaultContext
 
     // Notify plugins of context update for this request
-    if (options.context) {
+    if (contextOverride) {
       await Promise.all(
         this.plugins.map(plugin =>
-          plugin.onContextUpdate?.(this.defaultContext, context, 'request')
+          plugin.onContextUpdate?.(this.defaultContext, mergedContext!, 'request')
         )
       )
     }
 
-    const featureNames = Object.keys(options.features)
+    // Convert feature names to strings for API call
+    const featureNamesArray = featureNames.map(name => name as string)
 
     try {
       // Run beforeGetFeatures hooks
       await Promise.all(
-        this.plugins.map(plugin => plugin.beforeGetFeatures?.(featureNames, context))
+        this.plugins.map(plugin => plugin.beforeGetFeatures?.(featureNamesArray, mergedContext))
       )
 
+      type FeaturesResponse = { features: Record<string, { variation: FeatureValue }> }
       const fetchFeatures = async (): Promise<Record<string, FeatureValue>> => {
         const url = this.networkConfig.featuresAPIUrl
         const headers: Record<string, string> = {
@@ -169,8 +178,8 @@ export class SupaClient {
         const body = JSON.stringify({
           apiKey: this.apiKey,
           environment: this.environment,
-          features: featureNames,
-          context,
+          features: featureNamesArray,
+          context: mergedContext,
         })
 
         // Notify plugins before request
@@ -178,8 +187,11 @@ export class SupaClient {
 
         const startTime = Date.now()
         // Support timeout via AbortController when available
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const AbortCtrl: typeof AbortController | undefined = (globalThis as any)?.AbortController
+        const AbortCtrl: typeof AbortController | undefined =
+          typeof globalThis !== 'undefined'
+            ? (globalThis as unknown as { AbortController?: typeof AbortController })
+                .AbortController
+            : undefined
         let controller: AbortController | undefined
         let timeoutId: ReturnType<typeof setTimeout> | undefined
         if (this.networkConfig.requestTimeoutMs && typeof AbortCtrl === 'function') {
@@ -208,13 +220,15 @@ export class SupaClient {
           throw new Error(`Failed to fetch features: ${response.statusText}`)
         }
 
-        const data = await response.json()
+        const data = (await response.json()) as FeaturesResponse
         const result: Record<string, FeatureValue> = {}
 
-        featureNames.forEach(name => {
+        featureNamesArray.forEach(name => {
           const variation = data.features[name]?.variation
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          result[name] = this.getVariationValue(variation, (options.features as any)[name])
+          result[name] = this.getVariationValue(
+            variation,
+            this.featureDefinitions[name as keyof TFeatures]
+          )
         })
 
         return result
@@ -235,27 +249,35 @@ export class SupaClient {
         : await fetchFeatures()
 
       // Run afterGetFeatures hooks
-      await Promise.all(this.plugins.map(plugin => plugin.afterGetFeatures?.(result, context)))
+      await Promise.all(
+        this.plugins.map(plugin => plugin.afterGetFeatures?.(result, mergedContext))
+      )
 
-      return result as unknown as T
+      // Return the fetched features
+      return result as { [K in TKeys[number]]: TFeatures[K] }
     } catch (error) {
       // Run onError hooks
-      await Promise.all(this.plugins.map(plugin => plugin.onError?.(error as Error, context)))
+      await Promise.all(this.plugins.map(plugin => plugin.onError?.(error as Error, mergedContext)))
 
-      // Notify plugins that fallbacks were used
-      if (options.features && Object.keys(options.features).length > 0) {
-        await Promise.all(
-          Object.entries(options.features).map(([featureName, fallbackValue]) =>
-            Promise.all(
-              this.plugins.map(plugin =>
-                plugin.onFallbackUsed?.(featureName, fallbackValue as FeatureValue, error as Error)
-              )
+      // Create fallback result with requested feature names
+      const fallbackResult: Record<string, FeatureValue> = {}
+
+      featureNamesArray.forEach(featureName => {
+        fallbackResult[featureName] = this.featureDefinitions[featureName as keyof TFeatures]
+
+        // Notify plugins that fallback was used for each feature
+        Promise.all(
+          this.plugins.map(plugin =>
+            plugin.onFallbackUsed?.(
+              featureName,
+              this.featureDefinitions[featureName as keyof TFeatures],
+              error as Error
             )
           )
-        )
-      }
+        ).catch(console.error)
+      })
 
-      return (options.features || {}) as unknown as T
+      return fallbackResult as { [K in TKeys[number]]: TFeatures[K] }
     }
   }
 }

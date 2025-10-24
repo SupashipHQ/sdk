@@ -1,6 +1,6 @@
 # Supaship React SDK
 
-A React SDK for Supaship that provides hooks and components for feature flag management in React applications.
+A React SDK for Supaship that provides hooks and components for feature flag management with full TypeScript type safety.
 
 ## Installation
 
@@ -15,7 +15,14 @@ pnpm add @supashiphq/sdk-react
 ## Quick Start
 
 ```tsx
-import { SupaProvider, useFeature, useFeatures, SupaFeature } from '@supashiphq/sdk-react'
+import { SupaProvider, useFeature, createFeatures } from '@supashiphq/sdk-react'
+
+// Define your features with type safety
+const features = createFeatures({
+  'new-header': false,
+  'theme-config': { mode: 'dark' as 'dark' | 'light', showLogo: true },
+  'beta-features': [] as string[],
+})
 
 function App() {
   return (
@@ -23,10 +30,10 @@ function App() {
       config={{
         apiKey: 'your-api-key',
         environment: 'production',
+        features,
         context: {
           userID: '123',
           email: 'user@example.com',
-          version: '1.0.0',
         },
       }}
     >
@@ -36,50 +43,57 @@ function App() {
 }
 
 function YourApp() {
-  return (
-    <div>
-      {/* Component-based approach - declarative and clean */}
-      <SupaFeature
-        feature="my-feature"
-        fallback={false}
-        variations={{
-          true: <NewFeatureComponent />,
-          false: <OldFeatureComponent />,
-        }}
-      />
-    </div>
-  )
-}
+  // Hook returns { feature, isLoading, error, ... }
+  const { feature: newHeader, isLoading } = useFeature('new-header')
 
-function YourAppWithHooks() {
-  // Hook-based approach - programmatic control
-  const { feature: isEnabled } = useFeature('my-feature', { fallback: false })
+  if (isLoading) return <div>Loading...</div>
 
-  // Boolean features only (current API)
-  const { feature: showPremium } = useFeature('premium-feature', {
-    fallback: false,
-    context: { plan: 'premium' },
-  })
-
-  // Multiple features at once
-  const { features } = useFeatures({
-    features: {
-      'feature-1': false,
-      'feature-2': false,
-      'feature-3': true,
-    },
-    context: { page: 'dashboard' },
-  })
-
-  return (
-    <div>
-      {isEnabled && <NewFeatureComponent />}
-      <ExperimentComponent variant={expFeature} />
-      {features['feature-1'] && <Feature1Component />}
-    </div>
-  )
+  return <div>{newHeader ? <NewHeader /> : <OldHeader />}</div>
 }
 ```
+
+## Type-Safe Feature Flags
+
+For full TypeScript type safety, define your features and augment the `Features` interface:
+
+```tsx
+// lib/features.ts
+import { createFeatures, SupaFeatures } from '@supashiphq/sdk-react'
+
+export const FEATURE_FLAGS = createFeatures({
+  'new-header': false,
+  'theme-config': {
+    mode: 'dark' as 'dark' | 'light',
+    primaryColor: '#007bff',
+    showLogo: true,
+  },
+  'beta-features': [] as string[],
+  'disabled-feature': null,
+})
+
+// Type augmentation for global type safety, it is required
+declare module '@supashiphq/sdk-react' {
+  interface Features extends SupaFeatures<typeof FEATURE_FLAGS> {}
+}
+```
+
+Now `useFeature` and `useFeatures` will have full type safety:
+
+```tsx
+function MyComponent() {
+  // TypeScript knows 'new-header' is valid and feature is boolean | null
+  const { feature } = useFeature('new-header')
+
+  // TypeScript knows 'theme-config' returns the exact object shape
+  const { feature: config } = useFeature('theme-config')
+  // config is { mode: 'dark' | 'light', primaryColor: string, showLogo: boolean } | null
+
+  // TypeScript will error on invalid feature names
+  const { feature: invalid } = useFeature('non-existent-feature') // ❌ Type error
+}
+```
+
+[See detailed type-safe usage guide](./TYPE_SAFE_FEATURES.md)
 
 ## API Reference
 
@@ -97,48 +111,79 @@ The provider component that makes feature flags available to your React componen
 | ---------- | ------------------ | -------- | ---------------------------- |
 | `config`   | `SupaClientConfig` | Yes      | Configuration for the client |
 | `children` | `React.ReactNode`  | Yes      | Child components             |
+| `plugins`  | `SupaPlugin[]`     | No       | Custom plugins               |
+| `toolbar`  | `ToolbarConfig`    | No       | Development toolbar settings |
 
 **Configuration Options:**
 
 ```tsx
-interface SupaClientConfig {
-  apiKey: string
-  environment: string
-  context?: Record<string, unknown>
-  networkConfig?: {
-    featuresAPIUrl?: string
-    eventsAPIUrl?: string
-    retry?: { enabled?: boolean; maxAttempts?: number; backoff?: number }
-    requestTimeoutMs?: number
-    fetchFn?: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
-  }
+import { createFeatures } from '@supashiphq/sdk-react'
+
+const config = {
+  apiKey: 'your-api-key',
+  environment: 'production',
+  features: createFeatures({
+    // Required: define all feature flags with fallback values
+    'my-feature': false,
+    config: { theme: 'light' },
+  }),
+  context: {
+    // Optional: targeting context
+    userID: 'user-123',
+    email: 'user@example.com',
+    plan: 'premium',
+  },
+  networkConfig: {
+    // Optional: network settings
+    featuresAPIUrl: 'https://api.supashiphq.com/features',
+    retry: {
+      enabled: true,
+      maxAttempts: 3,
+      backoff: 1000,
+    },
+    requestTimeoutMs: 5000,
+  },
 }
 ```
 
-Common context properties:
+**Supported Feature Value Types:**
 
-- `userID`: User identifier
-- `email`: User email
-- `plan`: Membership plan (e.g., 'premium', 'free')
-- `version`: Application version (e.g., 1.0.0)
+| Type      | Example                             | Description               |
+| --------- | ----------------------------------- | ------------------------- |
+| `boolean` | `false`                             | Simple on/off flags       |
+| `object`  | `{ theme: 'dark', showLogo: true }` | Configuration objects     |
+| `array`   | `['feature-a', 'feature-b']`        | Lists of values           |
+| `null`    | `null`                              | Disabled/unavailable flag |
 
-> Note: The above are just common examples. You can use any properties in your context object that make sense for your application's feature targeting needs.
+> **Note:** Strings and numbers are not supported as standalone feature values. Use objects instead: `{ value: 'string' }` or `{ value: 42 }`.
 
 ### useFeature Hook
 
 Retrieves a single feature flag value with React state management and full TypeScript type safety.
 
 ```tsx
-const { feature, isLoading, error }: UseFeatureResult<T> = useFeature<T>(featureName: string, options?: UseFeatureOptions<T>)
+const result = useFeature(featureName, options?)
 ```
 
-**UseFeatureOptions:**
+**Parameters:**
+
+- `featureName: string` - The feature flag key
+- `options?: object`
+  - `context?: Record<string, unknown>` - Context override for this request
+  - `shouldFetch?: boolean` - Whether to fetch the feature (default: true)
+
+**Return Value:**
 
 ```tsx
-interface UseFeatureOptions<T extends FeatureValue = FeatureValue> {
-  fallback?: T // Type-safe fallback value
-  context?: FeatureContext // Context override for this request
-  shouldFetch?: boolean // Whether to fetch the feature (default: true)
+{
+  feature: T | null,        // The feature value (typed based on your Features interface)
+  isLoading: boolean,       // Loading state
+  isSuccess: boolean,       // Success state
+  isError: boolean,         // Error state
+  error: Error | null,      // Error object if failed
+  status: 'idle' | 'loading' | 'success' | 'error',
+  refetch: () => void,      // Function to manually refetch
+  // ... other query state properties
 }
 ```
 
@@ -147,45 +192,67 @@ interface UseFeatureOptions<T extends FeatureValue = FeatureValue> {
 ```tsx
 function MyComponent() {
   // Simple boolean feature
-  const { feature: isEnabled } = useFeature<boolean>('my-feature', { fallback: false })
+  const { feature: isEnabled, isLoading } = useFeature('new-ui')
 
-  // With context override
-  const { feature: showPremium } = useFeature<boolean>('premium-feature', {
-    fallback: false,
-    context: { userPlan: 'premium' },
-  })
+  if (isLoading) return <Skeleton />
 
-  // Conditional fetching
-  const { user, isLoading } = useUser()
-  // Boolean-only API; variant examples removed
+  return <div>{isEnabled ? <NewUI /> : <OldUI />}</div>
+}
+
+function ConfigComponent() {
+  // Object feature
+  const { feature: config } = useFeature('theme-config')
+
+  if (!config) return null
 
   return (
-    <div>
-      {isEnabled && <NewFeature />}
-      <Button color={buttonColor} />
-      <ItemList maxItems={maxItems} />
-      {showPremium && <PremiumContent />}
-      <Dashboard variant={dashboardVariant} />
+    <div className={config.theme}>
+      {config.showLogo && <Logo />}
+      <div style={{ color: config.primaryColor }}>Content</div>
     </div>
   )
+}
+
+function ConditionalFetch() {
+  const { user, isLoading: userLoading } = useUser()
+
+  // Only fetch when user is loaded
+  const { feature } = useFeature('user-specific-feature', {
+    context: { userId: user?.id },
+    shouldFetch: !userLoading && !!user,
+  })
+
+  return <div>{feature && <SpecialContent />}</div>
 }
 ```
 
 ### useFeatures Hook
 
-Retrieves multiple feature flags in a single request with React state management.
+Retrieves multiple feature flags in a single request with type safety.
 
 ```tsx
-const { features, isLoading, error }: UseFeaturesResult<T> = useFeatures<T>(options: UseFeaturesOptions<T>)
+const result = useFeatures(featureNames, options?)
 ```
 
-**UseFeaturesOptions:**
+**Parameters:**
+
+- `featureNames: readonly string[]` - Array of feature flag keys
+- `options?: object`
+  - `context?: Record<string, unknown>` - Context override for this request
+  - `shouldFetch?: boolean` - Whether to fetch features (default: true)
+
+**Return Value:**
 
 ```tsx
-interface UseFeaturesOptions<T extends Record<string, FeatureValue>> {
-  features: T // Feature names with fallback values
-  context?: FeatureContext // Context override for this request
-  shouldFetch?: boolean // Whether to fetch features (default: true)
+{
+  features: { [key: string]: T | null },  // Object with feature values (typed based on keys)
+  isLoading: boolean,
+  isSuccess: boolean,
+  isError: boolean,
+  error: Error | null,
+  status: 'idle' | 'loading' | 'success' | 'error',
+  refetch: () => void,
+  // ... other query state properties
 }
 ```
 
@@ -193,26 +260,14 @@ interface UseFeaturesOptions<T extends Record<string, FeatureValue>> {
 
 ```tsx
 function Dashboard() {
-  const { user, isLoading } = useUser()
+  const { user } = useUser()
 
-  type DashboardFeatures = {
-    'new-dashboard': boolean
-    'beta-mode': boolean
-    'show-sidebar': boolean
-  }
-
-  const { features } = useFeatures<DashboardFeatures>({
-    features: {
-      'new-dashboard': false,
-      'beta-mode': false,
-      'show-sidebar': true,
-    },
+  // Fetch multiple features at once (more efficient than multiple useFeature calls)
+  const { features, isLoading } = useFeatures(['new-dashboard', 'beta-mode', 'show-sidebar'], {
     context: {
       userId: user?.id,
       plan: user?.plan,
-      version: '2.0.0',
     },
-    shouldFetch: !isLoading && !!user,
   })
 
   if (isLoading) return <LoadingSpinner />
@@ -220,7 +275,21 @@ function Dashboard() {
   return (
     <div className={features['new-dashboard'] ? 'new-layout' : 'old-layout'}>
       {features['show-sidebar'] && <Sidebar />}
+      {features['beta-mode'] && <BetaBadge />}
       <MainContent />
+    </div>
+  )
+}
+
+function FeatureList() {
+  // TypeScript will infer the correct types for each feature
+  const { features } = useFeatures(['feature-a', 'feature-b', 'config-feature'])
+
+  return (
+    <div>
+      {features['feature-a'] && <FeatureA />}
+      {features['feature-b'] && <FeatureB />}
+      {features['config-feature'] && <ConfigDisplay config={features['config-feature']} />}
     </div>
   )
 }
@@ -245,6 +314,7 @@ function UserProfileSettings() {
     setUser(newUser)
 
     // Update feature context when user changes
+    // This will trigger refetch of all features
     updateContext({
       userId: newUser.id,
       plan: newUser.subscriptionPlan,
@@ -256,192 +326,60 @@ function UserProfileSettings() {
 }
 ```
 
-## Components
+### useClient Hook
 
-### SupashipFeature Component
-
-A declarative component for conditional rendering based on feature flags using a compact variations approach.
+Access the underlying SupaClient instance for advanced use cases.
 
 ```tsx
-<SupashipFeature
-  feature="my-feature"
-  fallback={false}
-  loading="spinner"
-  variations={{
-    true: <div>Feature is enabled!</div>,
-    false: <div>Feature is disabled!</div>,
-    spinner: <div>Loading...</div>,
-  }}
-/>
+const client = useClient()
+
+// Use client methods directly
+const feature = await client.getFeature('my-feature', { context: { ... } })
+const features = await client.getFeatures(['feature-1', 'feature-2'])
 ```
-
-**Props:**
-
-```tsx
-interface SupashipFeatureProps {
-  feature: string // The feature flag key to evaluate
-  fallback?: FeatureValue // Fallback value to use when feature is not available (string | number | boolean | null)
-  context?: FeatureContext // Context for feature evaluation
-  shouldFetch?: boolean // Whether to fetch the feature (default: true)
-  variations: Record<string, ReactNode> // Variations object mapping feature values/keys to JSX elements
-  loading?: string // Key in variations object to use for loading state
-}
-```
-
-**FeatureValue Type Support:**
-
-The `variations` object keys must be strings, but they correspond to all supported `FeatureValue` types:
-
-| FeatureValue Type | Example Value | Variation Key | Description                 |
-| ----------------- | ------------- | ------------- | --------------------------- |
-| `string`          | `"variant-a"` | `"variant-a"` | Direct string match         |
-| `boolean`         | `true`        | `"true"`      | Boolean converted to string |
-| `boolean`         | `false`       | `"false"`     | Boolean converted to string |
-| `number`          | `42`          | `"42"`        | Number converted to string  |
-| `null`            | `null`        | `"null"`      | Null converted to string    |
-
-**Examples:**
-
-#### String Feature Values
-
-```tsx
-<SupashipFeature
-  feature="theme-variant"
-  fallback="auto"
-  loading="spinner"
-  variations={{
-    light: <LightTheme />,
-    dark: <DarkTheme />,
-    auto: <AutoTheme />,
-    spinner: <ThemeLoader />,
-  }}
-/>
-```
-
-#### Boolean Feature Values
-
-```tsx
-<SupashipFeature
-  feature="new-header"
-  fallback="false"
-  loading="skeleton"
-  variations={{
-    // Boolean type
-    true: <NewHeader />,
-    false: <OldHeader />,
-    skeleton: <HeaderSkeleton />,
-  }}
-/>
-
-<SupashipFeature
-  feature="show-banner"
-  variations={{
-    true: <PromoBanner />,
-    false: null, // Render nothing when false
-  }}
-/>
-```
-
-#### Number Feature Values
-
-```tsx
-<SupashipFeature
-  feature="max-items"
-  fallback="10"
-  loading="spinner"
-  variations={{
-    // Number type
-    '5': <ItemList maxItems={5} />,
-    '10': <ItemList maxItems={10} />,
-    '20': <ItemList maxItems={20} />,
-    spinner: <ItemListSpinner />,
-  }}
-/>
-```
-
-### Simple Usage Patterns
-
-For simple show/hide scenarios, you can use the SupashipFeature component with compact variations:
-
-```tsx
-// Simple show/hide based on boolean
-<SupashipFeature
-  feature="new-feature"
-  variations={{
-    true: <NewFeatureContent />,
-  }}
-/>
-
-// With loading state
-<SupashipFeature
-  feature="beta-banner"
-  loading="skeleton"
-  variations={{
-    true: <BetaBanner />,
-    skeleton: <BannerSkeleton />,
-  }}
-/>
-
-// Conditional rendering with multiple possible values
-<SupashipFeature
-  feature="user-limit"
-  fallback="default"
-  variations={{
-    '5': <BasicUserList />,
-    '10': <StandardUserList />,
-    '20': <AdvancedUserList />,
-    default: <DefaultUserList />,
-  }}
-/>
-
-// String matching
-<SupashipFeature
-  feature="theme"
-  fallback="light"
-  variations={{
-    dark: <DarkModeStyles />,
-    light: <LightModeStyles />,
-  }}
-/>
-
-// Conditional fetching - only fetch when user is authenticated
-<SupashipFeature
-  feature="user-dashboard"
-  fallback="public"
-  shouldFetch={isAuthenticated}
-  variations={{
-    true: <UserDashboard />,
-    public: <PublicDashboard />,
-  }}
-/>
-```
-
-## Error Handling
-
-The React SDK handles errors gracefully by returning fallback values when provided.
 
 ## Best Practices
 
-### 1. Always Provide Fallbacks
+### 1. Define Features in One Place
 
 ```tsx
-// ✅ Good - provides fallback
-const { feature: isEnabled } = useFeature('new-feature', { fallback: false })
+// ✅ Good - centralized feature definitions
+// lib/features.ts
+export const FEATURE_FLAGS = createFeatures({
+  'new-header': false,
+  theme: { mode: 'light' as 'light' | 'dark' },
+  'beta-features': [] as string[],
+})
 
-// ❌ Risky - no fallback, may cause issues
-const { feature: isEnabled } = useFeature('new-feature')
+// ❌ Bad - scattered feature definitions
+const config1 = { features: createFeatures({ 'feature-1': false }) }
+const config2 = { features: createFeatures({ 'feature-2': true }) }
 ```
 
-### 2. Use Context for User Targeting
+### 2. Use Type Augmentation for Type Safety
+
+```tsx
+// ✅ Good - type augmentation for global type safety
+declare module '@supashiphq/sdk-react' {
+  interface Features extends SupaFeatures<typeof FEATURE_FLAGS> {}
+}
+
+// Now all useFeature calls are type-safe
+const { feature } = useFeature('new-header') // ✅ TypeScript knows this is boolean | null
+const { feature } = useFeature('invalid') // ❌ TypeScript error
+```
+
+### 3. Use Context for User Targeting
 
 ```tsx
 function App() {
   const { user } = useAuth()
 
   return (
-    <SupashipProvider
+    <SupaProvider
       config={{
         apiKey: 'your-api-key',
+        features: FEATURE_FLAGS,
         context: {
           userId: user?.id,
           email: user?.email,
@@ -451,52 +389,45 @@ function App() {
       }}
     >
       <YourApp />
-    </SupashipProvider>
+    </SupaProvider>
   )
 }
 ```
 
-### 3. Batch Feature Requests
+### 4. Batch Feature Requests
 
 ```tsx
 // ✅ Good - single API call
-const { features } = useFeatures({
-  features: {
-    'feature-1': false,
-    'feature-2': 'default',
-    'feature-3': null,
-  },
-})
+const { features } = useFeatures(['feature-1', 'feature-2', 'feature-3'])
 
 // ❌ Less efficient - multiple API calls
-const feature1 = useFeature('feature-1', { fallback: false })
-const feature2 = useFeature('feature-2', { fallback: 'default' })
-const feature3 = useFeature('feature-3', { fallback: null })
+const feature1 = useFeature('feature-1')
+const feature2 = useFeature('feature-2')
+const feature3 = useFeature('feature-3')
 ```
 
-### 4. Handle Loading States
+### 5. Handle Loading States
 
 ```tsx
 function MyComponent() {
   const { user, isLoading: userLoading } = useUser()
 
-  const { features } = useFeatures({
-    features: { 'user-specific-feature': false },
+  const { features, isLoading: featuresLoading } = useFeatures(['user-specific-feature'], {
     context: { userId: user?.id },
     shouldFetch: !userLoading && !!user,
   })
 
-  if (userLoading) return <UserLoadingSkeleton />
+  if (userLoading || featuresLoading) return <Skeleton />
 
   return <div>{features['user-specific-feature'] && <SpecialContent />}</div>
 }
 ```
 
-### 5. Update Context Reactively
+### 6. Update Context Reactively
 
 ```tsx
 function UserDashboard() {
-  const { context, updateContext } = useFeatureContext()
+  const { updateContext } = useFeatureContext()
   const [currentPage, setCurrentPage] = useState('dashboard')
 
   // Update context when navigation changes
@@ -504,13 +435,9 @@ function UserDashboard() {
     updateContext({ currentPage })
   }, [currentPage, updateContext])
 
-  const handlePageChange = page => {
-    setCurrentPage(page)
-  }
-
   return (
     <div>
-      <Navigation onPageChange={handlePageChange} />
+      <Navigation onPageChange={setCurrentPage} />
       <PageContent page={currentPage} />
     </div>
   )
@@ -519,14 +446,17 @@ function UserDashboard() {
 
 ## Framework Integration
 
-### Next.js Integration
-
-#### App Router (Next.js 13+)
+### Next.js App Router (Next.js 13+)
 
 ```tsx
 // app/providers.tsx
 'use client'
-import { SupaProvider } from '@supashiphq/sdk-react'
+import { SupaProvider, createFeatures } from '@supashiphq/sdk-react'
+
+const features = createFeatures({
+  'new-hero': false,
+  theme: { mode: 'light' as 'light' | 'dark' },
+})
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -534,9 +464,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       config={{
         apiKey: process.env.NEXT_PUBLIC_SUPASHIP_API_KEY!,
         environment: process.env.NODE_ENV!,
-        context: {
-          version: process.env.NEXT_PUBLIC_APP_VERSION,
-        },
+        features,
       }}
     >
       {children}
@@ -559,32 +487,25 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
 // app/page.tsx
 ;('use client')
-import { SupaFeature } from '@supashiphq/sdk-react'
+import { useFeature } from '@supashiphq/sdk-react'
 
 export default function HomePage() {
-  return (
-    <main>
-      <SupaFeature
-        feature="new-hero-section"
-        fallback={false}
-        loading="skeleton"
-        variations={{
-          true: <NewHeroSection />,
-          false: <OldHeroSection />,
-          skeleton: <HeroSkeleton />,
-        }}
-      />
-    </main>
-  )
+  const { feature: newHero } = useFeature('new-hero')
+
+  return <main>{newHero ? <NewHeroSection /> : <OldHeroSection />}</main>
 }
 ```
 
-#### Pages Router (Next.js 12 and below)
+### Next.js Pages Router (Next.js 12 and below)
 
 ```tsx
 // pages/_app.tsx
-import { SupaProvider } from '@supashiphq/sdk-react'
+import { SupaProvider, createFeatures } from '@supashiphq/sdk-react'
 import type { AppProps } from 'next/app'
+
+const features = createFeatures({
+  'new-homepage': false,
+})
 
 export default function App({ Component, pageProps }: AppProps) {
   return (
@@ -592,223 +513,91 @@ export default function App({ Component, pageProps }: AppProps) {
       config={{
         apiKey: process.env.NEXT_PUBLIC_SUPASHIP_API_KEY!,
         environment: process.env.NODE_ENV!,
+        features,
       }}
     >
       <Component {...pageProps} />
     </SupaProvider>
   )
 }
-
-// pages/index.tsx
-import { SupaFeature } from '@supashiphq/sdk-react'
-
-export default function HomePage() {
-  return (
-    <div>
-      <SupaFeature
-        feature="new-homepage"
-        fallback={false}
-        variations={{
-          true: <NewHomePage />,
-          false: <OldHomePage />,
-        }}
-      />
-    </div>
-  )
-}
 ```
 
-#### Server-Side Feature Flags
+### Vite / Create React App
 
 ```tsx
-// lib/feature-flags.ts
-import { SupashipClient } from '@supashiphq/sdk-javascript'
+// src/main.tsx or src/index.tsx
+import { SupaProvider, createFeatures } from '@supashiphq/sdk-react'
 
-export const serverFeatureClient = new SupashipClient({
-  apiKey: process.env.SUPASHIP_API_KEY!,
+const features = createFeatures({
+  'new-ui': false,
+  theme: { mode: 'light' as 'light' | 'dark' },
 })
 
-// pages/products/[id].tsx
-import { GetServerSideProps } from 'next'
-import { serverFeatureClient } from '../../lib/feature-flags'
-
-export default function ProductPage({ product, features }) {
+function App() {
   return (
-    <div>
-      {features['new-product-layout'] ? (
-        <NewProductLayout product={product} />
-      ) : (
-        <OldProductLayout product={product} />
-      )}
-    </div>
-  )
-}
-
-export const getServerSideProps: GetServerSideProps = async context => {
-  const { id } = context.params!
-
-  // Get product data
-  const product = await getProduct(id)
-
-  // Get feature flags server-side
-  const features = await serverFeatureClient.getFeatures({
-    features: {
-      'new-product-layout': false,
-      'show-related-products': true,
-    },
-    context: {
-      productId: id,
-      userAgent: context.req.headers['user-agent'],
-    },
-  })
-
-  return {
-    props: {
-      product,
-      features,
-    },
-  }
-}
-```
-
-### React Native Integration
-
-```tsx
-// App.tsx
-import { SupaProvider } from '@supashiphq/sdk-react'
-import { Platform } from 'react-native'
-
-export default function App() {
-  return (
-    <SupashipProvider
+    <SupaProvider
       config={{
-        apiKey: 'your-api-key',
-        context: {
-          platform: Platform.OS,
-          version: Platform.Version,
-        },
+        apiKey: import.meta.env.VITE_SUPASHIP_API_KEY, // Vite
+        // or
+        apiKey: process.env.REACT_APP_SUPASHIP_API_KEY, // CRA
+        environment: import.meta.env.MODE,
+        features,
       }}
     >
       <YourApp />
-    </SupashipProvider>
-  )
-}
-
-// components/HomePage.tsx
-import React from 'react'
-import { View } from 'react-native'
-import { SupashipFeature } from '@supashiphq/sdk-react'
-
-export function HomePage() {
-  return (
-    <View>
-      <SupashipFeature
-        feature="new-onboarding-flow"
-        fallback={false}
-        loading="skeleton"
-        variations={{
-          true: <NewOnboardingFlow />,
-          false: <OldOnboardingFlow />,
-          skeleton: <OnboardingSkeleton />,
-        }}
-      />
-    </View>
+    </SupaProvider>
   )
 }
 ```
 
-### Gatsby Integration
+## Development Toolbar
+
+The SDK includes a development toolbar for testing and debugging feature flags locally.
 
 ```tsx
-// gatsby-browser.js
-import { SupashipProvider } from '@supashiphq/sdk-react'
-
-export const wrapRootElement = ({ element }) => (
-  <SupaProvider
-    config={{
-      apiKey: process.env.SUPASHIP_API_KEY,
-      environment: process.env.NODE_ENV,
-      context: {
-        site: 'gatsby-site',
-      },
-    }}
-  >
-    {element}
-  </SupaProvider>
-)
-
-// src/components/Layout.tsx
-import { SupaFeature } from '@supashiphq/sdk-react'
-
-export function Layout({ children }) {
-  return (
-    <SupaFeature
-      feature="new-layout-design"
-      fallback={false}
-      variations={{
-        true: <div className="new-layout">{children}</div>,
-        false: <div className="old-layout">{children}</div>,
-      }}
-    />
-  )
-}
+<SupaProvider
+  config={{ ... }}
+  toolbar={{
+    show: 'auto', // 'auto' | 'always' | 'never'
+    position: 'bottom-right', // 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'
+  }}
+>
+  <YourApp />
+</SupaProvider>
 ```
 
-## Advanced Usage
+- `'auto'`: Shows toolbar in development environments only (default)
+- `'always'`: Always shows toolbar
+- `'never'`: Never shows toolbar
 
-### Dynamic Feature Loading
+The toolbar allows you to:
 
-```tsx
-function DynamicFeatureComponent() {
-  const [featureName, setFeatureName] = useState('feature-a')
+- View all available feature flags
+- Override feature values locally
+- See feature value types and current values
+- Clear local overrides
 
-  return (
-    <div>
-      <select onChange={e => setFeatureName(e.target.value)}>
-        <option value="feature-a">Feature A</option>
-        <option value="feature-b">Feature B</option>
-        <option value="feature-c">Feature C</option>
-      </select>
+## Plugins
 
-      <SupashipFeature
-        feature={featureName}
-        fallback={false}
-        loading="skeleton"
-        variations={{
-          true: <DynamicContent featureName={featureName} />,
-          false: <DisabledMessage />,
-          skeleton: <ContentSkeleton />,
-        }}
-      />
-    </div>
-  )
-}
-```
-
-### Feature Flag Composition
+Extend the SDK functionality with custom plugins:
 
 ```tsx
-function useCompositeFeature() {
-  const { feature: newUI } = useFeature('new-ui', { fallback: false })
-  const { feature: darkMode } = useFeature('dark-mode', { fallback: false })
-  const { feature: animations } = useFeature('animations', { fallback: true })
+import { SupaPlugin } from '@supashiphq/sdk-react'
 
-  return {
-    showNewUIWithDarkMode: newUI && darkMode,
-    showAnimatedNewUI: newUI && animations,
-    legacyMode: !newUI && !darkMode,
-  }
+const analyticsPlugin: SupaPlugin = {
+  name: 'analytics',
+  onInit: async (availableFeatures, context) => {
+    console.log('SDK initialized with features:', Object.keys(availableFeatures))
+  },
+  afterGetFeatures: async (features, context) => {
+    // Track feature usage
+    analytics.track('features_fetched', { features: Object.keys(features) })
+  },
 }
 
-function App() {
-  const { showNewUIWithDarkMode, legacyMode } = useCompositeFeature()
-
-  return (
-    <div className={showNewUIWithDarkMode ? 'new-ui dark' : legacyMode ? 'legacy' : 'default'}>
-      <MainContent />
-    </div>
-  )
-}
+<SupaProvider config={config} plugins={[analyticsPlugin]}>
+  <App />
+</SupaProvider>
 ```
 
 ## Testing
@@ -816,43 +605,23 @@ function App() {
 ### Mocking Feature Flags in Tests
 
 ```tsx
-// __mocks__/@supashiphq/sdk-react.ts
-export const mockFeatures = new Map()
+// test-utils/providers.tsx
+import { SupaProvider, createFeatures } from '@supashiphq/sdk-react'
 
-export const useFeature = jest.fn((featureName: string, options: any) => {
-  return mockFeatures.get(featureName) ?? options?.fallback
-})
+export function TestProviders({ children, features = {} }) {
+  const testFeatures = createFeatures(features)
 
-export const useFeatures = jest.fn((options: any) => {
-  const result = {}
-  Object.keys(options.features).forEach(feature => {
-    result[feature] = mockFeatures.get(feature) ?? options.features[feature]
-  })
-  return result
-})
-
-export const SupashipProvider = ({ children }: any) => children
-```
-
-### Test Utilities
-
-```tsx
-// test-utils/feature-flag-utils.tsx
-import { mockFeatures } from '../__mocks__/@supashiphq/sdk-react'
-
-export function setMockFeature(featureName: string, value: any) {
-  mockFeatures.set(featureName, value)
-}
-
-export function clearMockFeatures() {
-  mockFeatures.clear()
-}
-
-export function setMockFeatures(features: Record<string, any>) {
-  clearMockFeatures()
-  Object.entries(features).forEach(([name, value]) => {
-    setMockFeature(name, value)
-  })
+  return (
+    <SupaProvider
+      config={{
+        apiKey: 'test-key',
+        environment: 'test',
+        features: testFeatures,
+      }}
+    >
+      {children}
+    </SupaProvider>
+  )
 }
 ```
 
@@ -861,29 +630,101 @@ export function setMockFeatures(features: Record<string, any>) {
 ```tsx
 // MyComponent.test.tsx
 import { render, screen } from '@testing-library/react'
-import { setMockFeatures, clearMockFeatures } from '../test-utils/feature-flag-utils'
+import { TestProviders } from '../test-utils/providers'
 import MyComponent from './MyComponent'
 
 describe('MyComponent', () => {
-  afterEach(() => {
-    clearMockFeatures()
-  })
-
   it('shows new feature when enabled', () => {
-    setMockFeatures({ 'new-feature': true })
-
-    render(<MyComponent />)
+    render(
+      <TestProviders features={{ 'new-feature': true }}>
+        <MyComponent />
+      </TestProviders>
+    )
 
     expect(screen.getByText('New Feature Content')).toBeInTheDocument()
   })
 
   it('shows old feature when disabled', () => {
-    setMockFeatures({ 'new-feature': false })
-
-    render(<MyComponent />)
+    render(
+      <TestProviders features={{ 'new-feature': false }}>
+        <MyComponent />
+      </TestProviders>
+    )
 
     expect(screen.getByText('Old Feature Content')).toBeInTheDocument()
   })
+})
+```
+
+## Migration Guide
+
+### From v0.5.x to v0.6.x
+
+**1. Features config is now required:**
+
+```tsx
+// ❌ Old
+<SupaProvider
+  config={{
+    apiKey: 'key',
+    environment: 'prod',
+  }}
+/>
+
+// ✅ New
+import { createFeatures } from '@supashiphq/sdk-react'
+
+const features = createFeatures({
+  'my-feature': false,
+})
+
+<SupaProvider
+  config={{
+    apiKey: 'key',
+    environment: 'prod',
+    features, // Required
+  }}
+/>
+```
+
+**2. useFeature returns `feature`, not `data`:**
+
+```tsx
+// ❌ Old
+const { data } = useFeature('my-feature')
+
+// ✅ New
+const { feature } = useFeature('my-feature')
+```
+
+**3. useFeatures takes an array, not an object:**
+
+```tsx
+// ❌ Old
+const { features } = useFeatures({
+  features: { 'feature-1': false, 'feature-2': true },
+})
+
+// ✅ New
+const { features } = useFeatures(['feature-1', 'feature-2'])
+```
+
+**4. Feature values are restricted:**
+
+```tsx
+// ❌ Old - strings and numbers as values
+const features = {
+  variant: 'a', // ❌ Not supported
+  count: 42, // ❌ Not supported
+}
+
+// ✅ New - use objects instead
+const features = createFeatures({
+  variant: { value: 'a' as 'a' | 'b' | 'c' }, // ✅ Object
+  count: { value: 42 }, // ✅ Object
+  enabled: false, // ✅ Boolean
+  config: { theme: 'dark' }, // ✅ Object
+  list: ['a', 'b'], // ✅ Array
 })
 ```
 
@@ -891,21 +732,21 @@ describe('MyComponent', () => {
 
 ### Common Issues
 
-#### 1. Provider Not Found Error
+#### Provider Not Found Error
 
 ```
-Error: useFeature must be used within a SupashipProvider
+Error: useFeature must be used within a SupaProvider
 ```
 
-**Solution:** Ensure your component is wrapped in a `SupashipProvider`:
+**Solution:** Ensure your component is wrapped in a `SupaProvider`:
 
 ```tsx
 // ✅ Correct
 function App() {
   return (
-    <SupashipProvider config={{ apiKey: 'your-key' }}>
+    <SupaProvider config={{ ... }}>
       <MyComponent />
-    </SupashipProvider>
+    </SupaProvider>
   )
 }
 
@@ -915,32 +756,27 @@ function App() {
 }
 ```
 
-#### 2. Features Not Loading
+#### Features Not Loading
 
-**Check network requests:** Open browser dev tools and verify API calls are being made.
+- **Check API key:** Verify your API key is correct
+- **Check network:** Open browser dev tools and check network requests
+- **Check features config:** Ensure features are defined in the config
 
-**Verify API key:** Ensure your API key is correct and has proper permissions.
+#### Type Errors
 
-**Check context:** Verify the context being sent matches your targeting rules.
+```
+Property 'my-feature' does not exist on type 'Features'
+```
 
-#### 3. Stale Feature Values
-
-**Solution:** Restart your application or clear cache to get fresh values.
-
-#### 4. Performance Issues
-
-**Solution:** Use `useFeatures` for multiple flags and implement proper caching:
+**Solution:** Add type augmentation:
 
 ```tsx
-// ✅ Efficient
-const features = useFeatures({
-  features: { 'feature-1': false, 'feature-2': false, 'feature-3': false },
-})
+import { SupaFeatures } from '@supashiphq/sdk-react'
+import { FEATURE_FLAGS } from './features'
 
-// ❌ Inefficient
-const feature1 = useFeature('feature-1', { fallback: false })
-const feature2 = useFeature('feature-2', { fallback: false })
-const feature3 = useFeature('feature-3', { fallback: false })
+declare module '@supashiphq/sdk-react' {
+  interface Features extends SupaFeatures<typeof FEATURE_FLAGS> {}
+}
 ```
 
 ## License

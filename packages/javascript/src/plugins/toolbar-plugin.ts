@@ -33,7 +33,7 @@ interface SupaToolbarState {
 
 const DEFAULT_STORAGE_KEY = 'supaship-feature-overrides'
 
-const NO_FEATURES_MESSAGE = `No feature flags detected yet. Visit the a page that has feature flags to see them here.`
+const NO_FEATURES_MESSAGE = `No feature flags configured in the client.`
 
 /**
  * Toolbar plugin for local feature flag testing
@@ -91,9 +91,18 @@ export class SupaToolbarPlugin implements SupaPlugin {
     return false
   }
 
-  async beforeGetFeatures(featureNames: string[], context?: FeatureContext): Promise<void> {
-    // Track all feature names we've seen
-    featureNames.forEach(name => this.state.features.add(name))
+  onInit(availableFeatures: Record<string, FeatureValue>, context?: FeatureContext): void {
+    // Initialize with all available features and their fallback values from config
+    this.state.features = new Set(Object.keys(availableFeatures))
+    this.state.featureValues = { ...availableFeatures }
+    this.state.context = context
+
+    // Update toolbar UI if it exists
+    this.updateToolbarUI()
+  }
+
+  async beforeGetFeatures(_featureNames: string[], context?: FeatureContext): Promise<void> {
+    // Update context if it changed
     this.state.context = context
 
     // Update toolbar UI if it exists
@@ -807,8 +816,8 @@ export class SupaToolbarPlugin implements SupaPlugin {
               const value = JSON.parse(textarea.value)
               this.setOverride(featureName, value)
             } catch {
-              // If not valid JSON, treat as string
-              this.setOverride(featureName, textarea.value)
+              // If not valid JSON, wrap string in object
+              this.setOverride(featureName, { value: textarea.value })
             }
           }
         }

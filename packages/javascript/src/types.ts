@@ -1,6 +1,6 @@
 import { SupaPlugin } from './plugins/types'
 
-export interface SupaClientConfig {
+export interface SupaClientConfig<TFeatures extends Features<Record<string, FeatureValue>>> {
   /**
    * API key used to authenticate requests to Supaship services.
    * Typically created in your project settings.
@@ -10,6 +10,12 @@ export interface SupaClientConfig {
    * Environment identifier used for feature flag evaluation (e.g. "production", "staging").
    */
   environment: string
+  /**
+   * Feature definitions with their fallback values.
+   * Must be created using createFeatures() for type safety.
+   * Defines all feature flags used in the application.
+   */
+  features: TFeatures
   /**
    * Default context included with every feature evaluation request.
    * Can be merged/overridden per-call via options.context.
@@ -60,16 +66,47 @@ export interface RetryConfig {
   backoff?: number
 }
 
-export interface FeatureOptions<T extends FeatureValue = FeatureValue> {
-  fallback: T
-  context?: FeatureContext
+/**
+ * Supported feature flag value types.
+ * - boolean: true/false flags
+ * - object: structured configuration data
+ * - array: lists of items
+ * - null: disabled/empty state
+ */
+export type FeatureValue = boolean | null | Record<string, unknown> | unknown[]
+
+/**
+ * Widens boolean literals to boolean type while preserving other types.
+ * This allows `false` and `true` to be inferred as `boolean` for better ergonomics.
+ * @internal
+ */
+export type WidenFeatureValue<T> = T extends boolean
+  ? boolean
+  : T extends readonly unknown[]
+    ? T extends readonly (infer U)[]
+      ? U[]
+      : T
+    : T
+
+/**
+ * Widens all feature values in a features object.
+ * @internal
+ */
+export type WidenFeatures<T extends Record<string, FeatureValue>> = {
+  [K in keyof T]: WidenFeatureValue<T[K]>
 }
 
-export interface FeaturesOptions<
-  T extends Record<string, FeatureValue> = Record<string, FeatureValue>,
-> {
-  features: T
-  context?: FeatureContext
-}
+/**
+ * Brand symbol to ensure features are created via createFeatures()
+ * @internal
+ */
+declare const __supaship: unique symbol
 
-export type FeatureValue = string | number | boolean | null | Record<string, unknown> | unknown[]
+/**
+ * Branded type for features created via createFeatures()
+ * This ensures type safety and prevents raw objects from being passed to SupaClient
+ * @internal
+ */
+export type Features<T extends Record<string, FeatureValue>> = WidenFeatures<T> & {
+  readonly [__supaship]: 'use createFeatures() to create features'
+}

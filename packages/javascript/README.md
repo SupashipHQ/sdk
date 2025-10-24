@@ -1,6 +1,6 @@
 # Supaship JavaScript SDK
 
-A JavaScript SDK for Supaship that provides a simple way to manage feature flags in your JavaScript applications.
+A type-safe JavaScript SDK for Supaship that provides a simple way to manage feature flags in your JavaScript applications.
 
 ## Installation
 
@@ -15,41 +15,87 @@ pnpm add @supashiphq/sdk-javascript
 ## Quick Start
 
 ```typescript
-import { SupaClient } from '@supashiphq/sdk-javascript'
+import { SupaClient, createFeatures } from '@supashiphq/sdk-javascript'
+
+// Define your features with fallback values
+const features = createFeatures({
+  'new-ui': false,
+  'premium-features': true,
+  'theme-config': {
+    primaryColor: '#007bff',
+    darkMode: false,
+  },
+})
+
+// Create client with features
+const client = new SupaClient({
+  apiKey: 'your-api-key',
+  environment: 'production',
+  features,
+  context: {
+    userID: '123',
+    email: 'user@example.com',
+    plan: 'premium',
+  },
+})
+
+// Get a single feature flag (fully typed!)
+const isNewUIEnabled = await client.getFeature('new-ui')
+// Type: boolean
+
+// Get theme configuration (fully typed!)
+const themeConfig = await client.getFeature('theme-config')
+// Type: { primaryColor: string; darkMode: boolean; }
+
+// Get multiple features at once
+const allFeatures = await client.getFeatures(['new-ui', 'premium-features'])
+// Type: Record<string, FeatureValue>
+```
+
+## Type-Safe Features
+
+The SDK enforces type safety through the `createFeatures()` helper. This ensures:
+
+- ✅ Features must be defined before use
+- ✅ Feature names are validated at compile-time
+- ✅ Feature values are properly typed
+- ✅ No typos in feature names
+
+### Defining Features
+
+```typescript
+import { createFeatures } from '@supashiphq/sdk-javascript'
+
+const features = createFeatures({
+  // Boolean flags
+  'dark-mode': false,
+  'beta-access': true,
+
+  // Object configurations
+  'ui-config': {
+    theme: 'light' as 'light' | 'dark',
+    maxItems: 100,
+    enableAnimations: true,
+  },
+
+  // Arrays
+  'allowed-regions': ['us-east', 'eu-west'],
+
+  // Null for disabled/unset features
+  'experimental-feature': null,
+})
 
 const client = new SupaClient({
   apiKey: 'your-api-key',
   environment: 'production',
-  context: {
-    userID: '123',
-    email: 'user@example.com',
-    version: '1.0.0',
-  },
+  features,
 })
 
-// Get a single boolean feature flag with fallback
-const isEnabled = await client.getFeature<boolean>('my-feature', { fallback: false })
+// ✅ TypeScript knows 'dark-mode' exists and returns boolean
+const darkMode = await client.getFeature('dark-mode')
 
-// Get multiple boolean features at once
-type FeatureFlags = {
-  'feature-1': boolean
-  'feature-2': boolean
-  'feature-3': boolean
-}
-
-const features = await client.getFeatures<FeatureFlags>({
-  features: {
-    'feature-1': false,
-    'feature-2': false,
-    'feature-3': true,
-  },
-  context: {
-    userID: '456', // Override default context for this request
-  },
-})
-
-console.log(features)
-// { 'feature-1': true, 'feature-2': false, 'feature-3': true }
+// ❌ TypeScript error: 'unknown-feature' doesn't exist
+const value = await client.getFeature('unknown-feature')
 ```
 
 ## API Reference
@@ -68,8 +114,10 @@ new SupaClient(config: SupaClientConfig)
 | --------------- | ---------------- | -------- | --------------------------------------------------------------- |
 | `apiKey`        | `string`         | Yes      | Your Supaship API key (Project Settings -> API Keys)            |
 | `environment`   | `string`         | Yes      | Environment slug (e.g., `production`, `staging`, `development`) |
+| `features`      | `Features<T>`    | Yes      | Feature definitions (created via `createFeatures()`)            |
 | `context`       | `FeatureContext` | No       | Default context for feature evaluation                          |
 | `networkConfig` | `NetworkConfig`  | No       | Network settings (endpoints, retry, timeout, custom fetch)      |
+| `plugins`       | `SupaPlugin[]`   | No       | Plugins for observability, caching, etc.                        |
 
 **Feature Context:**
 
@@ -83,7 +131,7 @@ new SupaClient(config: SupaClientConfig)
 | ------------------ | ---------------------------------------------------------------------- | -------- | --------------------------------------- | ------------------------------------------------------------- |
 | `featuresAPIUrl`   | `string`                                                               | No       | `https://edge.supaship.com/v1/features` | Override features API URL                                     |
 | `eventsAPIUrl`     | `string`                                                               | No       | `https://edge.supaship.com/v1/events`   | Override events/analytics API URL                             |
-| `requestTimeoutMs` | `number`                                                               | No       | —                                       | Abort requests after N ms (uses AbortController if available) |
+| `requestTimeoutMs` | `number`                                                               | No       | `10000`                                 | Abort requests after N ms (uses AbortController if available) |
 | `fetchFn`          | `(input: RequestInfo \| URL, init?: RequestInit) => Promise<Response>` | No       | —                                       | Custom fetch (pass in Node < 18 or specialized runtimes)      |
 | `retry`            | `RetryConfig`                                                          | No       | see below                               | Retry behavior for network requests                           |
 
@@ -102,28 +150,43 @@ Retry (networkConfig.retry):
 Retrieves a single feature flag value with full TypeScript type safety.
 
 ```typescript
-getFeature<T extends FeatureValue = FeatureValue>(featureName: string, options?: FeatureOptions<T>): Promise<T>
+getFeature<TKey extends keyof TFeatures>(
+  featureName: TKey,
+  options?: { context?: FeatureContext }
+): Promise<TFeatures[TKey]>
 ```
 
 **Parameters:**
 
-- `featureName`: The name of the feature flag
-- `options`: A `FeatureOptions<T>` object for configuration
-
-**FeatureOptions:**
-
-```typescript
-interface FeatureOptions<T extends FeatureValue = FeatureValue> {
-  fallback?: T // Fallback value if feature not found or error occurs
-  context?: FeatureContext // Context override for this request
-}
-```
+- `featureName`: The name of the feature flag (must be defined in your features config)
+- `options.context`: Context override for this request
 
 **Examples:**
 
 ```typescript
-// With boolean fallback value
-const isEnabled = await client.getFeature<boolean>('my-feature', { fallback: false })
+const features = createFeatures({
+  'dark-mode': false,
+  'theme-config': { primary: '#007bff' },
+})
+
+const client = new SupaClient({
+  apiKey: 'key',
+  environment: 'production',
+  features,
+})
+
+// Get boolean feature
+const darkMode = await client.getFeature('dark-mode')
+// Type: boolean
+
+// Get object feature
+const theme = await client.getFeature('theme-config')
+// Type: { primary: string }
+
+// With context override
+const darkMode = await client.getFeature('dark-mode', {
+  context: { userID: '123', plan: 'premium' },
+})
 ```
 
 ##### getFeatures()
@@ -131,57 +194,39 @@ const isEnabled = await client.getFeature<boolean>('my-feature', { fallback: fal
 Retrieves multiple feature flags in a single request.
 
 ```typescript
-getFeatures<T extends Record<string, FeatureValue> = Record<string, FeatureValue>>(options: FeaturesOptions<T>): Promise<T>
+getFeatures(
+  featureNames: (keyof TFeatures)[],
+  options?: { context?: FeatureContext }
+): Promise<Record<string, FeatureValue>>
 ```
 
-**FeaturesOptions:**
+**Parameters:**
 
-```typescript
-interface FeaturesOptions<T extends Record<string, FeatureValue> = Record<string, FeatureValue>> {
-  features: T // Feature names with fallback values
-  context?: FeatureContext // Context override for this request
-}
-```
+- `featureNames`: Array of feature flag names (must be defined in your features config)
+- `options.context`: Context override for this request
 
 **Examples:**
 
 ```typescript
-type FeatureFlags = {
-  'enable-new-ui': boolean
-  'premium-content': boolean
-  'beta-mode': boolean
-}
-
-const myFeatures = await client.getFeatures<FeatureFlags>({
-  features: {
-    'enable-new-ui': false,
-    'premium-content': false,
-    'beta-mode': false,
-  },
-  context: {
-    userID: '123',
-    plan: 'premium',
-  },
+const features = createFeatures({
+  'new-ui': false,
+  'premium-content': false,
+  'beta-mode': false,
 })
-// myFeatures value
-// { 'enable-new-ui': true, 'premium-content': false, 'beta-mode': true }
 
-// You can access with full type safety
-const isUIEnabled: boolean = myFeatures['enable-new-ui']
-const isPremium: boolean = myFeatures['premium-content']
-const betaMode: boolean = myFeatures['beta-mode']
+const client = new SupaClient({
+  apiKey: 'key',
+  environment: 'prod',
+  features,
+})
 
-// without explicit generic (defaults to Record<string, FeatureValue>)
-const features = await client.getFeatures({
-  features: {
-    'feature-1': false, // Boolean fallback
-    'feature-2': false, // Boolean fallback
-    'feature-3': true, // Boolean fallback
-  },
-  context: {
-    userID: '123',
-    plan: 'premium',
-  },
+// Get multiple features
+const results = await client.getFeatures(['new-ui', 'premium-content'])
+// { 'new-ui': true, 'premium-content': false }
+
+// With context override
+const results = await client.getFeatures(['new-ui', 'beta-mode'], {
+  context: { userID: '123', plan: 'premium' },
 })
 ```
 
@@ -220,11 +265,18 @@ getContext(): FeatureContext | undefined
 
 ### FeatureValue
 
-The value of a feature flag returned by the API is currently boolean, JSON object or null:
+Supported feature flag value types:
 
 ```typescript
-type FeatureValue = string | number | boolean | null | Record<string, unknown> | unknown[]
+type FeatureValue = boolean | null | Record<string, unknown> | unknown[]
 ```
+
+- **`boolean`** - Simple on/off flags
+- **`object`** - Structured configuration data (e.g., `{ theme: 'dark', size: 'large' }`)
+- **`array`** - Lists of values (e.g., `['feature-a', 'feature-b']`)
+- **`null`** - Disabled or unset state
+
+> **Note:** Strings and numbers are not supported as standalone feature values. Use objects or arrays for complex data.
 
 ### FeatureContext
 
@@ -247,22 +299,65 @@ Common context properties:
 
 ## Best Practices
 
-### 1. Always Provide Fallbacks
+### 1. Define Features Centrally
 
 ```typescript
-// ✅ Good - provides fallback
-const isEnabled = await client.getFeature('new-feature', { fallback: false })
+// features.ts
+import { createFeatures } from '@supashiphq/sdk-javascript'
 
-// ❌ Risky - no fallback, throws error
-const isEnabled = await client.getFeature('new-feature')
+export const features = createFeatures({
+  'new-dashboard': false,
+  'premium-features': false,
+  'ui-settings': {
+    theme: 'light' as 'light' | 'dark',
+    sidebarCollapsed: false,
+  },
+  'enabled-regions': ['us', 'eu'],
+})
+
+// client.ts
+import { SupaClient } from '@supashiphq/sdk-javascript'
+import { features } from './features'
+
+export const client = new SupaClient({
+  apiKey: process.env.SUPASHIP_API_KEY!,
+  environment: process.env.ENVIRONMENT!,
+  features,
+})
 ```
 
-### 2. Use Context for Targeting
+### 2. Use Type Inference
+
+```typescript
+const features = createFeatures({
+  'dark-mode': false,
+  config: {
+    maxItems: 50,
+    theme: 'light' as 'light' | 'dark',
+  },
+})
+
+const client = new SupaClient({
+  apiKey: 'key',
+  environment: 'prod',
+  features,
+})
+
+// TypeScript knows the exact type!
+const config = await client.getFeature('config')
+// Type: { maxItems: number; theme: 'light' | 'dark'; }
+
+const maxItems: number = config.maxItems // ✅ Type-safe
+const theme: 'light' | 'dark' = config.theme // ✅ Type-safe
+```
+
+### 3. Use Context for Targeting
 
 ```typescript
 const client = new SupaClient({
   apiKey: 'your-api-key',
-  environment: 'staging',
+  environment: 'production',
+  features,
   context: {
     userID: user.id,
     email: user.email,
@@ -270,24 +365,7 @@ const client = new SupaClient({
     version: process.env.APP_VERSION,
   },
 })
-```
 
-### 3. Batch Feature Requests
-
-```typescript
-// ✅ Good - single API call
-const features = await client.getFeatures({
-  features: { 'feature-1': false, 'feature-2': false },
-})
-
-// ❌ Less efficient - multiple API calls
-const feature1 = await client.getFeature('feature-1', { fallback: false })
-const feature2 = await client.getFeature('feature-2', { fallback: false })
-```
-
-### 4. Handle Context Updates
-
-```typescript
 // Update context when user state changes
 function onUserLogin(user) {
   client.updateContext({
@@ -296,15 +374,130 @@ function onUserLogin(user) {
     plan: user.plan,
   })
 }
-
-// Update context when navigating between features
-function onRouteChange(route) {
-  client.updateContext({
-    currentPage: route.name,
-    section: route.section,
-  })
-}
 ```
+
+### 4. Batch Feature Requests
+
+```typescript
+// ✅ Good - single API call
+const results = await client.getFeatures(['feature-1', 'feature-2', 'feature-3'])
+
+// ❌ Less efficient - multiple API calls
+const feature1 = await client.getFeature('feature-1')
+const feature2 = await client.getFeature('feature-2')
+const feature3 = await client.getFeature('feature-3')
+```
+
+## Plugin System
+
+The SDK supports plugins for observability, caching, logging, and more.
+
+### Built-in Plugins
+
+#### Toolbar Plugin
+
+Visual toolbar for local development and testing.
+
+```typescript
+import { SupaClient, ToolbarPlugin, createFeatures } from '@supashiphq/sdk-javascript'
+
+const features = createFeatures({
+  'new-ui': false,
+  premium: false,
+})
+
+const client = new SupaClient({
+  apiKey: 'your-api-key',
+  environment: 'development',
+  features,
+  plugins: [
+    new ToolbarPlugin({
+      show: 'auto', // Shows only on localhost
+      position: {
+        placement: 'bottom-right',
+        offset: { x: '1rem', y: '1rem' },
+      },
+    }),
+  ],
+})
+```
+
+**Features:**
+
+- 🎯 Visual interface showing all configured feature flags
+- 🔄 Override feature flag values locally
+- 💾 Persistent storage in localStorage
+- 🎨 Customizable position
+- 🏠 Auto-detection (shows only on localhost by default)
+
+**Programmatic Control:**
+
+```typescript
+const toolbar = new ToolbarPlugin({ show: true })
+
+// Set override
+toolbar.setOverride('new-feature', true)
+
+// Remove override
+toolbar.removeOverride('new-feature')
+
+// Clear all
+toolbar.clearAllOverrides()
+
+// Get current overrides
+const overrides = toolbar.getOverrides()
+```
+
+### Custom Plugins
+
+Create custom plugins by implementing the `SupaPlugin` interface:
+
+```typescript
+import { SupaPlugin, FeatureValue, FeatureContext } from '@supashiphq/sdk-javascript'
+
+class LoggingPlugin implements SupaPlugin {
+  name = 'logging-plugin'
+
+  onInit(availableFeatures: Record<string, FeatureValue>, context?: FeatureContext): void {
+    console.log('Features initialized:', Object.keys(availableFeatures))
+    console.log('Initial context:', context)
+  }
+
+  async beforeGetFeatures(featureNames: string[], context?: FeatureContext): Promise<void> {
+    console.log('Fetching features:', featureNames, 'with context:', context)
+  }
+
+  async afterGetFeatures(
+    results: Record<string, FeatureValue>,
+    context?: FeatureContext
+  ): Promise<void> {
+    console.log('Features fetched:', results)
+  }
+
+  async onError(error: Error, context?: FeatureContext): Promise<void> {
+    console.error('Feature fetch error:', error, 'context:', context)
+  }
+}
+
+const client = new SupaClient({
+  apiKey: 'key',
+  environment: 'prod',
+  features,
+  plugins: [new LoggingPlugin()],
+})
+```
+
+**Available Hooks:**
+
+- `onInit(availableFeatures, context)` - Called when client initializes
+- `beforeGetFeatures(featureNames, context)` - Before fetching features
+- `afterGetFeatures(results, context)` - After fetching features
+- `onError(error, context)` - When an error occurs
+- `beforeRequest(url, body, headers)` - Before HTTP request
+- `afterResponse(response, timing)` - After HTTP response
+- `onContextUpdate(oldContext, newContext, source)` - When context changes
+- `onRetryAttempt(attempt, error, willRetry)` - During retry attempts
+- `onFallbackUsed(featureName, fallbackValue, reason)` - When fallback is used
 
 ## Examples
 
@@ -312,93 +505,96 @@ function onRouteChange(route) {
 
 For React applications, use our dedicated React SDK which provides hooks and components optimized for React:
 
-📦 **[@supashiphq/sdk-react](http://npmjs.com/package/@supashiphq/sdk-react)**
+📦 **[@supashiphq/sdk-react](https://npmjs.com/package/@supashiphq/sdk-react)**
+
+### Node.js Server
+
+```typescript
+import express from 'express'
+import { SupaClient, createFeatures } from '@supashiphq/sdk-javascript'
+
+const features = createFeatures({
+  'new-api': false,
+  'cache-enabled': true,
+  'rate-limit': { maxRequests: 100, windowMs: 60000 },
+})
+
+const featureClient = new SupaClient({
+  apiKey: process.env.SUPASHIP_API_KEY!,
+  environment: 'production',
+  features,
+})
+
+const app = express()
+
+app.get('/api/config', async (req, res) => {
+  const rateLimit = await featureClient.getFeature('rate-limit')
+
+  res.json({
+    rateLimit: rateLimit,
+    newApiEnabled: await featureClient.getFeature('new-api'),
+  })
+})
+
+app.get('/api/user-features/:userId', async (req, res) => {
+  const results = await featureClient.getFeatures(['new-api', 'cache-enabled'], {
+    context: {
+      userID: req.params.userId,
+      plan: req.user.plan,
+      region: req.headers['cloudfront-viewer-country'],
+    },
+  })
+
+  res.json(results)
+})
+```
 
 ### Vue Integration
 
-```javascript
-// plugins/feature-flags.js
-import { SupaClient } from '@supashiphq/sdk-javascript'
+```typescript
+// plugins/feature-flags.ts
+import { SupaClient, createFeatures } from '@supashiphq/sdk-javascript'
+
+const features = createFeatures({
+  'new-nav': false,
+  'dark-mode': false,
+  'premium-content': false,
+})
+
+const client = new SupaClient({
+  apiKey: import.meta.env.VITE_SUPASHIP_API_KEY,
+  environment: 'production',
+  features,
+})
 
 export default {
-  install(app, options) {
-    const client = new SupaClient({
-      apiKey: options.apiKey,
-      environment: 'development',
-      context: options.defaultContext || {}
-    })
-
+  install(app: App) {
     app.config.globalProperties.$featureFlags = client
     app.provide('featureFlags', client)
   }
 }
 
-// main.js
-import { createApp } from 'vue'
-import App from './App.vue'
-import FeatureFlagsPlugin from './plugins/feature-flags'
-
-const app = createApp(App)
-
-app.use(FeatureFlagsPlugin, {
-  apiKey: process.env.SUPASHIP_API_KEY,
-  defaultContext: { version: '1.0.0' }
-})
-
-app.mount('#app')
-
 // components/MyComponent.vue
-<template>
-  <div>
-    <NewFeature v-if="showNewFeature" />
-    <OldFeature v-else />
+<script setup lang="ts">
+import { inject, ref, onMounted } from 'vue'
+import type { SupaClient } from '@supashiphq/sdk-javascript'
 
-    <PremiumContent v-if="isPremiumUser" />
+const featureFlags = inject<SupaClient>('featureFlags')!
+const showNewNav = ref(false)
+const darkMode = ref(false)
+
+onMounted(async () => {
+  showNewNav.value = await featureFlags.getFeature('new-nav')
+  darkMode.value = await featureFlags.getFeature('dark-mode')
+})
+</script>
+
+<template>
+  <div :class="{ dark: darkMode }">
+    <NewNav v-if="showNewNav" />
+    <OldNav v-else />
   </div>
 </template>
-
-<script>
-import { inject, ref, onMounted } from 'vue'
-
-export default {
-  name: 'MyComponent',
-  setup() {
-    const featureFlags = inject('featureFlags')
-    const showNewFeature = ref(false)
-    const isPremiumUser = ref(false)
-
-    onMounted(async () => {
-      const features = await featureFlags.getFeatures({
-        features: {
-          'new-feature': false,
-          'premium-content': false
-        },
-        context: { page: 'dashboard' }
-      })
-
-      showNewFeature.value = features['new-feature']
-      isPremiumUser.value = features['premium-content']
-    })
-
-    const updateUserContext = async (user) => {
-      featureFlags.updateContext({
-        userID: user.id,
-        plan: user.plan
-      })
-
-      // Reload features
-      const premium = await featureFlags.getFeature('premium-content', { fallback: false })
-      isPremiumUser.value = premium
-    }
-
-    return {
-      showNewFeature,
-      isPremiumUser,
-      updateUserContext
-    }
-  }
-}
-</script>
 ```
 
 ### Angular Integration
@@ -406,18 +602,26 @@ export default {
 ```typescript
 // feature-flag.service.ts
 import { Injectable } from '@angular/core'
-import { SupaClient } from '@supashiphq/sdk-javascript'
+import { SupaClient, createFeatures } from '@supashiphq/sdk-javascript'
+import { environment } from '../environments/environment'
+
+const features = createFeatures({
+  'new-dashboard': false,
+  analytics: true,
+  'theme-config': { mode: 'light' as 'light' | 'dark' },
+})
 
 @Injectable({
   providedIn: 'root',
 })
 export class FeatureFlagService {
-  private client: SupaClient
+  private client: SupaClient<typeof features>
 
   constructor() {
     this.client = new SupaClient({
       apiKey: environment.SUPASHIP_API_KEY,
       environment: 'production',
+      features,
       context: {
         userID: this.getCurrentUserId(),
         version: environment.version,
@@ -425,20 +629,19 @@ export class FeatureFlagService {
     })
   }
 
-  async getFeature(featureName: string, fallback: any = false) {
-    return this.client.getFeature(featureName, { fallback })
+  async getFeature<K extends keyof typeof features>(featureName: K): Promise<(typeof features)[K]> {
+    return this.client.getFeature(featureName)
   }
 
-  async getFeatures(features: Record<string, any>, context?: any) {
-    return this.client.getFeatures({ features, context })
+  async getFeatures(featureNames: (keyof typeof features)[]): Promise<Record<string, any>> {
+    return this.client.getFeatures(featureNames)
   }
 
-  updateContext(context: any) {
+  updateContext(context: Record<string, any>) {
     this.client.updateContext(context)
   }
 
   private getCurrentUserId(): string {
-    // Your user ID logic here
     return localStorage.getItem('userID') || 'anonymous'
   }
 }
@@ -451,184 +654,20 @@ import { FeatureFlagService } from './feature-flag.service'
   selector: 'app-root',
   template: `
     <div>
-      <nav *ngIf="showNewNavigation">
-        <!-- New navigation -->
-      </nav>
-      <nav *ngIf="!showNewNavigation">
-        <!-- Old navigation -->
-      </nav>
-
-      <main>
-        <premium-features *ngIf="showPremiumFeatures"></premium-features>
-      </main>
+      <new-dashboard *ngIf="showNewDashboard"></new-dashboard>
+      <old-dashboard *ngIf="!showNewDashboard"></old-dashboard>
     </div>
   `,
 })
 export class AppComponent implements OnInit {
-  showNewNavigation = false
-  showPremiumFeatures = false
+  showNewDashboard = false
 
   constructor(private featureFlags: FeatureFlagService) {}
 
   async ngOnInit() {
-    const features = await this.featureFlags.getFeatures({
-      'new-navigation': false,
-      'premium-features': false,
-    })
-
-    this.showNewNavigation = features['new-navigation']
-    this.showPremiumFeatures = features['premium-features']
-  }
-
-  async onUserLogin(user: any) {
-    this.featureFlags.updateContext({
-      userID: user.id,
-      plan: user.subscriptionPlan,
-    })
-
-    // Reload features with new context
-    const premiumEnabled = await this.featureFlags.getFeature('premium-features', {
-      fallback: false,
-    })
-    this.showPremiumFeatures = premiumEnabled
+    this.showNewDashboard = await this.featureFlags.getFeature('new-dashboard')
   }
 }
-```
-
-### Node.js Server
-
-```typescript
-import express from 'express'
-import { SupaClient } from '@supashiphq/sdk-javascript'
-
-const app = express()
-const featureClient = new SupaClient({
-  apiKey: process.env.SUPASHIP_API_KEY,
-  environment: 'production',
-})
-
-app.get('/api/features', async (req, res) => {
-  const features = await featureClient.getFeatures({
-    features: {
-      'new-api': false,
-      'cache-enabled': true,
-      'beta-mode': false,
-    },
-    context: {
-      userID: req.user.id,
-      plan: req.user.plan,
-      region: req.headers['country'],
-    },
-  })
-
-  res.json(features)
-})
-```
-
-### jQuery Integration
-
-```javascript
-// Include the SDK in your HTML or bundle
-const client = new SupaClient({
-  apiKey: 'your-api-key',
-  environment: 'production',
-  context: { userID: getCurrentUserId() },
-})
-
-$(document).ready(async function () {
-  // Get feature flags and update UI
-  const features = await client.getFeatures({
-    features: {
-      'new-design': false,
-      'premium-feature': false,
-      'beta-mode': false,
-    },
-    context: { page: 'dashboard' },
-  })
-
-  // Toggle features based on flags
-  if (features['new-design']) {
-    $('body').addClass('new-design')
-  }
-
-  if (features['premium-feature']) {
-    $('.premium-content').show()
-  }
-
-  if (features['beta-mode']) {
-    $('#beta-banner').show()
-  }
-})
-
-// Update context on user actions
-$('#user-segment').change(async function () {
-  client.updateContext({ segment: $(this).val() })
-
-  // Reload features with new context
-  const enabled = await client.getFeature('segment-specific-feature', { fallback: false })
-  $('#special-feature').toggle(enabled)
-})
-```
-
-## Toolbar Plugin for Local Development
-
-The Supaship SDK includes a visual toolbar for testing feature flags locally.
-
-### Quick Setup
-
-```typescript
-import { SupaClient, ToolbarPlugin } from '@supashiphq/sdk-javascript'
-
-const client = new SupaClient({
-  apiKey: 'your-api-key',
-  environment: 'development',
-  plugins: [
-    new ToolbarPlugin({
-      show: 'auto', // Shows only on localhost
-    }),
-  ],
-})
-```
-
-### Features
-
-- 🎯 Visual interface showing all detected feature flags
-- 🔄 Override feature flag values locally without server changes
-- 💾 Persistent storage in localStorage
-- 🎨 Customizable position (bottom-right, bottom-left, top-right, top-left)
-- 🏠 Auto-detection (shows only on localhost by default)
-
-### Configuration
-
-```typescript
-new ToolbarPlugin({
-  show: 'auto', // true | false | 'auto'
-  position: {
-    placement: 'bottom-right',
-    offset: { x: '1rem', y: '1rem' },
-  },
-  onOverrideChange: overrides => {
-    console.log('Overrides:', overrides)
-  },
-})
-```
-
-### Programmatic Control
-
-```typescript
-const toolbar = new ToolbarPlugin({ show: true })
-
-// Set overrides
-toolbar.setOverride('new-feature', true)
-
-// Remove override
-toolbar.removeOverride('new-feature')
-
-// Clear all
-toolbar.clearAllOverrides()
-
-// Get current overrides
-const overrides = toolbar.getOverrides()
 ```
 
 ## License
