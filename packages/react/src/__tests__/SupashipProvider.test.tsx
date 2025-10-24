@@ -1,7 +1,7 @@
 import React from 'react'
 import { render } from '@testing-library/react'
 import { SupaProvider, useClient, useFeatureContext } from '../provider'
-import { SupaClient } from '@supashiphq/sdk-javascript'
+import { SupaClient, createFeatures } from '@supashiphq/sdk-javascript'
 import { jest, describe, it, expect } from '@jest/globals'
 
 // Mock the SupaClient
@@ -13,6 +13,7 @@ jest.mock('@supashiphq/sdk-javascript', () => ({
     updateContext: mockUpdateContext,
     getContext: mockGetContext,
   })),
+  createFeatures: jest.fn(features => features),
 }))
 
 describe('SupaProvider', () => {
@@ -20,6 +21,7 @@ describe('SupaProvider', () => {
     baseUrl: 'https://api.test.com',
     apiKey: 'test-api-key',
     environment: 'test-environment',
+    features: createFeatures({}),
   }
 
   beforeEach(() => {

@@ -1,14 +1,14 @@
 'use client'
 
 import { useClient } from './provider'
-import { UseFeatureOptions, UseFeaturesOptions } from './types'
 import { useQuery, QueryState } from './query'
 import { FeatureValue } from '@supashiphq/sdk-javascript'
-import { hasValue } from './utils'
+import { FeatureKey, TypedFeatures, Features } from './types'
 
 // Custom return types for hooks with generics
-export interface UseFeatureResult<T extends FeatureValue> extends Omit<QueryState<T>, 'data'> {
-  feature: T
+export interface UseFeatureResult<T extends FeatureValue>
+  extends Omit<QueryState<T | null>, 'data'> {
+  feature: T | null
 }
 
 export interface UseFeaturesResult<T extends Record<string, FeatureValue>>
@@ -19,90 +19,102 @@ export interface UseFeaturesResult<T extends Record<string, FeatureValue>>
 const STALE_TIME = 5 * 60 * 1000 // 5 minutes
 const CACHE_TIME = 10 * 60 * 1000 // 10 minutes
 
-export function useFeature<T extends FeatureValue = FeatureValue>(
-  featureName: string,
-  options?: UseFeatureOptions<T>
-): UseFeatureResult<T> {
+/**
+ * Returns the state of a given feature for the current context.
+ *
+ * @example
+ * ```ts
+ * function MyComponent() {
+ *   const { feature, isLoading } = useFeature('my-feature')
+ *   if (isLoading) return <div>Loading...</div>
+ *   return <div>Feature value: {String(feature)}</div>
+ * }
+ * ```
+ *
+ * @remarks
+ * For type-safe feature flags, augment the Features interface:
+ * ```ts
+ * declare module '@supashiphq/sdk-react' {
+ *   interface Features {
+ *     'my-feature': { value: 'variant-a' | 'variant-b' }
+ *     'dark-mode': { value: boolean }
+ *   }
+ * }
+ *
+ * // Now get full type safety:
+ * const { feature } = useFeature('my-feature')
+ * // feature is typed as 'variant-a' | 'variant-b' | null
+ * ```
+ */
+export function useFeature<TKey extends FeatureKey>(
+  key: TKey,
+  options?: { context?: Record<string, unknown>; shouldFetch?: boolean }
+): TypedFeatures[TKey] {
   const client = useClient()
-  const {
-    fallback,
-    context,
-    shouldFetch = true,
-  } = options ?? {
-    fallback: null as unknown as T,
-  }
+  const { context, shouldFetch = true } = options ?? {}
 
   const result = useQuery(
-    ['feature', featureName, context],
-    async (): Promise<T> => {
-      try {
-        // Try to get the feature value from the client
-        const value = await client.getFeature(featureName, { fallback, context })
-        // Return the actual value if it exists (could be false, 0, etc.)
-        if (hasValue(value)) {
-          // Since T extends FeatureValue and value is FeatureValue, this is safe
-          return value as unknown as T
-        }
-        if (fallback !== undefined) {
-          return fallback
-        }
-        return null as unknown as T
-      } catch (error) {
-        // If the API call fails, use the fallback
-        if (fallback !== undefined) {
-          return fallback
-        }
-        // If no fallback provided, return null as safe default
-        return null as unknown as T
-      }
+    ['feature', key, context],
+    async (): Promise<FeatureValue> => {
+      return await client.getFeature(key as string, { context })
     },
     {
       enabled: shouldFetch,
       staleTime: STALE_TIME,
       cacheTime: CACHE_TIME,
       refetchOnWindowFocus: false, // Feature flags shouldn't refetch on focus
-      initialData: fallback, // Use fallback as initial data
     }
   )
 
   const { data, ...rest } = result
   return {
     ...rest,
-    feature: data ?? (null as unknown as T),
-  }
+    feature: data ?? (null as unknown as FeatureValue),
+  } as TypedFeatures[TKey]
 }
 
-export function useFeatures<T extends Record<string, FeatureValue> = Record<string, FeatureValue>>(
-  options: UseFeaturesOptions<T>
-): UseFeaturesResult<T> {
+/**
+ * Extract feature value type from Features interface
+ */
+type ExtractFeatureValue<T> = T extends { value: infer V } ? V : FeatureValue
+
+/**
+ * Returns the state of multiple features for the current context.
+ *
+ * @example
+ * ```ts
+ * function MyComponent() {
+ *   const { features, isLoading } = useFeatures(['feature-a', 'feature-b'])
+ *   if (isLoading) return <div>Loading...</div>
+ *   return <div>Feature A: {String(features['feature-a'])}</div>
+ * }
+ * ```
+ */
+export function useFeatures<TKeys extends readonly FeatureKey[]>(
+  featureNames: TKeys,
+  options?: {
+    context?: Record<string, unknown>
+    shouldFetch?: boolean
+  }
+): UseFeaturesResult<{
+  [K in TKeys[number]]: K extends keyof Features
+    ? ExtractFeatureValue<Features[K]> | null
+    : FeatureValue | null
+}> {
   const client = useClient()
-  const { features, context, shouldFetch = true } = options
+  const { context, shouldFetch = true } = options ?? {}
+
+  type ResultType = {
+    [K in TKeys[number]]: K extends keyof Features
+      ? ExtractFeatureValue<Features[K]> | null
+      : FeatureValue | null
+  }
 
   const result = useQuery(
-    ['features', Object.keys(features).sort(), context],
-    async (): Promise<T> => {
-      try {
-        const result = await client.getFeatures({
-          features: features as Record<string, FeatureValue>,
-          context,
-        })
-        // Merge API results with fallbacks for any missing values
-        const mergedResult = {} as T
-        for (const [key, fallback] of Object.entries(features)) {
-          const apiValue = result[key]
-          if (hasValue(apiValue)) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            ;(mergedResult as any)[key] = apiValue
-          } else {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            ;(mergedResult as any)[key] = fallback
-          }
-        }
-        return mergedResult
-      } catch (error) {
-        // If API fails, return the fallback features
-        return features as unknown as T
-      }
+    ['features', featureNames.join(','), context],
+    async (): Promise<ResultType> => {
+      const features = await client.getFeatures([...featureNames] as string[], { context })
+      return features as ResultType
     },
     {
       enabled: shouldFetch,
@@ -115,6 +127,6 @@ export function useFeatures<T extends Record<string, FeatureValue> = Record<stri
   const { data, ...rest } = result
   return {
     ...rest,
-    features: data ?? ({} as T),
+    features: data ?? ({} as ResultType),
   }
 }

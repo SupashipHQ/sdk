@@ -2,19 +2,14 @@
 
 import React, { ReactNode } from 'react'
 import { useFeature } from './hooks'
-import { FeatureValue } from '@supashiphq/sdk-javascript'
+import { FeatureKey } from './types'
 import { hasValue } from './utils'
 
 export interface SupaFeatureProps {
   /**
    * The feature flag key to evaluate
    */
-  feature: string
-
-  /**
-   * Key in variations object to use when no feature value matches
-   */
-  fallback: FeatureValue
+  feature: FeatureKey
 
   /**
    * Context for feature evaluation
@@ -39,12 +34,12 @@ export interface SupaFeatureProps {
 
 /**
  * SupaFeature component that conditionally renders variations based on feature flag values.
+ * Uses the default value defined in the client configuration.
  *
  * @example
  * ```tsx
  * <SupaFeature
  *   feature="new-header"
- *   fallback={false}
  *   variations={{
  *     "true": <NewHeader />,
  *     "false": <OldHeader />,
@@ -55,7 +50,6 @@ export interface SupaFeatureProps {
  */
 export function SupaFeature({
   feature,
-  fallback,
   context,
   shouldFetch = true,
   variations,
@@ -64,7 +58,6 @@ export function SupaFeature({
   const { feature: featureValue, isLoading } = useFeature(feature, {
     context,
     shouldFetch,
-    fallback,
   })
 
   // Show loading state if provided and currently loading
@@ -77,16 +70,13 @@ export function SupaFeature({
     return null
   }
 
-  // Use fallback if data is undefined/null and fallback is provided
-  const effectiveValue = hasValue(featureValue) ? featureValue : (fallback ?? null)
-
-  // Don't render anything if no effective value
-  if (!hasValue(effectiveValue)) {
+  // Don't render anything if no feature value (client config should provide defaults)
+  if (!hasValue(featureValue)) {
     return null
   }
 
-  // Convert effective value to string for object key lookup
-  const valueKey = String(effectiveValue)
+  // Convert feature value to string for object key lookup
+  const valueKey = String(featureValue)
 
   // Find matching variation by exact key match
   if (variations[valueKey]) {

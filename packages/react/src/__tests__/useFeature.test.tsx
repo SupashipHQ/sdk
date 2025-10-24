@@ -3,7 +3,7 @@ import { render, screen, act } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { useFeature } from '../hooks'
 import { SupaProvider } from '../provider'
-import { FeatureValue } from '@supashiphq/sdk-javascript'
+import { FeatureValue, createFeatures } from '@supashiphq/sdk-javascript'
 import { jest, describe, it, expect, beforeEach } from '@jest/globals'
 
 type GetFeatureFn = (
@@ -17,6 +17,7 @@ jest.mock('@supashiphq/sdk-javascript', () => ({
   SupaProvider: jest.fn().mockImplementation(() => ({
     getFeature: mockGetFeature,
   })),
+  createFeatures: jest.fn(features => features),
 }))
 
 const TestComponent = ({
@@ -32,7 +33,7 @@ const TestComponent = ({
       <div data-testid="feature-loading">{featureState.isLoading.toString()}</div>
       <div data-testid="feature-success">{featureState.isSuccess.toString()}</div>
       <div data-testid="feature-error">{featureState.isError.toString()}</div>
-      <div data-testid="feature-data">{featureState.data?.toString() || 'undefined'}</div>
+      <div data-testid="feature-data">{featureState.feature?.toString() || 'undefined'}</div>
       <div data-testid="feature-status">{featureState.status}</div>
     </div>
   )
@@ -42,6 +43,7 @@ const config = {
   apiKey: 'test-api-key',
   environment: 'test-environment',
   baseUrl: 'https://api.test.com',
+  features: createFeatures({}),
 }
 
 describe('useFeature', () => {

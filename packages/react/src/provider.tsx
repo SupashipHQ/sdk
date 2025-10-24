@@ -6,33 +6,37 @@ import {
   SupaClientConfig as SupaProviderConfig,
   SupaPlugin,
   FeatureContext,
+  FeatureValue,
+  Features,
   ToolbarPlugin,
   SupaToolbarPluginConfig,
   SupaToolbarOverrideChange,
 } from '@supashiphq/sdk-javascript'
 import { useQueryClient } from './query'
 
-interface SupaContextValue {
-  client: SupaClient
+interface SupaContextValue<TFeatures extends Features<Record<string, FeatureValue>>> {
+  client: SupaClient<TFeatures>
   updateContext: (context: FeatureContext, mergeWithExisting?: boolean) => void
   getContext: () => FeatureContext | undefined
 }
 
-const SupaContext = createContext<SupaContextValue | null>(null)
+const SupaContext = createContext<SupaContextValue<Features<Record<string, FeatureValue>>> | null>(
+  null
+)
 
-interface SupaProviderProps {
-  config: SupaProviderConfig
+interface SupaProviderProps<TFeatures extends Features<Record<string, FeatureValue>>> {
+  config: SupaProviderConfig<TFeatures>
   plugins?: SupaPlugin[]
   toolbar?: SupaToolbarPluginConfig | boolean
   children: ReactNode
 }
 
-export function SupaProvider({
+export function SupaProvider<TFeatures extends Features<Record<string, FeatureValue>>>({
   config,
   plugins = [],
   toolbar = { show: 'auto' },
   children,
-}: SupaProviderProps): React.JSX.Element {
+}: SupaProviderProps<TFeatures>): React.JSX.Element {
   const queryClient = useQueryClient()
 
   // Create toolbar plugin if toolbar prop is provided
@@ -63,7 +67,7 @@ export function SupaProvider({
       allPlugins.push(toolbarPlugin)
     }
 
-    return new SupaClient({
+    return new SupaClient<TFeatures>({
       ...config,
       plugins: allPlugins,
     })
@@ -94,19 +98,24 @@ export function SupaProvider({
   return <SupaContext.Provider value={contextValue}>{children}</SupaContext.Provider>
 }
 
-export function useClient(): SupaClient {
+export function useClient<
+  TFeatures extends Features<Record<string, FeatureValue>>,
+>(): SupaClient<TFeatures> {
   const context = useContext(SupaContext)
   if (!context) {
     throw new Error('useClient must be used within a SupaProvider')
   }
-  return context.client
+  return context.client as unknown as SupaClient<TFeatures>
 }
 
 /**
  * Hook to update the context dynamically
  * Useful when context depends on authentication or other async operations
  */
-export function useFeatureContext(): Omit<SupaContextValue, 'client'> {
+export function useFeatureContext(): Omit<
+  SupaContextValue<Features<Record<string, FeatureValue>>>,
+  'client'
+> {
   const context = useContext(SupaContext)
   if (!context) {
     throw new Error('useFeatureContext must be used within a SupaProvider')
