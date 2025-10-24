@@ -1,6 +1,8 @@
 import { SupaPlugin } from './plugins/types'
 
-export interface SupaClientConfig {
+export type NoInfer<T> = [T][T extends unknown ? 0 : never]
+
+export interface SupaClientConfig<TFeatures extends Record<string, FeatureValue>> {
   /**
    * API key used to authenticate requests to Supaship services.
    * Typically created in your project settings.
@@ -10,6 +12,11 @@ export interface SupaClientConfig {
    * Environment identifier used for feature flag evaluation (e.g. "production", "staging").
    */
   environment: string
+  /**
+   * Feature definitions with their fallback values.
+   * Defines all feature flags used in the application.
+   */
+  features: TFeatures
   /**
    * Default context included with every feature evaluation request.
    * Can be merged/overridden per-call via options.context.
@@ -58,18 +65,6 @@ export interface RetryConfig {
   enabled?: boolean
   maxAttempts?: number
   backoff?: number
-}
-
-export interface FeatureOptions<T extends FeatureValue = FeatureValue> {
-  fallback: T
-  context?: FeatureContext
-}
-
-export interface FeaturesOptions<
-  T extends Record<string, FeatureValue> = Record<string, FeatureValue>,
-> {
-  features: T
-  context?: FeatureContext
 }
 
 export type FeatureValue = string | number | boolean | null | Record<string, unknown> | unknown[]
