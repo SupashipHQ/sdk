@@ -43,7 +43,7 @@ const CACHE_TIME = 10 * 60 * 1000 // 10 minutes
  *
  * // Now get full type safety:
  * const { feature } = useFeature('my-feature')
- * // feature is typed as 'variant-a' | 'variant-b' | null
+ * // feature is typed as 'variant-a' | 'variant-b'
  * ```
  */
 export function useFeature<TKey extends FeatureKey>(
@@ -98,7 +98,7 @@ export function useFeatures<TKeys extends readonly FeatureKey[]>(
   }
 ): UseFeaturesResult<{
   [K in TKeys[number]]: K extends keyof Features
-    ? ExtractFeatureValue<Features[K]> | null
+    ? ExtractFeatureValue<Features[K]>
     : FeatureValue | null
 }> {
   const client = useClient()
@@ -106,7 +106,7 @@ export function useFeatures<TKeys extends readonly FeatureKey[]>(
 
   type ResultType = {
     [K in TKeys[number]]: K extends keyof Features
-      ? ExtractFeatureValue<Features[K]> | null
+      ? ExtractFeatureValue<Features[K]>
       : FeatureValue | null
   }
 

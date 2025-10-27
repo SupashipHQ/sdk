@@ -84,8 +84,8 @@ export type TypedFeatures = keyof Features extends never
       }
     }
   : {
-      [K in keyof Features]: Omit<QueryState<ExtractFeatureValue<Features[K]> | null>, 'data'> & {
-        feature: ExtractFeatureValue<Features[K]> | null
+      [K in keyof Features]: Omit<QueryState<ExtractFeatureValue<Features[K]>>, 'data'> & {
+        feature: ExtractFeatureValue<Features[K]>
       }
     }
 

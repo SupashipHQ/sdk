@@ -81,12 +81,12 @@ Now `useFeature` and `useFeatures` will have full type safety:
 
 ```tsx
 function MyComponent() {
-  // TypeScript knows 'new-header' is valid and feature is boolean | null
+  // TypeScript knows 'new-header' is valid and feature is boolean
   const { feature } = useFeature('new-header')
 
   // TypeScript knows 'theme-config' returns the exact object shape
   const { feature: config } = useFeature('theme-config')
-  // config is { mode: 'dark' | 'light', primaryColor: string, showLogo: boolean } | null
+  // config is { mode: 'dark' | 'light', primaryColor: string, showLogo: boolean }
 
   // TypeScript will error on invalid feature names
   const { feature: invalid } = useFeature('non-existent-feature') // ❌ Type error
@@ -176,7 +176,7 @@ const result = useFeature(featureName, options?)
 
 ```tsx
 {
-  feature: T | null,        // The feature value (typed based on your Features interface)
+  feature: T,               // The feature value (typed based on your Features interface)
   isLoading: boolean,       // Loading state
   isSuccess: boolean,       // Success state
   isError: boolean,         // Error state
@@ -245,7 +245,7 @@ const result = useFeatures(featureNames, options?)
 
 ```tsx
 {
-  features: { [key: string]: T | null },  // Object with feature values (typed based on keys)
+  features: { [key: string]: T },  // Object with feature values (typed based on keys)
   isLoading: boolean,
   isSuccess: boolean,
   isError: boolean,
@@ -365,7 +365,7 @@ declare module '@supashiphq/sdk-react' {
 }
 
 // Now all useFeature calls are type-safe
-const { feature } = useFeature('new-header') // ✅ TypeScript knows this is boolean | null
+const { feature } = useFeature('new-header') // ✅ TypeScript knows this is boolean
 const { feature } = useFeature('invalid') // ❌ TypeScript error
 ```
 
