@@ -453,7 +453,10 @@ function UserDashboard() {
 'use client'
 import { SupaProvider, createFeatures } from '@supashiphq/sdk-react'
 
-const features = createFeatures({
+// if you are using FEATURE_FLAGS both on client and server components, then import createFeatures from @supashiphq/sdk-react
+// import { createFeatures } from '@supashiphq/sdk-react/server'
+
+const FEATURE_FLAGS = createFeatures({
   'new-hero': false,
   theme: { mode: 'light' as 'light' | 'dark' },
 })
@@ -464,7 +467,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       config={{
         apiKey: process.env.NEXT_PUBLIC_SUPASHIP_API_KEY!,
         environment: process.env.NODE_ENV!,
-        features,
+        features: FEATURE_FLAGS,
       }}
     >
       {children}
@@ -503,7 +506,7 @@ export default function HomePage() {
 import { SupaProvider, createFeatures } from '@supashiphq/sdk-react'
 import type { AppProps } from 'next/app'
 
-const features = createFeatures({
+const FEATURE_FLAGS = createFeatures({
   'new-homepage': false,
 })
 
@@ -513,7 +516,7 @@ export default function App({ Component, pageProps }: AppProps) {
       config={{
         apiKey: process.env.NEXT_PUBLIC_SUPASHIP_API_KEY!,
         environment: process.env.NODE_ENV!,
-        features,
+        features: FEATURE_FLAGS,
       }}
     >
       <Component {...pageProps} />
@@ -528,7 +531,7 @@ export default function App({ Component, pageProps }: AppProps) {
 // src/main.tsx or src/index.tsx
 import { SupaProvider, createFeatures } from '@supashiphq/sdk-react'
 
-const features = createFeatures({
+const FEATURE_FLAGS = createFeatures({
   'new-ui': false,
   theme: { mode: 'light' as 'light' | 'dark' },
 })
@@ -541,7 +544,7 @@ function App() {
         // or
         apiKey: process.env.REACT_APP_SUPASHIP_API_KEY, // CRA
         environment: import.meta.env.MODE,
-        features,
+        features: FEATURE_FLAGS,
       }}
     >
       <YourApp />
@@ -567,8 +570,8 @@ The SDK includes a development toolbar for testing and debugging feature flags l
 ```
 
 - `'auto'`: Shows toolbar in development environments only (default)
-- `'always'`: Always shows toolbar
-- `'never'`: Never shows toolbar
+- `true`: Always shows toolbar
+- `false`: Never shows toolbar
 
 The toolbar allows you to:
 
@@ -576,29 +579,6 @@ The toolbar allows you to:
 - Override feature values locally
 - See feature value types and current values
 - Clear local overrides
-
-## Plugins
-
-Extend the SDK functionality with custom plugins:
-
-```tsx
-import { SupaPlugin } from '@supashiphq/sdk-react'
-
-const analyticsPlugin: SupaPlugin = {
-  name: 'analytics',
-  onInit: async (availableFeatures, context) => {
-    console.log('SDK initialized with features:', Object.keys(availableFeatures))
-  },
-  afterGetFeatures: async (features, context) => {
-    // Track feature usage
-    analytics.track('features_fetched', { features: Object.keys(features) })
-  },
-}
-
-<SupaProvider config={config} plugins={[analyticsPlugin]}>
-  <App />
-</SupaProvider>
-```
 
 ## Testing
 
@@ -656,81 +636,19 @@ describe('MyComponent', () => {
 })
 ```
 
-## Migration Guide
-
-### From v0.5.x to v0.6.x
-
-**1. Features config is now required:**
-
-```tsx
-// ❌ Old
-<SupaProvider
-  config={{
-    apiKey: 'key',
-    environment: 'prod',
-  }}
-/>
-
-// ✅ New
-import { createFeatures } from '@supashiphq/sdk-react'
-
-const features = createFeatures({
-  'my-feature': false,
-})
-
-<SupaProvider
-  config={{
-    apiKey: 'key',
-    environment: 'prod',
-    features, // Required
-  }}
-/>
-```
-
-**2. useFeature returns `feature`, not `data`:**
-
-```tsx
-// ❌ Old
-const { data } = useFeature('my-feature')
-
-// ✅ New
-const { feature } = useFeature('my-feature')
-```
-
-**3. useFeatures takes an array, not an object:**
-
-```tsx
-// ❌ Old
-const { features } = useFeatures({
-  features: { 'feature-1': false, 'feature-2': true },
-})
-
-// ✅ New
-const { features } = useFeatures(['feature-1', 'feature-2'])
-```
-
-**4. Feature values are restricted:**
-
-```tsx
-// ❌ Old - strings and numbers as values
-const features = {
-  variant: 'a', // ❌ Not supported
-  count: 42, // ❌ Not supported
-}
-
-// ✅ New - use objects instead
-const features = createFeatures({
-  variant: { value: 'a' as 'a' | 'b' | 'c' }, // ✅ Object
-  count: { value: 42 }, // ✅ Object
-  enabled: false, // ✅ Boolean
-  config: { theme: 'dark' }, // ✅ Object
-  list: ['a', 'b'], // ✅ Array
-})
-```
-
 ## Troubleshooting
 
 ### Common Issues
+
+#### using createFeatures in server components/APIs
+
+`Error: Attempted to call createFeatures() from the server but createFeatures is on the client. It's not possible to invoke a client function from the server, it can only be rendered as a Component or passed to props of a Client Component.`
+
+**Solution:** Import createFeatures from @supashiphq/sdk-react/server
+
+```tsx
+import { createFeatures } from '@supashiphq/sdk-react/server'
+```
 
 #### Provider Not Found Error
 
