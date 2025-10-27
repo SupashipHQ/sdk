@@ -58,7 +58,7 @@ For full TypeScript type safety, define your features and augment the `Features`
 
 ```tsx
 // lib/features.ts
-import { createFeatures, SupaFeatures } from '@supashiphq/sdk-react'
+import { createFeatures, FeaturesFromConfig } from '@supashiphq/sdk-react'
 
 export const FEATURE_FLAGS = createFeatures({
   'new-header': false,
@@ -73,7 +73,7 @@ export const FEATURE_FLAGS = createFeatures({
 
 // Type augmentation for global type safety, it is required
 declare module '@supashiphq/sdk-react' {
-  interface Features extends SupaFeatures<typeof FEATURE_FLAGS> {}
+  interface Features extends FeaturesFromConfig<typeof FEATURE_FLAGS> {}
 }
 ```
 
@@ -361,7 +361,7 @@ const config2 = { features: createFeatures({ 'feature-2': true }) }
 ```tsx
 // ✅ Good - type augmentation for global type safety
 declare module '@supashiphq/sdk-react' {
-  interface Features extends SupaFeatures<typeof FEATURE_FLAGS> {}
+  interface Features extends FeaturesFromConfig<typeof FEATURE_FLAGS> {}
 }
 
 // Now all useFeature calls are type-safe
@@ -689,11 +689,11 @@ Property 'my-feature' does not exist on type 'Features'
 **Solution:** Add type augmentation:
 
 ```tsx
-import { SupaFeatures } from '@supashiphq/sdk-react'
+import { FeaturesFromConfig } from '@supashiphq/sdk-react'
 import { FEATURE_FLAGS } from './features'
 
 declare module '@supashiphq/sdk-react' {
-  interface Features extends SupaFeatures<typeof FEATURE_FLAGS> {}
+  interface Features extends FeaturesFromConfig<typeof FEATURE_FLAGS> {}
 }
 ```
 

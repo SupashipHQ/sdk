@@ -16,8 +16,8 @@ export type SupaToolbarOverrideChangeCallback = (
   allOverrides: Record<string, FeatureValue>
 ) => void
 
-export interface SupaToolbarPluginConfig extends SupaPluginConfig {
-  show?: boolean | 'auto' // auto means show only on localhost
+export interface SupaToolbarPluginConfig extends Omit<SupaPluginConfig, 'enabled'> {
+  enabled?: boolean | 'auto' // auto means show only on localhost
   position?: SupaToolbarPosition
   onOverrideChange?: SupaToolbarOverrideChangeCallback
 }
@@ -41,14 +41,16 @@ const NO_FEATURES_MESSAGE = `No feature flags configured in the client.`
  */
 export class SupaToolbarPlugin implements SupaPlugin {
   name = 'toolbar'
-  private config: Required<Omit<SupaToolbarPluginConfig, 'enabled' | 'onOverrideChange'>> & {
+  private config: {
+    enabled: boolean | 'auto'
+    position: Required<SupaToolbarPosition>
     onOverrideChange?: SupaToolbarOverrideChangeCallback
   }
   private state: SupaToolbarState
 
   constructor(config: SupaToolbarPluginConfig = {}) {
     this.config = {
-      show: config.show ?? 'auto',
+      enabled: config.enabled ?? 'auto',
       position: {
         placement: config.position?.placement ?? 'bottom-right',
         offset: config.position?.offset ?? { x: '1rem', y: '1rem' },
@@ -75,8 +77,8 @@ export class SupaToolbarPlugin implements SupaPlugin {
   }
 
   private shouldShowToolbar(): boolean {
-    if (this.config.show === true) return true
-    if (this.config.show === false) return false
+    if (this.config.enabled === true) return true
+    if (this.config.enabled === false) return false
 
     // Auto mode: show only on localhost
     if (typeof window !== 'undefined') {

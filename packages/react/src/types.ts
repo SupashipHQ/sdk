@@ -28,12 +28,12 @@ export type {
  * }
  *
  * declare module '@supashiphq/sdk-react' {
- *   interface Features extends SupaFeatures<typeof FEATURE_FLAGS> {}
+ *   interface Features extends FeaturesFromConfig<typeof FEATURE_FLAGS> {}
  * }
  * ```
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type SupaFeatures<T extends Record<string, any>> = {
+export type FeaturesFromConfig<T extends Record<string, any>> = {
   [K in keyof T]: { value: T[K] }
 }
 
@@ -47,13 +47,12 @@ export type SupaFeatures<T extends Record<string, any>> = {
  * - null: disabled state
  *
  * @example
- * Method 1: Using createFeatures helper (recommended)
  * ```ts
  * // lib/features.ts
  * import { createFeatures } from '@supashiphq/sdk-react'
  *
- * export const features = createFeatures({
- *   'dark-mode': false as boolean,
+ * export const FEATURE_FLAGS = createFeatures({
+ *   'dark-mode': false,
  *   'ui-config': {
  *     variant: 'a' as 'a' | 'b',
  *     showWelcome: true,
@@ -61,18 +60,8 @@ export type SupaFeatures<T extends Record<string, any>> = {
  *   'allowed-features': ['feature-a', 'feature-b'],
  * })
  *
- * // Single-line type registration
- * declare module '@supashiphq/sdk-react' { interface Features extends typeof features {} }
- * ```
- *
- * Method 2: Manual declaration
- * ```ts
  * declare module '@supashiphq/sdk-react' {
- *   interface Features {
- *     'dark-mode': { value: boolean }
- *     'ui-config': { value: { variant: 'a' | 'b', showWelcome: boolean } }
- *     'allowed-features': { value: string[] }
- *   }
+ *   interface Features extends FeaturesFromConfig<typeof FEATURE_FLAGS> {}
  * }
  * ```
  */

@@ -412,7 +412,7 @@ const client = new SupaClient({
   features,
   plugins: [
     new ToolbarPlugin({
-      show: 'auto', // Shows only on localhost
+      enabled: 'auto', // Shows only on localhost
       position: {
         placement: 'bottom-right',
         offset: { x: '1rem', y: '1rem' },
@@ -433,7 +433,7 @@ const client = new SupaClient({
 **Programmatic Control:**
 
 ```typescript
-const toolbar = new ToolbarPlugin({ show: true })
+const toolbar = new ToolbarPlugin({ enabled: true })
 
 // Set override
 toolbar.setOverride('new-feature', true)

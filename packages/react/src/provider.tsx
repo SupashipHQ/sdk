@@ -32,7 +32,7 @@ interface SupaProviderProps<TFeatures extends Features<Record<string, FeatureVal
 export function SupaProvider<TFeatures extends Features<Record<string, FeatureValue>>>({
   config,
   plugins = [],
-  toolbar = { show: 'auto' },
+  toolbar = { enabled: 'auto' },
   children,
 }: SupaProviderProps<TFeatures>): React.JSX.Element {
   const queryClient = useQueryClient()
@@ -42,7 +42,7 @@ export function SupaProvider<TFeatures extends Features<Record<string, FeatureVa
     if (toolbar === false) return null
 
     const toolbarConfig = {
-      ...(typeof toolbar === 'object' ? { ...toolbar, show: toolbar.show ?? 'auto' } : {}),
+      ...(typeof toolbar === 'object' ? { ...toolbar, enabled: toolbar.enabled ?? 'auto' } : {}),
     }
 
     // Otherwise use the provided config
