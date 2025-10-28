@@ -53,6 +53,9 @@ export function useFeature<TKey extends FeatureKey>(
   const client = useClient()
   const { context, shouldFetch = true } = options ?? {}
 
+  // Get the fallback value from feature definitions
+  const fallbackValue = client.getFeatureFallback(key as string)
+
   const result = useQuery(
     ['feature', key, context],
     async (): Promise<FeatureValue> => {
@@ -69,7 +72,7 @@ export function useFeature<TKey extends FeatureKey>(
   const { data, ...rest } = result
   return {
     ...rest,
-    feature: data ?? (null as unknown as FeatureValue),
+    feature: data ?? fallbackValue,
   } as TypedFeatures[TKey]
 }
 

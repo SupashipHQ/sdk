@@ -11,13 +11,28 @@ type GetFeatureFn = (
   options?: { context?: Record<string, unknown> }
 ) => Promise<FeatureValue | null>
 
-// Mock the SupaProvider
+// Create feature definitions for testing
+const testFeatures = {
+  'test-feature': true,
+  'other-feature': false,
+}
+
+// Mock the SupaClient
 const mockGetFeature = jest.fn<GetFeatureFn>()
+const mockGetFeatureFallback = jest.fn(
+  (key: string) => testFeatures[key as keyof typeof testFeatures]
+)
 jest.mock('@supashiphq/sdk-javascript', () => ({
-  SupaProvider: jest.fn().mockImplementation(() => ({
+  SupaClient: jest.fn().mockImplementation(() => ({
     getFeature: mockGetFeature,
+    getFeatureFallback: mockGetFeatureFallback,
+    updateContext: jest.fn(),
+    getContext: jest.fn(),
   })),
   createFeatures: jest.fn(features => features),
+  ToolbarPlugin: jest.fn().mockImplementation(() => ({
+    onInit: jest.fn(),
+  })),
 }))
 
 const TestComponent = ({
@@ -25,7 +40,7 @@ const TestComponent = ({
   options,
 }: {
   featureKey: string
-  options?: { fallback?: FeatureValue; context?: Record<string, unknown>; shouldFetch?: boolean }
+  options?: { context?: Record<string, unknown>; shouldFetch?: boolean }
 }): JSX.Element => {
   const featureState = useFeature(featureKey, options)
   return (
@@ -43,7 +58,7 @@ const config = {
   apiKey: 'test-api-key',
   environment: 'test-environment',
   baseUrl: 'https://api.test.com',
-  features: createFeatures({}),
+  features: createFeatures(testFeatures),
 }
 
 describe('useFeature', () => {
@@ -53,16 +68,33 @@ describe('useFeature', () => {
   })
 
   it('should return query state with fallback value initially', async () => {
+    let resolve: (value: FeatureValue | null) => void = () => {}
+    const promise = new Promise<FeatureValue | null>(res => {
+      resolve = res
+    })
+    mockGetFeature.mockReturnValueOnce(promise)
+
     render(
       <SupaProvider config={config}>
-        <TestComponent featureKey="test-feature" options={{ fallback: true }} />
+        <TestComponent featureKey="test-feature" />
       </SupaProvider>
     )
 
-    // Initial state should show fallback value
+    // Initial state should show fallback value from feature definitions while loading
     expect(screen.getByTestId('feature-data').textContent).toBe('true')
-    expect(screen.getByTestId('feature-success').textContent).toBe('true')
+    expect(screen.getByTestId('feature-loading').textContent).toBe('true')
+    expect(screen.getByTestId('feature-success').textContent).toBe('false')
+
+    // After resolving, should show fetched value
+    await act(async () => {
+      resolve(false) // API returns false
+      await promise
+    })
+
+    // Should now show API value (false) instead of fallback
+    expect(screen.getByTestId('feature-data').textContent).toBe('false')
     expect(screen.getByTestId('feature-loading').textContent).toBe('false')
+    expect(screen.getByTestId('feature-success').textContent).toBe('true')
   })
 
   it('should use fallback value when API returns null', async () => {
@@ -74,7 +106,7 @@ describe('useFeature', () => {
 
     render(
       <SupaProvider config={config}>
-        <TestComponent featureKey="test-feature" options={{ fallback: true }} />
+        <TestComponent featureKey="other-feature" />
       </SupaProvider>
     )
 
@@ -83,7 +115,8 @@ describe('useFeature', () => {
       await promise
     })
 
-    expect(screen.getByTestId('feature-data').textContent).toBe('true')
+    // Should show fallback value from feature definitions (other-feature has fallback of false)
+    expect(screen.getByTestId('feature-data').textContent).toBe('false')
   })
 
   it('should pass context to the client', async () => {
