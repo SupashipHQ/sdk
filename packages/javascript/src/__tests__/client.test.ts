@@ -1,6 +1,5 @@
 import { SupaClient } from '../client'
-import { FeatureContext } from '../types'
-import { createFeatures } from '../helpers'
+import { FeatureContext, FeaturesWithFallbacks } from '../types'
 import '../types/jest.d.ts'
 
 // Mock Response type for fetch
@@ -20,11 +19,11 @@ jest.mock('../utils', () => ({
 describe('SupaClient', () => {
   const mockApiKey = 'test-api-key'
   const mockBaseUrl = 'https://test-api.com'
-  const testFeatures = createFeatures({
+  const testFeatures = {
     testFeature: null,
     feature1: false as boolean,
     feature2: true as boolean,
-  })
+  } satisfies FeaturesWithFallbacks
   let client: SupaClient<typeof testFeatures>
 
   beforeEach((): void => {
@@ -35,6 +34,7 @@ describe('SupaClient', () => {
         featuresAPIUrl: `${mockBaseUrl}/features`,
       },
       features: testFeatures,
+      context: {},
     })
     jest.clearAllMocks()
   })
@@ -44,7 +44,8 @@ describe('SupaClient', () => {
       const client = new SupaClient({
         apiKey: 'test',
         environment: 'test-environment',
-        features: createFeatures({}),
+        context: {},
+        features: {} satisfies FeaturesWithFallbacks,
       })
       expect(client['networkConfig'].featuresAPIUrl).toBe('https://edge.supaship.com/v1/features')
     })
@@ -53,7 +54,8 @@ describe('SupaClient', () => {
       const client = new SupaClient({
         apiKey: 'test',
         environment: 'test-environment',
-        features: createFeatures({}),
+        features: {} satisfies FeaturesWithFallbacks,
+        context: {},
       })
       expect(client['networkConfig'].retry.enabled).toBe(true)
       expect(client['networkConfig'].retry.maxAttempts).toBe(3)
@@ -64,7 +66,8 @@ describe('SupaClient', () => {
       const client = new SupaClient({
         apiKey: 'test',
         environment: 'test-environment',
-        features: createFeatures({}),
+        features: {} satisfies FeaturesWithFallbacks,
+        context: {},
         networkConfig: {
           retry: { enabled: false, maxAttempts: 5, backoff: 2000 },
         },
@@ -78,7 +81,8 @@ describe('SupaClient', () => {
       const client = new SupaClient({
         apiKey: 'test',
         environment: 'test-environment',
-        features: createFeatures({}),
+        features: {} satisfies FeaturesWithFallbacks,
+        context: {},
         plugins: [],
       })
       expect(client['plugins']).toEqual([])
@@ -88,7 +92,8 @@ describe('SupaClient', () => {
       const client = new SupaClient({
         apiKey: 'test',
         environment: 'test-environment',
-        features: createFeatures({}),
+        features: {} satisfies FeaturesWithFallbacks,
+        context: {},
       })
       expect(client['plugins']).toEqual([])
     })
@@ -249,6 +254,7 @@ describe('SupaClient', () => {
         apiKey: mockApiKey,
         environment: 'test-environment',
         features: testFeatures,
+        context: {},
         plugins: [mockPlugin],
       })
 
@@ -285,7 +291,7 @@ describe('SupaClient', () => {
       const testClient = new SupaClient({
         apiKey: mockApiKey,
         environment: 'test-environment',
-        features: createFeatures({ feature1: null }),
+        features: { feature1: null } satisfies FeaturesWithFallbacks,
         context: { default: 'value' },
         plugins: [mockPlugin],
       })
@@ -324,7 +330,11 @@ describe('SupaClient', () => {
       const testClient = new SupaClient({
         apiKey: mockApiKey,
         environment: 'test-environment',
-        features: createFeatures({ feature1: false as boolean, feature2: true as boolean }),
+        features: {
+          feature1: false as boolean,
+          feature2: true as boolean,
+        } satisfies FeaturesWithFallbacks,
+        context: {},
         plugins: [mockPlugin],
       })
 
@@ -350,7 +360,8 @@ describe('SupaClient', () => {
       const testClient = new SupaClient({
         apiKey: mockApiKey,
         environment: 'test-environment',
-        features: createFeatures({ feature1: null }),
+        features: { feature1: null } satisfies FeaturesWithFallbacks,
+        context: {},
         plugins: [mockPlugin],
       })
 
@@ -395,7 +406,8 @@ describe('SupaClient', () => {
       const testClient = new SupaClient({
         apiKey: mockApiKey,
         environment: 'test-environment',
-        features: createFeatures({ testFeature: null }),
+        features: { testFeature: null } satisfies FeaturesWithFallbacks,
+        context: {},
         networkConfig: {
           featuresAPIUrl: `${mockBaseUrl}/features`,
           retry: { enabled: false },
@@ -423,7 +435,8 @@ describe('SupaClient', () => {
       const testClient = new SupaClient({
         apiKey: mockApiKey,
         environment: 'test-environment',
-        features: createFeatures({ testFeature: null }),
+        features: { testFeature: null } satisfies FeaturesWithFallbacks,
+        context: {},
         plugins: [mockPlugin],
       })
 

@@ -3,7 +3,7 @@ import { render, screen, act } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { useFeature } from '../hooks'
 import { SupaProvider } from '../provider'
-import { FeatureValue, FeatureContext, createFeatures } from '@supashiphq/sdk-javascript'
+import { FeatureValue, FeatureContext, FeaturesWithFallbacks } from '@supashiphq/sdk-javascript'
 import { jest, describe, it, expect, beforeEach } from '@jest/globals'
 
 type GetFeatureFn = (
@@ -29,7 +29,6 @@ jest.mock('@supashiphq/sdk-javascript', () => ({
     updateContext: jest.fn(),
     getContext: jest.fn(),
   })),
-  createFeatures: jest.fn(features => features),
   ToolbarPlugin: jest.fn().mockImplementation(() => ({
     onInit: jest.fn(),
   })),
@@ -59,7 +58,7 @@ const config = {
   environment: 'test-environment',
   baseUrl: 'https://api.test.com',
   context: {},
-  features: createFeatures(testFeatures),
+  features: testFeatures satisfies FeaturesWithFallbacks,
 }
 
 describe('useFeature', () => {
