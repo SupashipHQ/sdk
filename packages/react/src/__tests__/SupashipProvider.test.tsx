@@ -7,13 +7,18 @@ import { jest, describe, it, expect } from '@jest/globals'
 // Mock the SupaClient
 const mockUpdateContext = jest.fn()
 const mockGetContext = jest.fn()
+const mockGetFeatureFallback = jest.fn()
 jest.mock('@supashiphq/sdk-javascript', () => ({
   SupaClient: jest.fn().mockImplementation(() => ({
     getFeature: jest.fn(),
+    getFeatureFallback: mockGetFeatureFallback,
     updateContext: mockUpdateContext,
     getContext: mockGetContext,
   })),
   createFeatures: jest.fn(features => features),
+  ToolbarPlugin: jest.fn().mockImplementation(() => ({
+    onInit: jest.fn(),
+  })),
 }))
 
 describe('SupaProvider', () => {
@@ -21,6 +26,7 @@ describe('SupaProvider', () => {
     baseUrl: 'https://api.test.com',
     apiKey: 'test-api-key',
     environment: 'test-environment',
+    context: {},
     features: createFeatures({}),
   }
 
@@ -30,7 +36,7 @@ describe('SupaProvider', () => {
 
   it('should initialize client with config', () => {
     render(
-      <SupaProvider config={config}>
+      <SupaProvider config={config} toolbar={false}>
         <div>Test</div>
       </SupaProvider>
     )
@@ -45,7 +51,7 @@ describe('SupaProvider', () => {
     const mockPlugin = { name: 'test-plugin' }
 
     render(
-      <SupaProvider config={config} plugins={[mockPlugin]}>
+      <SupaProvider config={config} plugins={[mockPlugin]} toolbar={false}>
         <div>Test</div>
       </SupaProvider>
     )
@@ -62,7 +68,7 @@ describe('SupaProvider', () => {
     const configWithPlugins = { ...config, plugins: [configPlugin] }
 
     render(
-      <SupaProvider config={configWithPlugins} plugins={[propPlugin]}>
+      <SupaProvider config={configWithPlugins} plugins={[propPlugin]} toolbar={false}>
         <div>Test</div>
       </SupaProvider>
     )
@@ -126,7 +132,7 @@ describe('SupaProvider', () => {
     }
 
     const { getByTestId } = render(
-      <SupaProvider config={config}>
+      <SupaProvider config={config} toolbar={false}>
         <TestComponent />
       </SupaProvider>
     )

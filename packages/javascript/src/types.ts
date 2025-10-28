@@ -20,7 +20,7 @@ export interface SupaClientConfig {
    * Default context included with every feature evaluation request.
    * Can be merged/overridden per-call via options.context.
    */
-  context?: FeatureContext
+  context: FeatureContext
   /**
    * Optional network configuration allowing you to override API endpoints.
    * If omitted, defaults are used.
@@ -32,7 +32,7 @@ export interface SupaClientConfig {
   plugins?: SupaPlugin[]
 }
 export interface FeatureContext {
-  [key: string]: unknown
+  [key: string]: string | number | boolean | null | undefined
 }
 
 export interface NetworkConfig {

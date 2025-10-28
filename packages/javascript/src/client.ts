@@ -89,6 +89,13 @@ export class SupaClient<TFeatures extends Features<Record<string, FeatureValue>>
     return this.defaultContext
   }
 
+  /**
+   * Gets the fallback value for a feature from its definition
+   */
+  getFeatureFallback<TKey extends keyof TFeatures>(featureName: TKey): TFeatures[TKey] {
+    return this.featureDefinitions[featureName]
+  }
+
   private getVariationValue(variation: FeatureValue, fallback: FeatureValue): FeatureValue {
     if (variation !== undefined && variation !== null) {
       return variation

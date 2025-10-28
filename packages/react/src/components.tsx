@@ -2,7 +2,7 @@
 
 import React, { ReactNode } from 'react'
 import { useFeature } from './hooks'
-import { FeatureKey } from './types'
+import { FeatureKey, FeatureContext } from './types'
 import { hasValue } from './utils'
 
 export interface SupaFeatureProps {
@@ -14,7 +14,7 @@ export interface SupaFeatureProps {
   /**
    * Context for feature evaluation
    */
-  context?: Record<string, unknown>
+  context?: FeatureContext
 
   /**
    * Whether to fetch the feature (default: true)
