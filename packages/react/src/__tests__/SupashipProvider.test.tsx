@@ -26,6 +26,7 @@ describe('SupaProvider', () => {
     baseUrl: 'https://api.test.com',
     apiKey: 'test-api-key',
     environment: 'test-environment',
+    context: {},
     features: createFeatures({}),
   }
 

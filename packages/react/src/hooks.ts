@@ -2,7 +2,7 @@
 
 import { useClient } from './provider'
 import { useQuery, QueryState } from './query'
-import { FeatureValue } from '@supashiphq/sdk-javascript'
+import { FeatureValue, FeatureContext } from '@supashiphq/sdk-javascript'
 import { FeatureKey, TypedFeatures, Features } from './types'
 
 // Custom return types for hooks with generics
@@ -48,7 +48,7 @@ const CACHE_TIME = 10 * 60 * 1000 // 10 minutes
  */
 export function useFeature<TKey extends FeatureKey>(
   key: TKey,
-  options?: { context?: Record<string, unknown>; shouldFetch?: boolean }
+  options?: { context?: FeatureContext; shouldFetch?: boolean }
 ): TypedFeatures[TKey] {
   const client = useClient()
   const { context, shouldFetch = true } = options ?? {}
@@ -96,7 +96,7 @@ type ExtractFeatureValue<T> = T extends { value: infer V } ? V : FeatureValue
 export function useFeatures<TKeys extends readonly FeatureKey[]>(
   featureNames: TKeys,
   options?: {
-    context?: Record<string, unknown>
+    context?: FeatureContext
     shouldFetch?: boolean
   }
 ): UseFeaturesResult<{

@@ -1,10 +1,11 @@
-import type { FeatureValue } from '@supashiphq/sdk-javascript'
+import type { FeatureValue, FeatureContext } from '@supashiphq/sdk-javascript'
 import type { QueryState } from './query'
 
 export type {
   SupaClientConfig as SupaProviderConfig,
   SupaPlugin,
   FeatureValue,
+  FeatureContext,
 } from '@supashiphq/sdk-javascript'
 
 /**
@@ -92,11 +93,11 @@ export type TypedFeatures = keyof Features extends never
 export type FeatureKey = keyof Features extends never ? string : keyof Features
 
 export interface UseFeatureOptions {
-  context?: Record<string, unknown>
+  context?: FeatureContext
   shouldFetch?: boolean
 }
 
 export interface UseFeaturesOptions {
-  context?: Record<string, unknown>
+  context?: FeatureContext
   shouldFetch?: boolean
 }

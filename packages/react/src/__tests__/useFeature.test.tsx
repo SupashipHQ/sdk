@@ -3,12 +3,12 @@ import { render, screen, act } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { useFeature } from '../hooks'
 import { SupaProvider } from '../provider'
-import { FeatureValue, createFeatures } from '@supashiphq/sdk-javascript'
+import { FeatureValue, FeatureContext, createFeatures } from '@supashiphq/sdk-javascript'
 import { jest, describe, it, expect, beforeEach } from '@jest/globals'
 
 type GetFeatureFn = (
   key: string,
-  options?: { context?: Record<string, unknown> }
+  options?: { context?: FeatureContext }
 ) => Promise<FeatureValue | null>
 
 // Create feature definitions for testing
@@ -40,7 +40,7 @@ const TestComponent = ({
   options,
 }: {
   featureKey: string
-  options?: { context?: Record<string, unknown>; shouldFetch?: boolean }
+  options?: { context?: FeatureContext; shouldFetch?: boolean }
 }): JSX.Element => {
   const featureState = useFeature(featureKey, options)
   return (
@@ -58,6 +58,7 @@ const config = {
   apiKey: 'test-api-key',
   environment: 'test-environment',
   baseUrl: 'https://api.test.com',
+  context: {},
   features: createFeatures(testFeatures),
 }
 
