@@ -15,17 +15,17 @@ pnpm add @supashiphq/sdk-javascript
 ## Quick Start
 
 ```typescript
-import { SupaClient, createFeatures } from '@supashiphq/sdk-javascript'
+import { SupaClient, FeaturesWithFallbacks } from '@supashiphq/sdk-javascript'
 
 // Define your features with fallback values
-const features = createFeatures({
+const features = {
   'new-ui': false,
   'premium-features': true,
   'theme-config': {
     primaryColor: '#007bff',
     darkMode: false,
   },
-})
+} satisfies FeaturesWithFallbacks
 
 // Create client with features
 const client = new SupaClient({
@@ -54,7 +54,7 @@ const allFeatures = await client.getFeatures(['new-ui', 'premium-features'])
 
 ## Type-Safe Features
 
-The SDK enforces type safety through the `createFeatures()` helper. This ensures:
+The SDK provides type safety through the `FeaturesWithFallbacks` type. This ensures:
 
 - ✅ Features must be defined before use
 - ✅ Feature names are validated at compile-time
@@ -64,16 +64,17 @@ The SDK enforces type safety through the `createFeatures()` helper. This ensures
 ### Defining Features
 
 ```typescript
-import { createFeatures } from '@supashiphq/sdk-javascript'
+import { FeaturesWithFallbacks } from '@supashiphq/sdk-javascript'
 
-const features = createFeatures({
+// ✅ Recommended: satisfies (preserves exact literal types)
+const features = {
   // Boolean flags
   'dark-mode': false,
   'beta-access': true,
 
   // Object configurations
   'ui-config': {
-    theme: 'light' as 'light' | 'dark',
+    theme: 'light' as const, // Preserves 'light' literal
     maxItems: 100,
     enableAnimations: true,
   },
@@ -83,12 +84,22 @@ const features = createFeatures({
 
   // Null for disabled/unset features
   'experimental-feature': null,
-})
+} satisfies FeaturesWithFallbacks
+
+// ⚠️ Avoid: Type annotation (widens types, loses precision)
+const features: FeaturesWithFallbacks = {
+  'dark-mode': false,
+  'ui-config': {
+    theme: 'light', // Widened to string, not 'light' literal
+    maxItems: 100,
+  },
+}
 
 const client = new SupaClient({
   apiKey: 'your-api-key',
   environment: 'production',
   features,
+  context: {},
 })
 
 // ✅ TypeScript knows 'dark-mode' exists and returns boolean
@@ -110,14 +121,14 @@ new SupaClient(config: SupaClientConfig)
 
 **Configuration Options:**
 
-| Option          | Type             | Required | Description                                                     |
-| --------------- | ---------------- | -------- | --------------------------------------------------------------- |
-| `apiKey`        | `string`         | Yes      | Your Supaship API key (Project Settings -> API Keys)            |
-| `environment`   | `string`         | Yes      | Environment slug (e.g., `production`, `staging`, `development`) |
-| `features`      | `Features<T>`    | Yes      | Feature definitions (created via `createFeatures()`)            |
-| `context`       | `FeatureContext` | No       | Default context for feature evaluation                          |
-| `networkConfig` | `NetworkConfig`  | No       | Network settings (endpoints, retry, timeout, custom fetch)      |
-| `plugins`       | `SupaPlugin[]`   | No       | Plugins for observability, caching, etc.                        |
+| Option          | Type                    | Required | Description                                                     |
+| --------------- | ----------------------- | -------- | --------------------------------------------------------------- |
+| `apiKey`        | `string`                | Yes      | Your Supaship API key (Project Settings -> API Keys)            |
+| `environment`   | `string`                | Yes      | Environment slug (e.g., `production`, `staging`, `development`) |
+| `features`      | `FeaturesWithFallbacks` | Yes      | Feature definitions with fallback values                        |
+| `context`       | `FeatureContext`        | Yes      | Default context for feature evaluation                          |
+| `networkConfig` | `NetworkConfig`         | No       | Network settings (endpoints, retry, timeout, custom fetch)      |
+| `plugins`       | `SupaPlugin[]`          | No       | Plugins for observability, caching, etc.                        |
 
 **Feature Context:**
 
@@ -164,15 +175,16 @@ getFeature<TKey extends keyof TFeatures>(
 **Examples:**
 
 ```typescript
-const features = createFeatures({
+const features = {
   'dark-mode': false,
   'theme-config': { primary: '#007bff' },
-})
+} satisfies FeaturesWithFallbacks
 
 const client = new SupaClient({
   apiKey: 'key',
   environment: 'production',
   features,
+  context: {},
 })
 
 // Get boolean feature
@@ -208,16 +220,17 @@ getFeatures(
 **Examples:**
 
 ```typescript
-const features = createFeatures({
+const features = {
   'new-ui': false,
   'premium-content': false,
   'beta-mode': false,
-})
+} satisfies FeaturesWithFallbacks
 
 const client = new SupaClient({
   apiKey: 'key',
   environment: 'prod',
   features,
+  context: {},
 })
 
 // Get multiple features
@@ -303,17 +316,17 @@ Common context properties:
 
 ```typescript
 // features.ts
-import { createFeatures } from '@supashiphq/sdk-javascript'
+import { FeaturesWithFallbacks } from '@supashiphq/sdk-javascript'
 
-export const features = createFeatures({
+export const features = {
   'new-dashboard': false,
   'premium-features': false,
   'ui-settings': {
-    theme: 'light' as 'light' | 'dark',
+    theme: 'light' as const,
     sidebarCollapsed: false,
   },
   'enabled-regions': ['us', 'eu'],
-})
+} satisfies FeaturesWithFallbacks
 
 // client.ts
 import { SupaClient } from '@supashiphq/sdk-javascript'
@@ -323,32 +336,46 @@ export const client = new SupaClient({
   apiKey: process.env.SUPASHIP_API_KEY!,
   environment: process.env.ENVIRONMENT!,
   features,
+  context: {},
 })
 ```
 
-### 2. Use Type Inference
+### 2. Use `satisfies` for Type Safety
+
+Always use `satisfies` instead of type annotations to preserve literal types:
 
 ```typescript
-const features = createFeatures({
+// ✅ Good - preserves literal types
+const features = {
   'dark-mode': false,
   config: {
     maxItems: 50,
-    theme: 'light' as 'light' | 'dark',
+    theme: 'light' as const,
   },
-})
+} satisfies FeaturesWithFallbacks
+
+// ❌ Bad - loses literal types
+const features: FeaturesWithFallbacks = {
+  'dark-mode': false,
+  config: {
+    maxItems: 50,
+    theme: 'light', // Widened to string
+  },
+}
 
 const client = new SupaClient({
   apiKey: 'key',
   environment: 'prod',
   features,
+  context: {},
 })
 
-// TypeScript knows the exact type!
+// With satisfies: TypeScript knows the exact literal type
 const config = await client.getFeature('config')
-// Type: { maxItems: number; theme: 'light' | 'dark'; }
+// Type: { maxItems: number; theme: 'light'; }
 
 const maxItems: number = config.maxItems // ✅ Type-safe
-const theme: 'light' | 'dark' = config.theme // ✅ Type-safe
+const theme = config.theme // ✅ Type-safe, inferred as 'light' literal
 ```
 
 ### 3. Use Context for Targeting
@@ -362,7 +389,7 @@ const client = new SupaClient({
     userID: user.id,
     email: user.email,
     plan: user.subscriptionPlan,
-    version: process.env.APP_VERSION,
+    version: process.env.APP_VERSION!,
   },
 })
 
@@ -399,17 +426,18 @@ The SDK supports plugins for observability, caching, logging, and more.
 Visual toolbar for local development and testing.
 
 ```typescript
-import { SupaClient, ToolbarPlugin, createFeatures } from '@supashiphq/sdk-javascript'
+import { SupaClient, ToolbarPlugin, FeaturesWithFallbacks } from '@supashiphq/sdk-javascript'
 
-const features = createFeatures({
+const features = {
   'new-ui': false,
   premium: false,
-})
+} satisfies FeaturesWithFallbacks
 
 const client = new SupaClient({
   apiKey: 'your-api-key',
   environment: 'development',
   features,
+  context: {},
   plugins: [
     new ToolbarPlugin({
       enabled: 'auto', // Shows only on localhost
@@ -483,6 +511,7 @@ const client = new SupaClient({
   apiKey: 'key',
   environment: 'prod',
   features,
+  context: {},
   plugins: [new LoggingPlugin()],
 })
 ```
@@ -511,18 +540,19 @@ For React applications, use our dedicated React SDK which provides hooks and com
 
 ```typescript
 import express from 'express'
-import { SupaClient, createFeatures } from '@supashiphq/sdk-javascript'
+import { SupaClient, FeaturesWithFallbacks } from '@supashiphq/sdk-javascript'
 
-const features = createFeatures({
+const features = {
   'new-api': false,
   'cache-enabled': true,
   'rate-limit': { maxRequests: 100, windowMs: 60000 },
-})
+} satisfies FeaturesWithFallbacks
 
 const featureClient = new SupaClient({
   apiKey: process.env.SUPASHIP_API_KEY!,
   environment: 'production',
   features,
+  context: {},
 })
 
 const app = express()
@@ -553,18 +583,19 @@ app.get('/api/user-features/:userId', async (req, res) => {
 
 ```typescript
 // plugins/feature-flags.ts
-import { SupaClient, createFeatures } from '@supashiphq/sdk-javascript'
+import { SupaClient, FeaturesWithFallbacks } from '@supashiphq/sdk-javascript'
 
-const features = createFeatures({
+const features = {
   'new-nav': false,
   'dark-mode': false,
   'premium-content': false,
-})
+} satisfies FeaturesWithFallbacks
 
 const client = new SupaClient({
   apiKey: import.meta.env.VITE_SUPASHIP_API_KEY,
   environment: 'production',
   features,
+  context: {},
 })
 
 export default {
@@ -602,20 +633,20 @@ onMounted(async () => {
 ```typescript
 // feature-flag.service.ts
 import { Injectable } from '@angular/core'
-import { SupaClient, createFeatures } from '@supashiphq/sdk-javascript'
+import { SupaClient, FeaturesWithFallbacks } from '@supashiphq/sdk-javascript'
 import { environment } from '../environments/environment'
 
-const features = createFeatures({
+const features = {
   'new-dashboard': false,
   analytics: true,
-  'theme-config': { mode: 'light' as 'light' | 'dark' },
-})
+  'theme-config': { mode: 'light' as const },
+} satisfies FeaturesWithFallbacks
 
 @Injectable({
   providedIn: 'root',
 })
 export class FeatureFlagService {
-  private client: SupaClient<typeof features>
+  private client: SupaClient
 
   constructor() {
     this.client = new SupaClient({
@@ -629,11 +660,11 @@ export class FeatureFlagService {
     })
   }
 
-  async getFeature<K extends keyof typeof features>(featureName: K): Promise<(typeof features)[K]> {
+  async getFeature(featureName: string): Promise<any> {
     return this.client.getFeature(featureName)
   }
 
-  async getFeatures(featureNames: (keyof typeof features)[]): Promise<Record<string, any>> {
+  async getFeatures(featureNames: string[]): Promise<Record<string, any>> {
     return this.client.getFeatures(featureNames)
   }
 

@@ -1,4 +1,11 @@
-import { SupaClientConfig, FeatureContext, FeatureValue, NetworkConfig, Features } from './types'
+import {
+  SupaClientConfig,
+  FeatureContext,
+  FeatureValue,
+  NetworkConfig,
+  Features,
+  FeaturesWithFallbacks,
+} from './types'
 import { retry } from './utils'
 import { SupaPlugin } from './plugins/types'
 import { DEFAULT_FEATURES_URL, DEFAULT_EVENTS_URL } from './constants'
@@ -11,12 +18,12 @@ type ResolvedNetworkConfig = {
   requestTimeoutMs: number
 }
 
-export class SupaClient<TFeatures extends Features<Record<string, FeatureValue>>> {
+export class SupaClient<TFeatures extends FeaturesWithFallbacks> {
   private apiKey: string
   private environment: string
   private defaultContext?: FeatureContext
   private plugins: SupaPlugin[]
-  private featureDefinitions: TFeatures
+  private featureDefinitions: Features<TFeatures>
 
   private fetchImpl: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
   private networkConfig: ResolvedNetworkConfig
@@ -26,7 +33,7 @@ export class SupaClient<TFeatures extends Features<Record<string, FeatureValue>>
     this.environment = config.environment
     this.defaultContext = config.context
     this.plugins = config.plugins || []
-    this.featureDefinitions = config.features
+    this.featureDefinitions = config.features as Features<TFeatures>
 
     this.networkConfig = {
       featuresAPIUrl: config.networkConfig?.featuresAPIUrl || DEFAULT_FEATURES_URL,
@@ -92,7 +99,7 @@ export class SupaClient<TFeatures extends Features<Record<string, FeatureValue>>
   /**
    * Gets the fallback value for a feature from its definition
    */
-  getFeatureFallback<TKey extends keyof TFeatures>(featureName: TKey): TFeatures[TKey] {
+  getFeatureFallback<TKey extends keyof TFeatures>(featureName: TKey): Features<TFeatures>[TKey] {
     return this.featureDefinitions[featureName]
   }
 
@@ -107,7 +114,7 @@ export class SupaClient<TFeatures extends Features<Record<string, FeatureValue>>
   async getFeature<TKey extends keyof TFeatures>(
     featureName: TKey,
     options?: { context?: FeatureContext }
-  ): Promise<TFeatures[TKey]> {
+  ): Promise<Features<TFeatures>[TKey]> {
     const { context } = options ?? {}
 
     // Only merge context if it's defined and not null
@@ -123,7 +130,7 @@ export class SupaClient<TFeatures extends Features<Record<string, FeatureValue>>
 
       // Get the specific feature value
       const value = response[featureName as string]
-      return value as TFeatures[TKey]
+      return value as Features<TFeatures>[TKey]
     } catch (error) {
       // Run onError hooks
       await Promise.all(this.plugins.map(plugin => plugin.onError?.(error as Error, mergedContext)))
@@ -141,14 +148,14 @@ export class SupaClient<TFeatures extends Features<Record<string, FeatureValue>>
           )
         )
       )
-      return fallbackValue as TFeatures[TKey]
+      return fallbackValue as Features<TFeatures>[TKey]
     }
   }
 
   async getFeatures<TKeys extends readonly (keyof TFeatures)[]>(
     featureNames: TKeys,
     options?: { context?: FeatureContext }
-  ): Promise<{ [K in TKeys[number]]: TFeatures[K] }> {
+  ): Promise<{ [K in TKeys[number]]: Features<TFeatures>[K] }> {
     const { context: contextOverride } = options ?? {}
 
     // Only merge context if it's defined and not null
@@ -261,7 +268,7 @@ export class SupaClient<TFeatures extends Features<Record<string, FeatureValue>>
       )
 
       // Return the fetched features
-      return result as { [K in TKeys[number]]: TFeatures[K] }
+      return result as { [K in TKeys[number]]: Features<TFeatures>[K] }
     } catch (error) {
       // Run onError hooks
       await Promise.all(this.plugins.map(plugin => plugin.onError?.(error as Error, mergedContext)))
@@ -284,7 +291,7 @@ export class SupaClient<TFeatures extends Features<Record<string, FeatureValue>>
         ).catch(console.error)
       })
 
-      return fallbackResult as { [K in TKeys[number]]: TFeatures[K] }
+      return fallbackResult as { [K in TKeys[number]]: Features<TFeatures>[K] }
     }
   }
 }

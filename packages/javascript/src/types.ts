@@ -12,10 +12,10 @@ export interface SupaClientConfig {
   environment: string
   /**
    * Feature definitions with their fallback values.
-   * Must be created using createFeatures() for type safety.
+   * Use `satisfies FeaturesWithFallbacks` for type safety.
    * Defines all feature flags used in the application.
    */
-  features: Features<Record<string, FeatureValue>>
+  features: FeaturesWithFallbacks
   /**
    * Default context included with every feature evaluation request.
    * Can be merged/overridden per-call via options.context.
@@ -97,16 +97,48 @@ export type WidenFeatures<T extends Record<string, FeatureValue>> = {
 }
 
 /**
- * Brand symbol to ensure features are created via createFeatures()
- * @internal
+ * ⚠️ IMPORTANT: Use with `satisfies` operator, NOT type annotation
+ *
+ * Type representing feature flag definitions with their fallback values.
+ * Used to configure the SupaClient with feature flags.
+ *
+ * **Why `satisfies` over type annotation:**
+ * - ✅ `satisfies` preserves exact types ('feature-flag' stays 'feature-flag')
+ * - ❌ Type annotation widens types ('feature-flag' becomes string)
+ *
+ * Supported feature value types:
+ * - boolean: simple on/off flags
+ * - object: structured configuration data
+ * - array: lists of values
+ * - null: disabled state
+ *
+ * @example
+ * ```ts
+ * import { FeaturesWithFallbacks } from '@supashiphq/sdk-javascript'
+ *
+ * // ✅ RECOMMENDED: satisfies ✅
+ * const features = {
+ *   'dark-mode': false,
+ *   'ui-config': {
+ *     theme: 'light' as const,
+ *     showWelcome: true,
+ *   },
+ * } satisfies FeaturesWithFallbacks
+ *
+ * // ❌ AVOID: Type annotation ❌
+ * const features: FeaturesWithFallbacks = {
+ *   'dark-mode': false,
+ *   'ui-config': {
+ *     theme: 'light',
+ *     showWelcome: true,
+ *   },
+ * }
+ * ```
  */
-declare const __supaship: unique symbol
+export type FeaturesWithFallbacks = Record<string, FeatureValue>
 
 /**
- * Branded type for features created via createFeatures()
- * This ensures type safety and prevents raw objects from being passed to SupaClient
- * @internal
+ * Type alias for widened feature definitions.
+ * This is the type that gets stored and used internally.
  */
-export type Features<T extends Record<string, FeatureValue>> = WidenFeatures<T> & {
-  readonly [__supaship]: 'use createFeatures() to create features'
-}
+export type Features<T extends FeaturesWithFallbacks> = WidenFeatures<T>

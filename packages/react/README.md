@@ -15,14 +15,14 @@ pnpm add @supashiphq/sdk-react
 ## Quick Start
 
 ```tsx
-import { SupaProvider, useFeature, createFeatures } from '@supashiphq/sdk-react'
+import { SupaProvider, useFeature, FeaturesWithFallbacks } from '@supashiphq/sdk-react'
 
 // Define your features with type safety
-const features = createFeatures({
+const features = {
   'new-header': false,
-  'theme-config': { mode: 'dark' as 'dark' | 'light', showLogo: true },
+  'theme-config': { mode: 'dark' as const, showLogo: true },
   'beta-features': [] as string[],
-})
+} satisfies FeaturesWithFallbacks
 
 function App() {
   return (
@@ -58,22 +58,22 @@ For full TypeScript type safety, define your features and augment the `Features`
 
 ```tsx
 // lib/features.ts
-import { createFeatures, FeaturesFromConfig } from '@supashiphq/sdk-react'
+import { FeaturesWithFallbacks, InferFeatures } from '@supashiphq/sdk-react'
 
-export const FEATURE_FLAGS = createFeatures({
+export const FEATURE_FLAGS = {
   'new-header': false,
   'theme-config': {
-    mode: 'dark' as 'dark' | 'light',
+    mode: 'dark' as const,
     primaryColor: '#007bff',
     showLogo: true,
   },
   'beta-features': [] as string[],
   'disabled-feature': null,
-})
+} satisfies FeaturesWithFallbacks
 
 // Type augmentation for global type safety, it is required
 declare module '@supashiphq/sdk-react' {
-  interface Features extends FeaturesFromConfig<typeof FEATURE_FLAGS> {}
+  interface Features extends InferFeatures<typeof FEATURE_FLAGS> {}
 }
 ```
 
@@ -340,28 +340,44 @@ const features = await client.getFeatures(['feature-1', 'feature-2'])
 
 ## Best Practices
 
-### 1. Define Features in One Place
+### 1. Always Use `satisfies` for Feature Definitions
+
+```tsx
+// ✅ Good - preserves literal types
+const features = {
+  'dark-mode': false,
+  theme: { mode: 'light' as const, variant: 'compact' as const },
+} satisfies FeaturesWithFallbacks
+
+// ❌ Bad - loses literal types (don't use type annotation)
+const features: FeaturesWithFallbacks = {
+  'dark-mode': false,
+  theme: { mode: 'light', variant: 'compact' }, // Types widened to string
+}
+```
+
+### 2. Centralize Feature Definitions
 
 ```tsx
 // ✅ Good - centralized feature definitions
 // lib/features.ts
-export const FEATURE_FLAGS = createFeatures({
+export const FEATURE_FLAGS = {
   'new-header': false,
-  theme: { mode: 'light' as 'light' | 'dark' },
+  theme: { mode: 'light' as const },
   'beta-features': [] as string[],
-})
+} satisfies FeaturesWithFallbacks
 
 // ❌ Bad - scattered feature definitions
-const config1 = { features: createFeatures({ 'feature-1': false }) }
-const config2 = { features: createFeatures({ 'feature-2': true }) }
+const config1 = { features: { 'feature-1': false } satisfies FeaturesWithFallbacks }
+const config2 = { features: { 'feature-2': true } satisfies FeaturesWithFallbacks }
 ```
 
-### 2. Use Type Augmentation for Type Safety
+### 3. Use Type Augmentation for Type Safety
 
 ```tsx
 // ✅ Good - type augmentation for global type safety
 declare module '@supashiphq/sdk-react' {
-  interface Features extends FeaturesFromConfig<typeof FEATURE_FLAGS> {}
+  interface Features extends InferFeatures<typeof FEATURE_FLAGS> {}
 }
 
 // Now all useFeature calls are type-safe
@@ -451,15 +467,12 @@ function UserDashboard() {
 ```tsx
 // app/providers.tsx
 'use client'
-import { SupaProvider, createFeatures } from '@supashiphq/sdk-react'
+import { SupaProvider, FeaturesWithFallbacks } from '@supashiphq/sdk-react'
 
-// if you are using FEATURE_FLAGS both on client and server components, then import createFeatures from @supashiphq/sdk-react
-// import { createFeatures } from '@supashiphq/sdk-react/server'
-
-const FEATURE_FLAGS = createFeatures({
+const FEATURE_FLAGS = {
   'new-hero': false,
-  theme: { mode: 'light' as 'light' | 'dark' },
-})
+  theme: { mode: 'light' as const },
+} satisfies FeaturesWithFallbacks
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -503,12 +516,12 @@ export default function HomePage() {
 
 ```tsx
 // pages/_app.tsx
-import { SupaProvider, createFeatures } from '@supashiphq/sdk-react'
+import { SupaProvider, FeaturesWithFallbacks } from '@supashiphq/sdk-react'
 import type { AppProps } from 'next/app'
 
-const FEATURE_FLAGS = createFeatures({
+const FEATURE_FLAGS = {
   'new-homepage': false,
-})
+} satisfies FeaturesWithFallbacks
 
 export default function App({ Component, pageProps }: AppProps) {
   return (
@@ -529,12 +542,12 @@ export default function App({ Component, pageProps }: AppProps) {
 
 ```tsx
 // src/main.tsx or src/index.tsx
-import { SupaProvider, createFeatures } from '@supashiphq/sdk-react'
+import { SupaProvider, FeaturesWithFallbacks } from '@supashiphq/sdk-react'
 
-const FEATURE_FLAGS = createFeatures({
+const FEATURE_FLAGS = {
   'new-ui': false,
-  theme: { mode: 'light' as 'light' | 'dark' },
-})
+  theme: { mode: 'light' as const },
+} satisfies FeaturesWithFallbacks
 
 function App() {
   return (
@@ -586,17 +599,16 @@ The toolbar allows you to:
 
 ```tsx
 // test-utils/providers.tsx
-import { SupaProvider, createFeatures } from '@supashiphq/sdk-react'
+import { SupaProvider, FeaturesWithFallbacks } from '@supashiphq/sdk-react'
 
-export function TestProviders({ children, features = {} }) {
-  const testFeatures = createFeatures(features)
-
+export function TestProviders({ children, features = {} as FeaturesWithFallbacks }) {
   return (
     <SupaProvider
       config={{
         apiKey: 'test-key',
         environment: 'test',
-        features: testFeatures,
+        features,
+        context: {},
       }}
     >
       {children}
@@ -640,14 +652,24 @@ describe('MyComponent', () => {
 
 ### Common Issues
 
-#### using createFeatures in server components/APIs
+#### Type errors with FeaturesWithFallbacks
 
-`Error: Attempted to call createFeatures() from the server but createFeatures is on the client. It's not possible to invoke a client function from the server, it can only be rendered as a Component or passed to props of a Client Component.`
+If you encounter type errors when defining features, ensure you're using the correct pattern:
 
-**Solution:** Import createFeatures from @supashiphq/sdk-react/server
+**Solution:** Always use `satisfies FeaturesWithFallbacks` (not type annotation)
 
 ```tsx
-import { createFeatures } from '@supashiphq/sdk-react/server'
+// ✅ Good - preserves literal types
+const features = {
+  'my-feature': false,
+  config: { theme: 'dark' as const },
+} satisfies FeaturesWithFallbacks
+
+// ❌ Bad - loses literal types
+const features: FeaturesWithFallbacks = {
+  'my-feature': false,
+  config: { theme: 'dark' }, // Widened to string
+}
 ```
 
 #### Provider Not Found Error
@@ -689,11 +711,11 @@ Property 'my-feature' does not exist on type 'Features'
 **Solution:** Add type augmentation:
 
 ```tsx
-import { FeaturesFromConfig } from '@supashiphq/sdk-react'
+import { InferFeatures } from '@supashiphq/sdk-react'
 import { FEATURE_FLAGS } from './features'
 
 declare module '@supashiphq/sdk-react' {
-  interface Features extends FeaturesFromConfig<typeof FEATURE_FLAGS> {}
+  interface Features extends InferFeatures<typeof FEATURE_FLAGS> {}
 }
 ```
 

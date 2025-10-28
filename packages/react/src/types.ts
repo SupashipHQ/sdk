@@ -1,4 +1,8 @@
-import type { FeatureValue, FeatureContext } from '@supashiphq/sdk-javascript'
+import type {
+  FeatureValue,
+  FeatureContext,
+  FeaturesWithFallbacks,
+} from '@supashiphq/sdk-javascript'
 import type { QueryState } from './query'
 
 export type {
@@ -9,71 +13,77 @@ export type {
 } from '@supashiphq/sdk-javascript'
 
 /**
- * Helper type to convert a feature flags object into the Features interface format.
+ * ⚠️ IMPORTANT: Use with `satisfies` operator, NOT type annotation
  *
- * Supported feature value types:
- * - boolean: simple on/off flags
- * - object: structured configuration data
- * - array: lists of values
- * - null: disabled state
+ * Re-exported from @supashiphq/sdk-javascript for convenience.
+ * See the main package documentation for full details.
  *
  * @example
  * ```ts
- * export const FEATURE_FLAGS = {
- *   'landing.verification-links': [] as { element: string }[],
- *   'feature.activity-log': false as boolean,
- *   'ui-config': {
- *     theme: 'light' as 'light' | 'dark',
- *     showWelcome: true,
- *   },
- * }
+ * // ✅ RECOMMENDED: satisfies
+ * const features = {
+ *   'dark-mode': false,
+ *   theme: { mode: 'light' as const }
+ * } satisfies FeaturesWithFallbacks
  *
- * declare module '@supashiphq/sdk-react' {
- *   interface Features extends FeaturesFromConfig<typeof FEATURE_FLAGS> {}
+ * // ❌ AVOID: Type annotation
+ * const features: FeaturesWithFallbacks = {
+ *   'dark-mode': false,
+ *   theme: { mode: 'light' }
  * }
  * ```
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type FeaturesFromConfig<T extends Record<string, any>> = {
-  [K in keyof T]: { value: T[K] }
+export type { FeaturesWithFallbacks } from '@supashiphq/sdk-javascript'
+
+/**
+ * Helper type to infer feature types from your feature config for module augmentation.
+ *
+ * ⚠️ Remember: Define features with `satisfies FeaturesWithFallbacks`, not type annotation
+ *
+ * @example
+ * ```ts
+ * import { FeaturesWithFallbacks, InferFeatures } from '@supashiphq/sdk-react'
+ *
+ * // ✅ Use satisfies to preserve literal types
+ * export const FEATURE_FLAGS = {
+ *   'dark-mode': false,
+ *   'ui-config': { variant: 'a' as const }
+ * } satisfies FeaturesWithFallbacks
+ *
+ * declare module '@supashiphq/sdk-react' {
+ *   interface Features extends InferFeatures<typeof FEATURE_FLAGS> {}
+ * }
+ * ```
+ */
+export type InferFeatures<T extends FeaturesWithFallbacks> = {
+  [K in keyof T]: T[K]
 }
 
 /**
  * Interface to be augmented by users for type-safe feature flags.
- *
- * Supported feature value types:
- * - boolean: simple on/off flags
- * - object: structured configuration data
- * - array: lists of values
- * - null: disabled state
+ * Use InferFeatures helper to enable type-safe feature access.
  *
  * @example
  * ```ts
  * // lib/features.ts
- * import { createFeatures } from '@supashiphq/sdk-react'
+ * import { FeaturesWithFallbacks, InferFeatures } from '@supashiphq/sdk-react'
  *
- * export const FEATURE_FLAGS = createFeatures({
+ * export const FEATURE_FLAGS = {
  *   'dark-mode': false,
  *   'ui-config': {
- *     variant: 'a' as 'a' | 'b',
+ *     variant: 'a' as const,
  *     showWelcome: true,
  *   },
- *   'allowed-features': ['feature-a', 'feature-b'],
- * })
+ * } satisfies FeaturesWithFallbacks
  *
  * declare module '@supashiphq/sdk-react' {
- *   interface Features extends FeaturesFromConfig<typeof FEATURE_FLAGS> {}
+ *   interface Features extends InferFeatures<typeof FEATURE_FLAGS> {}
  * }
  * ```
  */
 export interface Features {
   // This interface is intentionally empty and should be augmented via declaration merging
 }
-
-/**
- * Extract the feature value type from a feature definition
- */
-type ExtractFeatureValue<T> = T extends { value: infer V } ? V : FeatureValue
 
 /**
  * Return type for useFeature hook with proper typing based on feature key
@@ -85,8 +95,8 @@ export type TypedFeatures = keyof Features extends never
       }
     }
   : {
-      [K in keyof Features]: Omit<QueryState<ExtractFeatureValue<Features[K]>>, 'data'> & {
-        feature: ExtractFeatureValue<Features[K]>
+      [K in keyof Features]: Omit<QueryState<Features[K]>, 'data'> & {
+        feature: Features[K]
       }
     }
 
