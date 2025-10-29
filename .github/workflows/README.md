@@ -10,8 +10,8 @@ All workflows use a shared package configuration system to ensure consistency ac
 
 Packages are processed in a specific order defined in `.github/scripts/package-config.sh`:
 
-1. **JavaScript package** (`@supashiphq/sdk-javascript`) - processed first
-2. **React package** (`@supashiphq/sdk-react`) - processed second
+1. **JavaScript package** (`@supashiphq/javascript-sdk`) - processed first
+2. **React package** (`@supashiphq/react-sdk`) - processed second
 
 This order is important because:
 
@@ -118,7 +118,7 @@ Add these secrets in your GitHub repository settings:
 
 Ensure your npm token has permission to publish to:
 
-- `@supashiphq/sdk-javascript`
+- `@supashiphq/javascript-sdk`
 - Any other packages in the `packages/` directory
 
 ### 3. Repository Permissions
@@ -153,16 +153,16 @@ Users can install prerelease versions with specific tags:
 
 ```bash
 # Install latest alpha
-npm install @supashiphq/sdk-javascript@alpha
+npm install @supashiphq/javascript-sdk@alpha
 
 # Install latest beta
-npm install @supashiphq/sdk-javascript@beta
+npm install @supashiphq/javascript-sdk@beta
 
 # Install latest release candidate
-npm install @supashiphq/sdk-javascript@rc
+npm install @supashiphq/javascript-sdk@rc
 
 # Install specific version
-npm install @supashiphq/sdk-javascript@1.2.3-beta.1
+npm install @supashiphq/javascript-sdk@1.2.3-beta.1
 ```
 
 ## Workflow Benefits

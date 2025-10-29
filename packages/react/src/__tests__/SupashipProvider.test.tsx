@@ -1,14 +1,14 @@
 import React from 'react'
 import { render } from '@testing-library/react'
 import { SupaProvider, useClient, useFeatureContext } from '../provider'
-import { SupaClient, FeaturesWithFallbacks } from '@supashiphq/sdk-javascript'
+import { SupaClient, FeaturesWithFallbacks } from '@supashiphq/javascript-sdk'
 import { jest, describe, it, expect } from '@jest/globals'
 
 // Mock the SupaClient
 const mockUpdateContext = jest.fn()
 const mockGetContext = jest.fn()
 const mockGetFeatureFallback = jest.fn()
-jest.mock('@supashiphq/sdk-javascript', () => ({
+jest.mock('@supashiphq/javascript-sdk', () => ({
   SupaClient: jest.fn().mockImplementation(() => ({
     getFeature: jest.fn(),
     getFeatureFallback: mockGetFeatureFallback,

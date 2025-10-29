@@ -3,7 +3,7 @@ import { render, screen, act } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { useFeature } from '../hooks'
 import { SupaProvider } from '../provider'
-import { FeatureValue, FeatureContext, FeaturesWithFallbacks } from '@supashiphq/sdk-javascript'
+import { FeatureValue, FeatureContext, FeaturesWithFallbacks } from '@supashiphq/javascript-sdk'
 import { jest, describe, it, expect, beforeEach } from '@jest/globals'
 
 type GetFeatureFn = (
@@ -22,7 +22,7 @@ const mockGetFeature = jest.fn<GetFeatureFn>()
 const mockGetFeatureFallback = jest.fn(
   (key: string) => testFeatures[key as keyof typeof testFeatures]
 )
-jest.mock('@supashiphq/sdk-javascript', () => ({
+jest.mock('@supashiphq/javascript-sdk', () => ({
   SupaClient: jest.fn().mockImplementation(() => ({
     getFeature: mockGetFeature,
     getFeatureFallback: mockGetFeatureFallback,

@@ -3,7 +3,7 @@ import { useQuery } from '../query'
 import { jest, describe, it, expect, beforeEach } from '@jest/globals'
 
 // Mock the SupaClient
-jest.mock('@supashiphq/sdk-javascript', () => ({
+jest.mock('@supashiphq/javascript-sdk', () => ({
   SupaClient: jest.fn().mockImplementation(() => ({
     getFeatures: jest.fn(),
   })),

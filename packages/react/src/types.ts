@@ -2,7 +2,7 @@ import type {
   FeatureValue,
   FeatureContext,
   FeaturesWithFallbacks,
-} from '@supashiphq/sdk-javascript'
+} from '@supashiphq/javascript-sdk'
 import type { QueryState } from './query'
 
 export type {
@@ -12,12 +12,12 @@ export type {
   FeatureContext,
   SupaToolbarPluginConfig,
   SupaToolbarPosition,
-} from '@supashiphq/sdk-javascript'
+} from '@supashiphq/javascript-sdk'
 
 /**
  * ⚠️ IMPORTANT: Use with `satisfies` operator, NOT type annotation
  *
- * Re-exported from @supashiphq/sdk-javascript for convenience.
+ * Re-exported from @supashiphq/javascript-sdk for convenience.
  * See the main package documentation for full details.
  *
  * @example
@@ -35,7 +35,7 @@ export type {
  * }
  * ```
  */
-export type { FeaturesWithFallbacks } from '@supashiphq/sdk-javascript'
+export type { FeaturesWithFallbacks } from '@supashiphq/javascript-sdk'
 
 /**
  * Helper type to infer feature types from your feature config for module augmentation.
@@ -44,7 +44,7 @@ export type { FeaturesWithFallbacks } from '@supashiphq/sdk-javascript'
  *
  * @example
  * ```ts
- * import { FeaturesWithFallbacks, InferFeatures } from '@supashiphq/sdk-react'
+ * import { FeaturesWithFallbacks, InferFeatures } from '@supashiphq/react-sdk'
  *
  * // ✅ Use satisfies to preserve literal types
  * export const FEATURE_FLAGS = {
@@ -52,7 +52,7 @@ export type { FeaturesWithFallbacks } from '@supashiphq/sdk-javascript'
  *   'ui-config': { variant: 'a' as const }
  * } satisfies FeaturesWithFallbacks
  *
- * declare module '@supashiphq/sdk-react' {
+ * declare module '@supashiphq/react-sdk' {
  *   interface Features extends InferFeatures<typeof FEATURE_FLAGS> {}
  * }
  * ```
@@ -68,7 +68,7 @@ export type InferFeatures<T extends FeaturesWithFallbacks> = {
  * @example
  * ```ts
  * // lib/features.ts
- * import { FeaturesWithFallbacks, InferFeatures } from '@supashiphq/sdk-react'
+ * import { FeaturesWithFallbacks, InferFeatures } from '@supashiphq/react-sdk'
  *
  * export const FEATURE_FLAGS = {
  *   'dark-mode': false,
@@ -78,7 +78,7 @@ export type InferFeatures<T extends FeaturesWithFallbacks> = {
  *   },
  * } satisfies FeaturesWithFallbacks
  *
- * declare module '@supashiphq/sdk-react' {
+ * declare module '@supashiphq/react-sdk' {
  *   interface Features extends InferFeatures<typeof FEATURE_FLAGS> {}
  * }
  * ```

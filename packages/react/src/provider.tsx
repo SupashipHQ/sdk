@@ -17,7 +17,7 @@ import {
   Features,
   SupaToolbarOverrideChange,
   SupaToolbarPluginConfig,
-} from '@supashiphq/sdk-javascript'
+} from '@supashiphq/javascript-sdk'
 import { useQueryClient } from './query'
 
 interface SupaContextValue<TFeatures extends Features<Record<string, FeatureValue>>> {
