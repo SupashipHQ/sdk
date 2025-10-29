@@ -1,6 +1,14 @@
 'use client'
 
-import React, { createContext, useContext, ReactNode, useMemo, useCallback } from 'react'
+import React, {
+  createContext,
+  useContext,
+  ReactNode,
+  useMemo,
+  useCallback,
+  useRef,
+  useEffect,
+} from 'react'
 import {
   SupaClient,
   SupaClientConfig as SupaProviderConfig,
@@ -61,8 +69,11 @@ export function SupaProvider<TFeatures extends Features<Record<string, FeatureVa
     [effectiveToolbar, queryClient]
   )
 
-  // Initialize client with React Query cache invalidation for toolbar overrides
-  const client = useMemo(() => {
+  // Use ref to persist client across StrictMode double-renders in development
+  const clientRef = useRef<SupaClient<TFeatures> | null>(null)
+
+  // Initialize client only once to prevent duplicate toolbars in StrictMode
+  if (!clientRef.current) {
     // Merge toolbar config with React Query cache invalidation
     const toolbarConfig =
       effectiveToolbar === false
@@ -72,11 +83,34 @@ export function SupaProvider<TFeatures extends Features<Record<string, FeatureVa
             onOverrideChange: handleOverrideChange,
           }
 
-    return new SupaClient<TFeatures>({
+    clientRef.current = new SupaClient<TFeatures>({
       ...config,
       toolbar: toolbarConfig,
     })
-  }, [config, effectiveToolbar, handleOverrideChange])
+  }
+
+  const client = clientRef.current
+
+  // Cleanup client on unmount
+  useEffect(() => {
+    return () => {
+      if (clientRef.current) {
+        // Cleanup plugins (which includes toolbar cleanup)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const client = clientRef.current as any
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if (client.plugins && Array.isArray(client.plugins)) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          client.plugins.forEach((plugin: any) => {
+            if (plugin.cleanup) {
+              plugin.cleanup()
+            }
+          })
+        }
+        clientRef.current = null
+      }
+    }
+  }, [])
 
   // Memoized context update function
   const updateContext = useCallback(
