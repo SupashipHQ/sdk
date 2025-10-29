@@ -40,13 +40,15 @@ const NO_FEATURES_MESSAGE = `No feature flags configured in the client.`
  * Provides a visual interface to override feature flags during development
  */
 export class SupaToolbarPlugin implements SupaPlugin {
-  name = 'toolbar'
+  name = 'toolbar-plugin'
   private config: {
     enabled: boolean | 'auto'
     position: Required<SupaToolbarPosition>
     onOverrideChange?: SupaToolbarOverrideChangeCallback
   }
   private state: SupaToolbarState
+  private clientId?: string
+  private storageKey: string = DEFAULT_STORAGE_KEY
 
   constructor(config: SupaToolbarPluginConfig = {}) {
     this.config = {
@@ -59,16 +61,11 @@ export class SupaToolbarPlugin implements SupaPlugin {
     }
 
     this.state = {
-      overrides: this.loadOverrides(),
+      overrides: {},
       features: new Set(),
       featureValues: {},
       searchQuery: '',
       useLocalOverrides: true,
-    }
-
-    // Inject toolbar immediately if conditions are met
-    if (this.shouldShowToolbar()) {
-      this.injectToolbar()
     }
   }
 
@@ -93,11 +90,31 @@ export class SupaToolbarPlugin implements SupaPlugin {
     return false
   }
 
-  onInit(availableFeatures: Record<string, FeatureValue>, context?: FeatureContext): void {
+  onInit(params: {
+    availableFeatures: Record<string, FeatureValue>
+    context?: FeatureContext
+    clientId: string
+  }): void {
+    const { availableFeatures, context, clientId } = params
+
+    // Set client ID for DOM element IDs
+    this.clientId = clientId
+
+    // Use shared storage key (not client-specific) to persist across refreshes
+    this.storageKey = DEFAULT_STORAGE_KEY
+
+    // Load overrides from shared storage
+    this.state.overrides = this.loadOverrides()
+
     // Initialize with all available features and their fallback values from config
     this.state.features = new Set(Object.keys(availableFeatures))
     this.state.featureValues = { ...availableFeatures }
     this.state.context = context
+
+    // Inject toolbar if conditions are met
+    if (this.shouldShowToolbar()) {
+      this.injectToolbar()
+    }
 
     // Update toolbar UI if it exists
     this.updateToolbarUI()
@@ -107,6 +124,9 @@ export class SupaToolbarPlugin implements SupaPlugin {
     // Update context if it changed
     this.state.context = context
 
+    // Load overrides from shared storage
+    this.state.overrides = this.loadOverrides()
+
     // Update toolbar UI if it exists
     this.updateToolbarUI()
   }
@@ -115,11 +135,9 @@ export class SupaToolbarPlugin implements SupaPlugin {
     results: Record<string, FeatureValue>,
     context?: FeatureContext
   ): Promise<void> {
-    // Store original feature values before applying overrides
+    // Update feature values with fetched results (this replaces config fallback values)
     Object.keys(results).forEach(name => {
-      if (!(name in this.state.featureValues)) {
-        this.state.featureValues[name] = results[name]
-      }
+      this.state.featureValues[name] = results[name]
     })
 
     // Apply overrides to results only if local overrides are enabled
@@ -143,7 +161,7 @@ export class SupaToolbarPlugin implements SupaPlugin {
     }
 
     try {
-      const stored = window.localStorage.getItem(DEFAULT_STORAGE_KEY)
+      const stored = window.localStorage.getItem(this.storageKey)
       return stored ? JSON.parse(stored) : {}
     } catch {
       return {}
@@ -160,7 +178,7 @@ export class SupaToolbarPlugin implements SupaPlugin {
     }
 
     try {
-      window.localStorage.setItem(DEFAULT_STORAGE_KEY, JSON.stringify(allOverrides))
+      window.localStorage.setItem(this.storageKey, JSON.stringify(allOverrides))
       this.config.onOverrideChange?.(
         { feature: feature ?? '', value: value ?? null },
         allOverrides ?? {}
@@ -197,14 +215,16 @@ export class SupaToolbarPlugin implements SupaPlugin {
       return
     }
 
-    // Check if toolbar already exists
-    if (document.getElementById('supaship-toolbar')) {
+    // Check if toolbar with this client ID already exists
+    const toolbarId = `supaship-toolbar-${this.clientId}`
+    if (document.getElementById(toolbarId)) {
       return
     }
 
     // Create toolbar container
     const toolbar = document.createElement('div')
-    toolbar.id = 'supaship-toolbar'
+    toolbar.id = toolbarId
+    toolbar.setAttribute('data-supaship-client', this.clientId || '')
     toolbar.innerHTML = this.getToolbarHTML()
 
     // Add styles
@@ -222,7 +242,7 @@ export class SupaToolbarPlugin implements SupaPlugin {
       return
     }
 
-    const toolbar = document.getElementById('supaship-toolbar')
+    const toolbar = document.getElementById(`supaship-toolbar-${this.clientId}`)
     if (toolbar) {
       toolbar.remove()
     }
@@ -238,10 +258,15 @@ export class SupaToolbarPlugin implements SupaPlugin {
     const positionClass = `supaship-toolbar-${placement}`
     const offsetX = offset?.x ?? '1rem'
     const offsetY = offset?.y ?? '1rem'
+    const toggleId = `supaship-toolbar-toggle-${this.clientId}`
+    const panelId = `supaship-toolbar-panel-${this.clientId}`
+    const searchId = `supaship-search-input-${this.clientId}`
+    const clearId = `supaship-clear-all-${this.clientId}`
+    const contentId = `supaship-toolbar-content-${this.clientId}`
 
     return `
       <div class="supaship-toolbar-container ${positionClass}" style="--offset-x: ${offsetX}; --offset-y: ${offsetY};">
-        <button class="supaship-toolbar-toggle" id="supaship-toolbar-toggle" aria-label="Toggle feature flags">
+        <button class="supaship-toolbar-toggle" id="${toggleId}" aria-label="Toggle feature flags">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 256 256"
@@ -280,17 +305,17 @@ export class SupaToolbarPlugin implements SupaPlugin {
               stroke-width="16"></line>
           </svg>
         </button>
-        <div class="supaship-toolbar-panel" id="supaship-toolbar-panel">
+        <div class="supaship-toolbar-panel" id="${panelId}">
           <div class="supaship-toolbar-header">
             <input
               type="text"
               class="supaship-search-input"
-              id="supaship-search-input"
+              id="${searchId}"
               placeholder="Search features"
             />
             <button
               class="supaship-header-btn"
-              id="supaship-clear-all"
+              id="${clearId}"
               aria-label="Reset all overrides"
               title="Reset all overrides to default"
             >
@@ -299,7 +324,7 @@ export class SupaToolbarPlugin implements SupaPlugin {
               </svg>
             </button>
           </div>
-          <div class="supaship-toolbar-content" id="supaship-toolbar-content">
+          <div class="supaship-toolbar-content" id="${contentId}">
             <div class="supaship-toolbar-empty">${NO_FEATURES_MESSAGE}</div>
           </div>
         </div>
@@ -644,10 +669,17 @@ export class SupaToolbarPlugin implements SupaPlugin {
       return
     }
 
-    const toggle = document.getElementById('supaship-toolbar-toggle')
-    const panel = document.getElementById('supaship-toolbar-panel')
-    const clearAll = document.getElementById('supaship-clear-all')
-    const searchInput = document.getElementById('supaship-search-input') as HTMLInputElement
+    const toggleId = `supaship-toolbar-toggle-${this.clientId}`
+    const panelId = `supaship-toolbar-panel-${this.clientId}`
+    const clearId = `supaship-clear-all-${this.clientId}`
+    const searchId = `supaship-search-input-${this.clientId}`
+    const contentId = `supaship-toolbar-content-${this.clientId}`
+
+    const toggle = document.getElementById(toggleId)
+    const panel = document.getElementById(panelId)
+    const clearAll = document.getElementById(clearId)
+    const searchInput = document.getElementById(searchId) as HTMLInputElement
+    const content = document.getElementById(contentId)
 
     toggle?.addEventListener('click', () => {
       panel?.classList.toggle('open')
@@ -661,6 +693,108 @@ export class SupaToolbarPlugin implements SupaPlugin {
       this.state.searchQuery = (e.target as HTMLInputElement).value.toLowerCase()
       this.updateToolbarUI()
     })
+
+    // Use event delegation on content element - survives innerHTML updates
+    if (content) {
+      // Handle button clicks (remove and set actions)
+      content.addEventListener('click', (e: Event) => {
+        const target = e.target as HTMLElement
+        const buttonElement = target.closest('button[data-action]') as HTMLButtonElement
+        if (!buttonElement) return
+
+        e.preventDefault()
+        e.stopPropagation()
+
+        const featureName = buttonElement.dataset.feature!
+        const action = buttonElement.dataset.action
+
+        if (action === 'remove') {
+          this.removeOverride(featureName)
+        } else if (action === 'set') {
+          const textarea = content.querySelector(
+            `textarea[data-feature="${featureName}"]`
+          ) as HTMLTextAreaElement
+          if (textarea && textarea.value.trim()) {
+            try {
+              const value = JSON.parse(textarea.value)
+              this.setOverride(featureName, value)
+            } catch {
+              // If not valid JSON, wrap string in object
+              this.setOverride(featureName, { value: textarea.value })
+            }
+          }
+        }
+      })
+
+      // Handle checkbox changes for boolean toggles
+      content.addEventListener('change', (e: Event) => {
+        const target = e.target as HTMLInputElement
+        if (target.type === 'checkbox' && target.dataset.type === 'boolean') {
+          const featureName = target.dataset.feature!
+          const newValue = target.checked
+          this.setOverride(featureName, newValue)
+        }
+      })
+
+      // Handle textarea input to update button states
+      content.addEventListener('input', (e: Event) => {
+        const target = e.target as HTMLTextAreaElement
+        if (target.tagName === 'TEXTAREA' && target.dataset.feature) {
+          const featureName = target.dataset.feature!
+          const originalValue = target.dataset.original || ''
+          const overrideBtn = content.querySelector(
+            `button[data-action="set"][data-feature="${featureName}"]`
+          ) as HTMLButtonElement
+
+          if (overrideBtn) {
+            const hasChanged = target.value !== originalValue
+            const hasContent = target.value.trim().length > 0
+            overrideBtn.disabled = !hasChanged || !hasContent
+          }
+        }
+      })
+
+      // Handle textarea paste events
+      content.addEventListener('paste', (e: Event) => {
+        const target = e.target as HTMLTextAreaElement
+        if (target.tagName === 'TEXTAREA' && target.dataset.feature) {
+          setTimeout(() => {
+            const featureName = target.dataset.feature!
+            const originalValue = target.dataset.original || ''
+            const overrideBtn = content.querySelector(
+              `button[data-action="set"][data-feature="${featureName}"]`
+            ) as HTMLButtonElement
+
+            if (overrideBtn) {
+              const hasChanged = target.value !== originalValue
+              const hasContent = target.value.trim().length > 0
+              overrideBtn.disabled = !hasChanged || !hasContent
+            }
+          }, 0)
+        }
+      })
+
+      // Handle Ctrl/Cmd+Enter to set override
+      content.addEventListener('keydown', (e: KeyboardEvent) => {
+        const target = e.target as HTMLTextAreaElement
+        if (
+          target.tagName === 'TEXTAREA' &&
+          target.dataset.feature &&
+          (e.ctrlKey || e.metaKey) &&
+          e.key === 'Enter'
+        ) {
+          e.preventDefault()
+          const featureName = target.dataset.feature!
+          const overrideBtn = content.querySelector(
+            `button[data-action="set"][data-feature="${featureName}"]`
+          ) as HTMLButtonElement
+
+          if (overrideBtn && !overrideBtn.disabled) {
+            overrideBtn.click()
+          }
+        }
+      })
+    }
   }
 
   private updateToolbarUI(): void {
@@ -668,10 +802,16 @@ export class SupaToolbarPlugin implements SupaPlugin {
       return
     }
 
-    const content = document.getElementById('supaship-toolbar-content')
-    const clearAllBtn = document.getElementById('supaship-clear-all') as HTMLButtonElement
+    const contentId = `supaship-toolbar-content-${this.clientId}`
+    const clearId = `supaship-clear-all-${this.clientId}`
 
-    if (!content) return
+    const content = document.getElementById(contentId)
+    const clearAllBtn = document.getElementById(clearId) as HTMLButtonElement
+
+    if (!content) {
+      console.warn('[Toolbar] Content element not found:', contentId)
+      return
+    }
 
     // Update clear all button state
     const hasOverrides = Object.keys(this.state.overrides).length > 0
@@ -693,7 +833,7 @@ export class SupaToolbarPlugin implements SupaPlugin {
       return
     }
 
-    content.innerHTML = filteredFeatures
+    const htmlContent = filteredFeatures
       .map(featureName => {
         const hasOverride = featureName in this.state.overrides
         const currentValue = this.state.featureValues[featureName]
@@ -793,83 +933,24 @@ export class SupaToolbarPlugin implements SupaPlugin {
       })
       .join('')
 
-    // Attach event listeners to buttons
-    content.querySelectorAll('button[data-action]').forEach(button => {
-      button.addEventListener('click', e => {
-        e.preventDefault()
-        e.stopPropagation()
+    requestAnimationFrame(() => {
+      // Set innerHTML - event listeners are handled via delegation in attachEventListeners()
+      content.innerHTML = htmlContent
 
-        const target = e.target as HTMLElement
-        // Handle case where SVG or path is clicked instead of button
-        const buttonElement = target.closest('button[data-action]') as HTMLButtonElement
-        if (!buttonElement) return
+      // Update button states for textareas that already have values
+      content.querySelectorAll('textarea[data-feature]').forEach(textarea => {
+        const textareaElement = textarea as HTMLTextAreaElement
+        const featureName = textareaElement.dataset.feature!
+        const originalValue = textareaElement.dataset.original || ''
+        const overrideBtn = content.querySelector(
+          `button[data-action="set"][data-feature="${featureName}"]`
+        ) as HTMLButtonElement
 
-        const featureName = buttonElement.dataset.feature!
-        const action = buttonElement.dataset.action
-
-        if (action === 'remove') {
-          this.removeOverride(featureName)
-        } else if (action === 'set') {
-          const textarea = content.querySelector(
-            `textarea[data-feature="${featureName}"]`
-          ) as HTMLTextAreaElement
-          if (textarea && textarea.value.trim()) {
-            try {
-              const value = JSON.parse(textarea.value)
-              this.setOverride(featureName, value)
-            } catch {
-              // If not valid JSON, wrap string in object
-              this.setOverride(featureName, { value: textarea.value })
-            }
-          }
-        }
-      })
-    })
-
-    // Handle textarea input changes to enable/disable override button
-    content.querySelectorAll('textarea[data-feature]').forEach(textarea => {
-      const textareaElement = textarea as HTMLTextAreaElement
-      const featureName = textareaElement.dataset.feature!
-      const originalValue = textareaElement.dataset.original || ''
-      const overrideBtn = content.querySelector(
-        `button[data-action="set"][data-feature="${featureName}"]`
-      ) as HTMLButtonElement
-
-      const updateButtonState = (): void => {
         if (overrideBtn) {
           const hasChanged = textareaElement.value !== originalValue
           const hasContent = textareaElement.value.trim().length > 0
           overrideBtn.disabled = !hasChanged || !hasContent
         }
-      }
-
-      // Initial state
-      updateButtonState()
-
-      // Listen for changes
-      textareaElement.addEventListener('input', updateButtonState)
-      textareaElement.addEventListener('paste', () => {
-        setTimeout(updateButtonState, 0) // Allow paste to complete
-      })
-
-      // Allow Ctrl+Enter to set override
-      textareaElement.addEventListener('keydown', e => {
-        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-          e.preventDefault()
-          if (!overrideBtn?.disabled) {
-            overrideBtn?.click()
-          }
-        }
-      })
-    })
-
-    // Handle toggle switches for boolean values
-    content.querySelectorAll('input[type="checkbox"][data-type="boolean"]').forEach(checkbox => {
-      checkbox.addEventListener('change', e => {
-        const target = e.target as HTMLInputElement
-        const featureName = target.dataset.feature!
-        const newValue = target.checked
-        this.setOverride(featureName, newValue)
       })
     })
   }

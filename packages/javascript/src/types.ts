@@ -1,4 +1,7 @@
 import { SupaPlugin } from './plugins/types'
+import { SupaToolbarPluginConfig } from './plugins/toolbar-plugin'
+
+export type { SupaToolbarPluginConfig } from './plugins/toolbar-plugin'
 
 export interface SupaClientConfig {
   /**
@@ -30,6 +33,15 @@ export interface SupaClientConfig {
    * Optional plugins to observe or augment client behavior.
    */
   plugins?: SupaPlugin[]
+  /**
+   * Toolbar plugin configuration (browser only).
+   * - `false`: Disable toolbar (opt-out)
+   * - `undefined`: Enable with defaults (enabled: 'auto')
+   * - `object`: Custom configuration
+   *
+   * Default: Enabled in browser with 'auto' mode (shows only on localhost)
+   */
+  toolbar?: false | SupaToolbarPluginConfig
 }
 export interface FeatureContext {
   [key: string]: string | number | boolean | null | undefined

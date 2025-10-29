@@ -10,6 +10,8 @@ export type {
   SupaPlugin,
   FeatureValue,
   FeatureContext,
+  SupaToolbarPluginConfig,
+  SupaToolbarPosition,
 } from '@supashiphq/sdk-javascript'
 
 /**

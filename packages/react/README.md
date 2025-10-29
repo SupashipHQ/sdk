@@ -574,7 +574,7 @@ The SDK includes a development toolbar for testing and debugging feature flags l
 <SupaProvider
   config={{ ... }}
   toolbar={{
-    show: 'auto', // 'auto' | 'always' | 'never'
+    enabled: 'auto', // 'auto' | 'always' | 'never'
     position: 'bottom-right', // 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'
   }}
 >
