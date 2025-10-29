@@ -5,17 +5,17 @@ A React SDK for Supaship that provides hooks and components for feature flag man
 ## Installation
 
 ```bash
-npm install @supashiphq/sdk-react
+npm install @supashiphq/react-sdk
 # or
-yarn add @supashiphq/sdk-react
+yarn add @supashiphq/react-sdk
 # or
-pnpm add @supashiphq/sdk-react
+pnpm add @supashiphq/react-sdk
 ```
 
 ## Quick Start
 
 ```tsx
-import { SupaProvider, useFeature, FeaturesWithFallbacks } from '@supashiphq/sdk-react'
+import { SupaProvider, useFeature, FeaturesWithFallbacks } from '@supashiphq/react-sdk'
 
 // Define your features with type safety
 const features = {
@@ -58,7 +58,7 @@ For full TypeScript type safety, define your features and augment the `Features`
 
 ```tsx
 // lib/features.ts
-import { FeaturesWithFallbacks, InferFeatures } from '@supashiphq/sdk-react'
+import { FeaturesWithFallbacks, InferFeatures } from '@supashiphq/react-sdk'
 
 export const FEATURE_FLAGS = {
   'new-header': false,
@@ -72,7 +72,7 @@ export const FEATURE_FLAGS = {
 } satisfies FeaturesWithFallbacks
 
 // Type augmentation for global type safety, it is required
-declare module '@supashiphq/sdk-react' {
+declare module '@supashiphq/react-sdk' {
   interface Features extends InferFeatures<typeof FEATURE_FLAGS> {}
 }
 ```
@@ -117,7 +117,7 @@ The provider component that makes feature flags available to your React componen
 **Configuration Options:**
 
 ```tsx
-import { createFeatures } from '@supashiphq/sdk-react'
+import { createFeatures } from '@supashiphq/react-sdk'
 
 const config = {
   apiKey: 'your-api-key',
@@ -376,7 +376,7 @@ const config2 = { features: { 'feature-2': true } satisfies FeaturesWithFallback
 
 ```tsx
 // ✅ Good - type augmentation for global type safety
-declare module '@supashiphq/sdk-react' {
+declare module '@supashiphq/react-sdk' {
   interface Features extends InferFeatures<typeof FEATURE_FLAGS> {}
 }
 
@@ -467,7 +467,7 @@ function UserDashboard() {
 ```tsx
 // app/providers.tsx
 'use client'
-import { SupaProvider, FeaturesWithFallbacks } from '@supashiphq/sdk-react'
+import { SupaProvider, FeaturesWithFallbacks } from '@supashiphq/react-sdk'
 
 const FEATURE_FLAGS = {
   'new-hero': false,
@@ -503,7 +503,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
 // app/page.tsx
 ;('use client')
-import { useFeature } from '@supashiphq/sdk-react'
+import { useFeature } from '@supashiphq/react-sdk'
 
 export default function HomePage() {
   const { feature: newHero } = useFeature('new-hero')
@@ -516,7 +516,7 @@ export default function HomePage() {
 
 ```tsx
 // pages/_app.tsx
-import { SupaProvider, FeaturesWithFallbacks } from '@supashiphq/sdk-react'
+import { SupaProvider, FeaturesWithFallbacks } from '@supashiphq/react-sdk'
 import type { AppProps } from 'next/app'
 
 const FEATURE_FLAGS = {
@@ -542,7 +542,7 @@ export default function App({ Component, pageProps }: AppProps) {
 
 ```tsx
 // src/main.tsx or src/index.tsx
-import { SupaProvider, FeaturesWithFallbacks } from '@supashiphq/sdk-react'
+import { SupaProvider, FeaturesWithFallbacks } from '@supashiphq/react-sdk'
 
 const FEATURE_FLAGS = {
   'new-ui': false,
@@ -599,7 +599,7 @@ The toolbar allows you to:
 
 ```tsx
 // test-utils/providers.tsx
-import { SupaProvider, FeaturesWithFallbacks } from '@supashiphq/sdk-react'
+import { SupaProvider, FeaturesWithFallbacks } from '@supashiphq/react-sdk'
 
 export function TestProviders({ children, features = {} as FeaturesWithFallbacks }) {
   return (
@@ -711,10 +711,10 @@ Property 'my-feature' does not exist on type 'Features'
 **Solution:** Add type augmentation:
 
 ```tsx
-import { InferFeatures } from '@supashiphq/sdk-react'
+import { InferFeatures } from '@supashiphq/react-sdk'
 import { FEATURE_FLAGS } from './features'
 
-declare module '@supashiphq/sdk-react' {
+declare module '@supashiphq/react-sdk' {
   interface Features extends InferFeatures<typeof FEATURE_FLAGS> {}
 }
 ```

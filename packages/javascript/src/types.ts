@@ -126,7 +126,7 @@ export type WidenFeatures<T extends Record<string, FeatureValue>> = {
  *
  * @example
  * ```ts
- * import { FeaturesWithFallbacks } from '@supashiphq/sdk-javascript'
+ * import { FeaturesWithFallbacks } from '@supashiphq/javascript-sdk'
  *
  * // ✅ RECOMMENDED: satisfies ✅
  * const features = {

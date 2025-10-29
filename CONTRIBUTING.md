@@ -54,7 +54,7 @@ We use Jest for testing. To run tests:
 pnpm test
 
 # Run tests for a specific package
-pnpm --filter @supashiphq/sdk-javascript test
+pnpm --filter @supashiphq/javascript-sdk test
 
 # Run tests in watch mode
 pnpm test -- --watch
@@ -69,7 +69,7 @@ To build the packages:
 pnpm build
 
 # Build a specific package
-pnpm --filter @supashiphq/sdk-javascript build
+pnpm --filter @supashiphq/javascript-sdk build
 ```
 
 ## Documentation

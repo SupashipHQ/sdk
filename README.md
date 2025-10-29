@@ -6,8 +6,8 @@ A collection of SDKs for Supaship that provides feature flag management for vari
 
 This monorepo contains the following packages:
 
-- [@supashiphq/sdk-javascript](./packages/javascript/README.md) - Core JavaScript SDK for feature flag management
-- [@supashiphq/sdk-react](./packages/react/README.md) - React SDK (hooks and components)
+- [@supashiphq/javascript-sdk](./packages/javascript/README.md) - Core JavaScript SDK for feature flag management
+- [@supashiphq/react-sdk](./packages/react/README.md) - React SDK (hooks and components)
 
 More packages will be added in the future to support additional platforms and frameworks.
 
@@ -16,7 +16,7 @@ More packages will be added in the future to support additional platforms and fr
 ### JavaScript SDK
 
 ```javascript
-import { SupaClient } from '@supashiphq/sdk-javascript'
+import { SupaClient } from '@supashiphq/javascript-sdk'
 
 const client = new SupaClient({
   apiKey: 'api-key',

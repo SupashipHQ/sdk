@@ -5,17 +5,17 @@ A type-safe JavaScript SDK for Supaship that provides a simple way to manage fea
 ## Installation
 
 ```bash
-npm install @supashiphq/sdk-javascript
+npm install @supashiphq/javascript-sdk
 # or
-yarn add @supashiphq/sdk-javascript
+yarn add @supashiphq/javascript-sdk
 # or
-pnpm add @supashiphq/sdk-javascript
+pnpm add @supashiphq/javascript-sdk
 ```
 
 ## Quick Start
 
 ```typescript
-import { SupaClient, FeaturesWithFallbacks } from '@supashiphq/sdk-javascript'
+import { SupaClient, FeaturesWithFallbacks } from '@supashiphq/javascript-sdk'
 
 // Define your features with fallback values
 const features = {
@@ -64,7 +64,7 @@ The SDK provides type safety through the `FeaturesWithFallbacks` type. This ensu
 ### Defining Features
 
 ```typescript
-import { FeaturesWithFallbacks } from '@supashiphq/sdk-javascript'
+import { FeaturesWithFallbacks } from '@supashiphq/javascript-sdk'
 
 // ✅ Recommended: satisfies (preserves exact literal types)
 const features = {
@@ -316,7 +316,7 @@ Common context properties:
 
 ```typescript
 // features.ts
-import { FeaturesWithFallbacks } from '@supashiphq/sdk-javascript'
+import { FeaturesWithFallbacks } from '@supashiphq/javascript-sdk'
 
 export const features = {
   'new-dashboard': false,
@@ -329,7 +329,7 @@ export const features = {
 } satisfies FeaturesWithFallbacks
 
 // client.ts
-import { SupaClient } from '@supashiphq/sdk-javascript'
+import { SupaClient } from '@supashiphq/javascript-sdk'
 import { features } from './features'
 
 export const client = new SupaClient({
@@ -428,7 +428,7 @@ Visual toolbar for local development and testing.
 **✨ Auto-enabled in browser environments!** The toolbar is automatically enabled in browsers with `enabled: 'auto'` (shows only on localhost). No manual configuration needed!
 
 ```typescript
-import { SupaClient, FeaturesWithFallbacks } from '@supashiphq/sdk-javascript'
+import { SupaClient, FeaturesWithFallbacks } from '@supashiphq/javascript-sdk'
 
 const features = {
   'new-ui': false,
@@ -484,13 +484,13 @@ const client = new SupaClient({
 
 For React applications, use our dedicated React SDK which provides hooks and components optimized for React:
 
-📦 **[@supashiphq/sdk-react](https://npmjs.com/package/@supashiphq/sdk-react)**
+📦 **[@supashiphq/react-sdk](https://npmjs.com/package/@supashiphq/react-sdk)**
 
 ### Node.js Server
 
 ```typescript
 import express from 'express'
-import { SupaClient, FeaturesWithFallbacks } from '@supashiphq/sdk-javascript'
+import { SupaClient, FeaturesWithFallbacks } from '@supashiphq/javascript-sdk'
 
 const features = {
   'new-api': false,
@@ -533,7 +533,7 @@ app.get('/api/user-features/:userId', async (req, res) => {
 
 ```typescript
 // plugins/feature-flags.ts
-import { SupaClient, FeaturesWithFallbacks } from '@supashiphq/sdk-javascript'
+import { SupaClient, FeaturesWithFallbacks } from '@supashiphq/javascript-sdk'
 
 const features = {
   'new-nav': false,
@@ -558,7 +558,7 @@ export default {
 // components/MyComponent.vue
 <script setup lang="ts">
 import { inject, ref, onMounted } from 'vue'
-import type { SupaClient } from '@supashiphq/sdk-javascript'
+import type { SupaClient } from '@supashiphq/javascript-sdk'
 
 const featureFlags = inject<SupaClient>('featureFlags')!
 const showNewNav = ref(false)
@@ -583,7 +583,7 @@ onMounted(async () => {
 ```typescript
 // feature-flag.service.ts
 import { Injectable } from '@angular/core'
-import { SupaClient, FeaturesWithFallbacks } from '@supashiphq/sdk-javascript'
+import { SupaClient, FeaturesWithFallbacks } from '@supashiphq/javascript-sdk'
 import { environment } from '../environments/environment'
 
 const features = {

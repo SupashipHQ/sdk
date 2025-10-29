@@ -1,5 +1,5 @@
 {
-  "name": "@supashiphq/sdk-react",
+  "name": "@supashiphq/react-sdk",
   "version": "0.7.6",
   "description": "Supaship SDK for React",
   "main": "./dist/index.js",
@@ -39,7 +39,7 @@
     "react-dom": ">=16.8.0"
   },
   "dependencies": {
-    "@supashiphq/sdk-javascript": "workspace:^0.7.6"
+    "@supashiphq/javascript-sdk": "workspace:^0.7.6"
   },
   "devDependencies": {
     "@jest/globals": "^30.0.0",

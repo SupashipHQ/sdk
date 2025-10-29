@@ -1,5 +1,5 @@
 {
-  "name": "@supashiphq/sdk-javascript",
+  "name": "@supashiphq/javascript-sdk",
   "version": "0.7.6",
   "description": "JavaScript SDK for Supaship",
   "main": "./dist/index.js",

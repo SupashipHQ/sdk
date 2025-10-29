@@ -2,7 +2,7 @@
 
 import { useClient } from './provider'
 import { useQuery, QueryState } from './query'
-import { FeatureValue, FeatureContext } from '@supashiphq/sdk-javascript'
+import { FeatureValue, FeatureContext } from '@supashiphq/javascript-sdk'
 import { FeatureKey, TypedFeatures, Features } from './types'
 
 // Custom return types for hooks with generics
@@ -34,7 +34,7 @@ const CACHE_TIME = 10 * 60 * 1000 // 10 minutes
  * @remarks
  * For type-safe feature flags, augment the Features interface:
  * ```ts
- * declare module '@supashiphq/sdk-react' {
+ * declare module '@supashiphq/react-sdk' {
  *   interface Features {
  *     'my-feature': { value: 'variant-a' | 'variant-b' }
  *     'dark-mode': { value: boolean }
