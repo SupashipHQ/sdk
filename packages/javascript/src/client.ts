@@ -8,6 +8,7 @@ import {
 } from './types'
 import { retry } from './utils'
 import { SupaPlugin } from './plugins/types'
+import { SupaToolbarPlugin } from './plugins/toolbar-plugin'
 import { DEFAULT_FEATURES_URL, DEFAULT_EVENTS_URL } from './constants'
 
 type RequiredRetryConfig = Required<NonNullable<NetworkConfig['retry']>>
@@ -24,6 +25,7 @@ export class SupaClient<TFeatures extends FeaturesWithFallbacks> {
   private defaultContext?: FeatureContext
   private plugins: SupaPlugin[]
   private featureDefinitions: Features<TFeatures>
+  private clientId: string
 
   private fetchImpl: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
   private networkConfig: ResolvedNetworkConfig
@@ -32,8 +34,10 @@ export class SupaClient<TFeatures extends FeaturesWithFallbacks> {
     this.apiKey = config.apiKey
     this.environment = config.environment
     this.defaultContext = config.context
-    this.plugins = config.plugins || []
     this.featureDefinitions = config.features as Features<TFeatures>
+
+    // Generate unique client ID
+    this.clientId = this.generateClientId()
 
     this.networkConfig = {
       featuresAPIUrl: config.networkConfig?.featuresAPIUrl || DEFAULT_FEATURES_URL,
@@ -61,10 +65,56 @@ export class SupaClient<TFeatures extends FeaturesWithFallbacks> {
       )
     }
 
+    // Initialize plugins with automatic toolbar plugin in browser
+    this.plugins = this.initializePlugins(config)
+
     // Initialize plugins with available features and their fallback values
     Promise.all(
-      this.plugins.map(plugin => plugin.onInit?.(this.featureDefinitions, this.defaultContext))
+      this.plugins.map(plugin =>
+        plugin.onInit?.({
+          clientId: this.clientId,
+          availableFeatures: this.featureDefinitions,
+          context: this.defaultContext,
+        })
+      )
     ).catch(console.error)
+  }
+
+  /**
+   * Generate a unique client ID
+   */
+  private generateClientId(): string {
+    return `supaship-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+  }
+
+  /**
+   * Initialize plugins with automatic toolbar plugin in browser environments
+   */
+  private initializePlugins(config: SupaClientConfig & { features: TFeatures }): SupaPlugin[] {
+    const plugins = config.plugins || []
+
+    // Check if we're in a browser environment
+    const isBrowser = typeof window !== 'undefined' && typeof document !== 'undefined'
+
+    // If toolbar is explicitly disabled, don't add it
+    if (config.toolbar === false) {
+      return plugins
+    }
+
+    // If in browser and toolbar not disabled, add it automatically
+    if (isBrowser) {
+      // Check if user already added toolbar plugin manually
+      const hasToolbarPlugin = plugins.some(p => p.name === 'toolbar-plugin')
+
+      if (!hasToolbarPlugin) {
+        // Add toolbar with user config or defaults
+        const toolbarConfig = config.toolbar || { enabled: 'auto' }
+        const toolbarPlugin = new SupaToolbarPlugin(toolbarConfig)
+        return [toolbarPlugin, ...plugins]
+      }
+    }
+
+    return plugins
   }
 
   /**

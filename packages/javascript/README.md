@@ -425,108 +425,58 @@ The SDK supports plugins for observability, caching, logging, and more.
 
 Visual toolbar for local development and testing.
 
+**✨ Auto-enabled in browser environments!** The toolbar is automatically enabled in browsers with `enabled: 'auto'` (shows only on localhost). No manual configuration needed!
+
 ```typescript
-import { SupaClient, ToolbarPlugin, FeaturesWithFallbacks } from '@supashiphq/sdk-javascript'
+import { SupaClient, FeaturesWithFallbacks } from '@supashiphq/sdk-javascript'
 
 const features = {
   'new-ui': false,
   premium: false,
 } satisfies FeaturesWithFallbacks
 
+// ✅ Automatic (recommended) - Toolbar auto-enabled in browser with 'auto' mode
 const client = new SupaClient({
   apiKey: 'your-api-key',
   environment: 'development',
   features,
   context: {},
-  plugins: [
-    new ToolbarPlugin({
-      enabled: 'auto', // Shows only on localhost
-      position: {
-        placement: 'bottom-right',
-        offset: { x: '1rem', y: '1rem' },
-      },
-    }),
-  ],
+})
+
+// 🎨 Custom configuration
+const client = new SupaClient({
+  apiKey: 'your-api-key',
+  environment: 'development',
+  features,
+  context: {},
+  toolbar: {
+    enabled: true, // Always show
+    position: {
+      placement: 'bottom-right',
+      offset: { x: '1rem', y: '1rem' },
+    },
+  },
+})
+
+// ❌ Opt-out (disable toolbar)
+const client = new SupaClient({
+  apiKey: 'your-api-key',
+  environment: 'production',
+  features,
+  context: {},
+  toolbar: false,
 })
 ```
 
 **Features:**
 
+- ✨ **Auto-enabled in browser** - No configuration needed!
 - 🎯 Visual interface showing all configured feature flags
 - 🔄 Override feature flag values locally
 - 💾 Persistent storage in localStorage
 - 🎨 Customizable position
-- 🏠 Auto-detection (shows only on localhost by default)
-
-**Programmatic Control:**
-
-```typescript
-const toolbar = new ToolbarPlugin({ enabled: true })
-
-// Set override
-toolbar.setOverride('new-feature', true)
-
-// Remove override
-toolbar.removeOverride('new-feature')
-
-// Clear all
-toolbar.clearAllOverrides()
-
-// Get current overrides
-const overrides = toolbar.getOverrides()
-```
-
-### Custom Plugins
-
-Create custom plugins by implementing the `SupaPlugin` interface:
-
-```typescript
-import { SupaPlugin, FeatureValue, FeatureContext } from '@supashiphq/sdk-javascript'
-
-class LoggingPlugin implements SupaPlugin {
-  name = 'logging-plugin'
-
-  onInit(availableFeatures: Record<string, FeatureValue>, context?: FeatureContext): void {
-    console.log('Features initialized:', Object.keys(availableFeatures))
-    console.log('Initial context:', context)
-  }
-
-  async beforeGetFeatures(featureNames: string[], context?: FeatureContext): Promise<void> {
-    console.log('Fetching features:', featureNames, 'with context:', context)
-  }
-
-  async afterGetFeatures(
-    results: Record<string, FeatureValue>,
-    context?: FeatureContext
-  ): Promise<void> {
-    console.log('Features fetched:', results)
-  }
-
-  async onError(error: Error, context?: FeatureContext): Promise<void> {
-    console.error('Feature fetch error:', error, 'context:', context)
-  }
-}
-
-const client = new SupaClient({
-  apiKey: 'key',
-  environment: 'prod',
-  features,
-  context: {},
-  plugins: [new LoggingPlugin()],
-})
-```
-
-**Available Hooks:**
-
-- `onInit(availableFeatures, context)` - Called when client initializes
-- `beforeGetFeatures(featureNames, context)` - Before fetching features
-- `afterGetFeatures(results, context)` - After fetching features
-- `onError(error, context)` - When an error occurs
-- `beforeRequest(url, body, headers)` - Before HTTP request
-- `afterResponse(response, timing)` - After HTTP response
-- `onContextUpdate(oldContext, newContext, source)` - When context changes
-- `onRetryAttempt(attempt, error, willRetry)` - During retry attempts
-- `onFallbackUsed(featureName, fallbackValue, reason)` - When fallback is used
+- 🏠 Smart detection (shows only on localhost by default)
+- 🚫 Easy opt-out with `toolbar: false`
 
 ## Examples
 

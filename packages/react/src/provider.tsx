@@ -4,13 +4,11 @@ import React, { createContext, useContext, ReactNode, useMemo, useCallback } fro
 import {
   SupaClient,
   SupaClientConfig as SupaProviderConfig,
-  SupaPlugin,
   FeatureContext,
   FeatureValue,
   Features,
-  ToolbarPlugin,
-  SupaToolbarPluginConfig,
   SupaToolbarOverrideChange,
+  SupaToolbarPluginConfig,
 } from '@supashiphq/sdk-javascript'
 import { useQueryClient } from './query'
 
@@ -23,53 +21,47 @@ interface SupaContextValue<TFeatures extends Features<Record<string, FeatureValu
 const SupaContext = createContext<SupaContextValue<any> | null>(null)
 
 interface SupaProviderProps<TFeatures extends Features<Record<string, FeatureValue>>> {
-  config: SupaProviderConfig & { features: TFeatures }
-  plugins?: SupaPlugin[]
+  config: Omit<SupaProviderConfig, 'plugins' | 'toolbar'> & { features: TFeatures }
   toolbar?: SupaToolbarPluginConfig | boolean
   children: ReactNode
 }
 
 export function SupaProvider<TFeatures extends Features<Record<string, FeatureValue>>>({
   config,
-  plugins = [],
   toolbar = { enabled: 'auto' },
   children,
 }: SupaProviderProps<TFeatures>): React.JSX.Element {
   const queryClient = useQueryClient()
 
-  // Create toolbar plugin if toolbar prop is provided
-  const toolbarPlugin = useMemo(() => {
-    if (toolbar === false) return null
-
-    const toolbarConfig = {
-      ...(typeof toolbar === 'object' ? { ...toolbar, enabled: toolbar.enabled ?? 'auto' } : {}),
-    }
-
-    // Otherwise use the provided config
-    return new ToolbarPlugin({
-      ...toolbarConfig,
-      onOverrideChange: (featureOverride: SupaToolbarOverrideChange): void => {
-        // Invalidate the query cache for the changed feature to trigger refetch
-        // Use prefix matching to invalidate all queries for this feature regardless of context
-        if (featureOverride.feature) {
-          queryClient.invalidateQueriesByPrefix(['feature', featureOverride.feature])
-        }
-      },
-    })
-  }, [toolbar])
-
-  // Initialize the singleton instance if it hasn't been initialized yet
+  // Initialize client with React Query cache invalidation for toolbar overrides
   const client = useMemo(() => {
-    const allPlugins = [...(config.plugins || []), ...plugins]
-    if (toolbarPlugin) {
-      allPlugins.push(toolbarPlugin)
-    }
+    // Merge toolbar config with React Query cache invalidation
+    const toolbarConfig =
+      toolbar === false
+        ? false
+        : {
+            ...(typeof toolbar === 'object' ? toolbar : {}),
+            onOverrideChange: (
+              featureOverride: SupaToolbarOverrideChange,
+              allOverrides: Record<string, FeatureValue>
+            ): void => {
+              // Call user's onOverrideChange if provided
+              if (typeof toolbar === 'object' && toolbar.onOverrideChange) {
+                toolbar.onOverrideChange(featureOverride, allOverrides)
+              }
+
+              // Invalidate the query cache for the changed feature to trigger refetch
+              if (featureOverride.feature) {
+                queryClient.invalidateQueriesByPrefix(['feature', featureOverride.feature])
+              }
+            },
+          }
 
     return new SupaClient<TFeatures>({
       ...config,
-      plugins: allPlugins,
+      toolbar: toolbarConfig,
     })
-  }, [config, plugins, toolbarPlugin])
+  }, [config, toolbar, queryClient])
 
   // Memoized context update function
   const updateContext = useCallback(

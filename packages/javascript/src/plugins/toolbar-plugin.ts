@@ -40,13 +40,15 @@ const NO_FEATURES_MESSAGE = `No feature flags configured in the client.`
  * Provides a visual interface to override feature flags during development
  */
 export class SupaToolbarPlugin implements SupaPlugin {
-  name = 'toolbar'
+  name = 'toolbar-plugin'
   private config: {
     enabled: boolean | 'auto'
     position: Required<SupaToolbarPosition>
     onOverrideChange?: SupaToolbarOverrideChangeCallback
   }
   private state: SupaToolbarState
+  private clientId?: string
+  private storageKey: string = DEFAULT_STORAGE_KEY
 
   constructor(config: SupaToolbarPluginConfig = {}) {
     this.config = {
@@ -59,16 +61,11 @@ export class SupaToolbarPlugin implements SupaPlugin {
     }
 
     this.state = {
-      overrides: this.loadOverrides(),
+      overrides: {},
       features: new Set(),
       featureValues: {},
       searchQuery: '',
       useLocalOverrides: true,
-    }
-
-    // Inject toolbar immediately if conditions are met
-    if (this.shouldShowToolbar()) {
-      this.injectToolbar()
     }
   }
 
@@ -93,11 +90,29 @@ export class SupaToolbarPlugin implements SupaPlugin {
     return false
   }
 
-  onInit(availableFeatures: Record<string, FeatureValue>, context?: FeatureContext): void {
+  onInit(params: {
+    availableFeatures: Record<string, FeatureValue>
+    context?: FeatureContext
+    clientId: string
+  }): void {
+    const { availableFeatures, context, clientId } = params
+
+    // Set client ID and create namespaced storage key
+    this.clientId = clientId
+    this.storageKey = `${DEFAULT_STORAGE_KEY}-${clientId}`
+
+    // Load overrides with the client-specific storage key
+    this.state.overrides = this.loadOverrides()
+
     // Initialize with all available features and their fallback values from config
     this.state.features = new Set(Object.keys(availableFeatures))
     this.state.featureValues = { ...availableFeatures }
     this.state.context = context
+
+    // Inject toolbar if conditions are met
+    if (this.shouldShowToolbar()) {
+      this.injectToolbar()
+    }
 
     // Update toolbar UI if it exists
     this.updateToolbarUI()
@@ -143,7 +158,7 @@ export class SupaToolbarPlugin implements SupaPlugin {
     }
 
     try {
-      const stored = window.localStorage.getItem(DEFAULT_STORAGE_KEY)
+      const stored = window.localStorage.getItem(this.storageKey)
       return stored ? JSON.parse(stored) : {}
     } catch {
       return {}
@@ -160,7 +175,7 @@ export class SupaToolbarPlugin implements SupaPlugin {
     }
 
     try {
-      window.localStorage.setItem(DEFAULT_STORAGE_KEY, JSON.stringify(allOverrides))
+      window.localStorage.setItem(this.storageKey, JSON.stringify(allOverrides))
       this.config.onOverrideChange?.(
         { feature: feature ?? '', value: value ?? null },
         allOverrides ?? {}
@@ -197,14 +212,16 @@ export class SupaToolbarPlugin implements SupaPlugin {
       return
     }
 
-    // Check if toolbar already exists
-    if (document.getElementById('supaship-toolbar')) {
+    // Check if toolbar with this client ID already exists
+    const toolbarId = `supaship-toolbar-${this.clientId}`
+    if (document.getElementById(toolbarId)) {
       return
     }
 
     // Create toolbar container
     const toolbar = document.createElement('div')
-    toolbar.id = 'supaship-toolbar'
+    toolbar.id = toolbarId
+    toolbar.setAttribute('data-supaship-client', this.clientId || '')
     toolbar.innerHTML = this.getToolbarHTML()
 
     // Add styles
@@ -222,7 +239,7 @@ export class SupaToolbarPlugin implements SupaPlugin {
       return
     }
 
-    const toolbar = document.getElementById('supaship-toolbar')
+    const toolbar = document.getElementById(`supaship-toolbar-${this.clientId}`)
     if (toolbar) {
       toolbar.remove()
     }
@@ -238,10 +255,15 @@ export class SupaToolbarPlugin implements SupaPlugin {
     const positionClass = `supaship-toolbar-${placement}`
     const offsetX = offset?.x ?? '1rem'
     const offsetY = offset?.y ?? '1rem'
+    const toggleId = `supaship-toolbar-toggle-${this.clientId}`
+    const panelId = `supaship-toolbar-panel-${this.clientId}`
+    const searchId = `supaship-search-input-${this.clientId}`
+    const clearId = `supaship-clear-all-${this.clientId}`
+    const contentId = `supaship-toolbar-content-${this.clientId}`
 
     return `
       <div class="supaship-toolbar-container ${positionClass}" style="--offset-x: ${offsetX}; --offset-y: ${offsetY};">
-        <button class="supaship-toolbar-toggle" id="supaship-toolbar-toggle" aria-label="Toggle feature flags">
+        <button class="supaship-toolbar-toggle" id="${toggleId}" aria-label="Toggle feature flags">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 256 256"
@@ -280,17 +302,17 @@ export class SupaToolbarPlugin implements SupaPlugin {
               stroke-width="16"></line>
           </svg>
         </button>
-        <div class="supaship-toolbar-panel" id="supaship-toolbar-panel">
+        <div class="supaship-toolbar-panel" id="${panelId}">
           <div class="supaship-toolbar-header">
             <input
               type="text"
               class="supaship-search-input"
-              id="supaship-search-input"
+              id="${searchId}"
               placeholder="Search features"
             />
             <button
               class="supaship-header-btn"
-              id="supaship-clear-all"
+              id="${clearId}"
               aria-label="Reset all overrides"
               title="Reset all overrides to default"
             >
@@ -299,7 +321,7 @@ export class SupaToolbarPlugin implements SupaPlugin {
               </svg>
             </button>
           </div>
-          <div class="supaship-toolbar-content" id="supaship-toolbar-content">
+          <div class="supaship-toolbar-content" id="${contentId}">
             <div class="supaship-toolbar-empty">${NO_FEATURES_MESSAGE}</div>
           </div>
         </div>
@@ -644,10 +666,15 @@ export class SupaToolbarPlugin implements SupaPlugin {
       return
     }
 
-    const toggle = document.getElementById('supaship-toolbar-toggle')
-    const panel = document.getElementById('supaship-toolbar-panel')
-    const clearAll = document.getElementById('supaship-clear-all')
-    const searchInput = document.getElementById('supaship-search-input') as HTMLInputElement
+    const toggleId = `supaship-toolbar-toggle-${this.clientId}`
+    const panelId = `supaship-toolbar-panel-${this.clientId}`
+    const clearId = `supaship-clear-all-${this.clientId}`
+    const searchId = `supaship-search-input-${this.clientId}`
+
+    const toggle = document.getElementById(toggleId)
+    const panel = document.getElementById(panelId)
+    const clearAll = document.getElementById(clearId)
+    const searchInput = document.getElementById(searchId) as HTMLInputElement
 
     toggle?.addEventListener('click', () => {
       panel?.classList.toggle('open')
@@ -668,8 +695,11 @@ export class SupaToolbarPlugin implements SupaPlugin {
       return
     }
 
-    const content = document.getElementById('supaship-toolbar-content')
-    const clearAllBtn = document.getElementById('supaship-clear-all') as HTMLButtonElement
+    const contentId = `supaship-toolbar-content-${this.clientId}`
+    const clearId = `supaship-clear-all-${this.clientId}`
+
+    const content = document.getElementById(contentId)
+    const clearAllBtn = document.getElementById(clearId) as HTMLButtonElement
 
     if (!content) return
 
