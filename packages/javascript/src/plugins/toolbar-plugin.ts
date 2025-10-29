@@ -889,17 +889,23 @@ export class SupaToolbarPlugin implements SupaPlugin {
             : currentValue !== undefined
               ? JSON.stringify(currentValue)
               : ''
+          const escapedFeatureName = this.escapeHtml(featureName)
+          const escapedCurrentDisplayValue = this.escapeHtml(currentDisplayValue)
+          const escapedTextareaContent = hasOverride
+            ? this.escapeHtml(JSON.stringify(overrideValue))
+            : escapedCurrentDisplayValue
+
           return `
           <div class="${itemClass}">
             <div class="supaship-feature-row">
-              <span class="supaship-feature-name">${this.escapeHtml(featureName)}</span>
+              <span class="supaship-feature-name">${escapedFeatureName}</span>
               <div class="supaship-feature-actions">
                 ${
                   hasOverride
                     ? `
                     <button
                       class="supaship-btn-icon"
-                      data-feature="${this.escapeHtml(featureName)}"
+                      data-feature="${escapedFeatureName}"
                       data-action="remove"
                       title="Reset to default"
                     >
@@ -912,7 +918,7 @@ export class SupaToolbarPlugin implements SupaPlugin {
                 }
                 <button
                   class="supaship-btn supaship-btn-primary"
-                  data-feature="${this.escapeHtml(featureName)}"
+                  data-feature="${escapedFeatureName}"
                   data-action="set"
                   disabled>
                   Override
@@ -923,9 +929,9 @@ export class SupaToolbarPlugin implements SupaPlugin {
               <textarea
                 class="supaship-feature-input"
                 placeholder="Override JSON value"
-                data-feature="${this.escapeHtml(featureName)}"
-                data-original="${this.escapeHtml(currentDisplayValue)}"
-              >${hasOverride ? this.escapeHtml(JSON.stringify(overrideValue)) : this.escapeHtml(currentDisplayValue)}</textarea>
+                data-feature="${escapedFeatureName}"
+                data-original="${escapedCurrentDisplayValue}"
+              >${escapedTextareaContent}</textarea>
             </div>
           </div>
         `
