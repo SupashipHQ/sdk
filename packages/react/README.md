@@ -295,6 +295,66 @@ function FeatureList() {
 }
 ```
 
+### SupaFeature Component
+
+A declarative component for rendering different UI based on boolean feature flag values.
+
+```tsx
+<SupaFeature
+  feature="feature-name"
+  loading={<Skeleton />}
+  variations={{
+    true: <ComponentA />,
+    false: <ComponentB />,
+  }}
+/>
+```
+
+**Props:**
+
+| Prop          | Type                                    | Required | Description                                                      |
+| ------------- | --------------------------------------- | -------- | ---------------------------------------------------------------- |
+| `feature`     | `string`                                | Yes      | The feature flag key to evaluate                                 |
+| `variations`  | `{ true: ReactNode, false: ReactNode }` | Yes      | Components to render for true/false values                       |
+| `loading`     | `ReactNode`                             | No       | Component to render while loading                                |
+| `fallback`    | `ReactNode`                             | No       | Component to render when feature value is neither true nor false |
+| `context`     | `Record<string, unknown>`               | No       | Context override for this feature                                |
+| `shouldFetch` | `boolean`                               | No       | Whether to fetch the feature (default: true)                     |
+
+**Examples:**
+
+```tsx
+// Simple boolean feature flag
+function Header() {
+  return (
+    <SupaFeature
+      feature="new-header"
+      loading={<HeaderSkeleton />}
+      variations={{
+        true: <NewHeader />,
+        false: <OldHeader />,
+      }}
+    />
+  )
+}
+
+// With context
+function UserDashboard() {
+  const { user } = useAuth()
+
+  return (
+    <SupaFeature
+      feature="beta-dashboard"
+      context={{ userId: user.id, plan: user.plan }}
+      variations={{
+        true: <BetaDashboard />,
+        false: <StandardDashboard />,
+      }}
+    />
+  )
+}
+```
+
 ### useFeatureContext Hook
 
 Access and update the feature context within components.
