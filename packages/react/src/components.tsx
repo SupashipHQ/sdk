@@ -22,14 +22,17 @@ export interface SupaFeatureProps {
   shouldFetch?: boolean
 
   /**
-   * Variations object mapping feature values/keys to JSX elements
+   * Variations object mapping "true" or "false" to JSX elements
    */
-  variations: Record<string, ReactNode>
+  variations: {
+    true: ReactNode
+    false: ReactNode
+  }
 
   /**
-   * Key in variations object to use for loading state
+   * Component to render during loading state
    */
-  loading?: string
+  loading?: ReactNode
 }
 
 /**
@@ -40,10 +43,10 @@ export interface SupaFeatureProps {
  * ```tsx
  * <SupaFeature
  *   feature="new-header"
+ *   loading={<HeaderSkeleton />}
  *   variations={{
- *     "true": <NewHeader />,
- *     "false": <OldHeader />,
- *     loading: <HeaderSkeleton />
+ *     true: <NewHeader />,
+ *     false: <OldHeader />
  *   }}
  * />
  * ```
@@ -61,26 +64,20 @@ export function SupaFeature({
   })
 
   // Show loading state if provided and currently loading
-  if (isLoading && loading && variations[loading]) {
-    return <>{variations[loading]}</>
-  }
-
-  // Don't render anything if still loading and no loader provided
   if (isLoading) {
-    return null
+    return loading ? <>{loading}</> : null
   }
 
-  // Don't render anything if no feature value (client config should provide defaults)
-  if (!hasValue(featureValue)) {
-    return null
-  }
-
-  // Convert feature value to string for object key lookup
+  // Convert feature value to boolean string for lookup
   const valueKey = String(featureValue)
 
-  // Find matching variation by exact key match
-  if (variations[valueKey]) {
-    return <>{variations[valueKey]}</>
+  // Match "true" or "false" variations
+  if (variations.true && valueKey === 'true') {
+    return <>{variations.true}</>
+  }
+
+  if (variations.false && (valueKey === 'false' || !hasValue(featureValue))) {
+    return <>{variations.false}</>
   }
 
   // Don't render anything if no variation matches
