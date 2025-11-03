@@ -1,0 +1,57 @@
+{
+  "name": "@supashiphq/openfeature-js-provider",
+  "version": "0.1.0",
+  "description": "OpenFeature provider for Supaship feature flags",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "pnpm clean && pnpm build:tsup",
+    "build:tsup": "tsup",
+    "clean": "rimraf dist",
+    "test": "jest",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint src --ext .ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "openfeature",
+    "feature-flags",
+    "feature-toggles",
+    "supaship",
+    "provider"
+  ],
+  "author": "Supaship",
+  "license": "MIT",
+  "peerDependencies": {
+    "@openfeature/server-sdk": "^1.0.0"
+  },
+  "dependencies": {
+    "@supashiphq/javascript-sdk": "workspace:*"
+  },
+  "devDependencies": {
+    "@openfeature/server-sdk": "^1.15.0",
+    "@types/jest": "^29.5.0",
+    "@types/node": "^20.0.0",
+    "jest": "^29.5.0",
+    "rimraf": "^5.0.0",
+    "ts-jest": "^29.1.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.3.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/supashiphq/sdk.git",
+    "directory": "packages/openfeature-js"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

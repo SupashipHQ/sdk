@@ -6,8 +6,15 @@ A collection of SDKs for Supaship that provides feature flag management for vari
 
 This monorepo contains the following packages:
 
+### Core SDKs
+
 - [@supashiphq/javascript-sdk](./packages/javascript/README.md) - Core JavaScript SDK for feature flag management
 - [@supashiphq/react-sdk](./packages/react/README.md) - React SDK (hooks and components)
+
+### OpenFeature Providers
+
+- [@supashiphq/openfeature-js-provider](./packages/openfeature-js/README.md) - OpenFeature provider for JavaScript/TypeScript
+- [@supashiphq/openfeature-react-provider](./packages/openfeature-react/README.md) - OpenFeature provider for React
 
 More packages will be added in the future to support additional platforms and frameworks.
 
