@@ -26,7 +26,7 @@ export interface SupaFeatureProps {
    */
   variations: {
     true: ReactNode
-    false: ReactNode
+    false?: ReactNode
   }
 
   /**
