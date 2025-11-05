@@ -1,0 +1,68 @@
+{
+  "name": "@supashiphq/vue-sdk",
+  "version": "0.7.8",
+  "description": "Supaship SDK for Vue 3",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "clean": "rimraf dist",
+    "build": "pnpm clean && pnpm build:tsup",
+    "build:tsup": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest",
+    "test:watch": "vitest --watch",
+    "test:coverage": "vitest --coverage",
+    "lint": "eslint src --ext .ts,.vue",
+    "lint:fix": "eslint src --ext .ts,.vue --fix",
+    "prepublishOnly": "pnpm build"
+  },
+  "peerDependencies": {
+    "vue": ">=3.3.0"
+  },
+  "dependencies": {
+    "@supashiphq/javascript-sdk": "workspace:^0.7.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@vitejs/plugin-vue": "^5.0.0",
+    "@vue/test-utils": "^2.4.0",
+    "@vitest/coverage-v8": "^1.0.0",
+    "eslint": "^8.0.0",
+    "happy-dom": "^12.10.0",
+    "rimraf": "^6.0.1",
+    "tsup": "^8.0.0",
+    "typescript": "~5.3.3",
+    "vitest": "^1.0.0"
+  },
+  "keywords": [
+    "feature-flags",
+    "feature-toggles",
+    "vue",
+    "vue3",
+    "sdk"
+  ],
+  "author": "Supaship",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/supashiphq/sdk.git",
+    "directory": "packages/vue"
+  },
+  "bugs": {
+    "url": "https://github.com/supashiphq/sdk/issues"
+  },
+  "homepage": "https://supaship.com"
+}
