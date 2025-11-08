@@ -263,10 +263,12 @@ export class SupaToolbarPlugin implements SupaPlugin {
     const searchId = `supaship-search-input-${this.clientId}`
     const clearId = `supaship-clear-all-${this.clientId}`
     const contentId = `supaship-toolbar-content-${this.clientId}`
+    const badgeId = `supaship-toolbar-badge-${this.clientId}`
+    const headerOverrideCountId = `supaship-header-override-count-${this.clientId}`
 
     return `
       <div class="supaship-toolbar-container ${positionClass}" style="--offset-x: ${offsetX}; --offset-y: ${offsetY};">
-        <button class="supaship-toolbar-toggle" id="${toggleId}" aria-label="Toggle feature flags">
+        <button class="supaship-toolbar-toggle" id="${toggleId}" aria-label="Supaship Toolbar" title="Supaship Toolbar">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 256 256"
@@ -304,6 +306,7 @@ export class SupaToolbarPlugin implements SupaPlugin {
               stroke-linejoin="round"
               stroke-width="16"></line>
           </svg>
+          <span class="supaship-toolbar-badge" id="${badgeId}"></span>
         </button>
         <div class="supaship-toolbar-panel" id="${panelId}">
           <div class="supaship-toolbar-header">
@@ -313,6 +316,7 @@ export class SupaToolbarPlugin implements SupaPlugin {
               id="${searchId}"
               placeholder="Search features"
             />
+            <span class="supaship-toolbar-overrides-label" id="${headerOverrideCountId}">0 overrides</span>
             <button
               class="supaship-header-btn"
               id="${clearId}"
@@ -392,6 +396,29 @@ export class SupaToolbarPlugin implements SupaPlugin {
         box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
       }
 
+      .supaship-toolbar-badge {
+        position: absolute;
+        top: -4px;
+        right: -4px;
+        background: #ef4444;
+        color: white;
+        font-size: 10px;
+        font-weight: 600;
+        min-width: 18px;
+        height: 18px;
+        border-radius: 9px;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 0 5px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        pointer-events: none;
+      }
+
+      .supaship-toolbar-badge.show {
+        display: flex;
+      }
+
       .supaship-toolbar-panel {
         position: absolute;
         bottom: 48px;
@@ -430,10 +457,13 @@ export class SupaToolbarPlugin implements SupaPlugin {
         padding: 12px;
         border-bottom: 1px solid #333;
         background: #0f0f0f;
+        min-width: 0;
+        overflow: hidden;
       }
 
       .supaship-search-input {
         flex: 1;
+        min-width: 0;
         background: transparent;
         border: none;
         color: #e5e5e5;
@@ -468,7 +498,8 @@ export class SupaToolbarPlugin implements SupaPlugin {
         flex: 1;
         overflow-y: auto;
         padding: 8px;
-        min-height: 200px;
+        min-height: 300px;
+        max-height: 300px;
       }
 
       .supaship-toolbar-empty {
@@ -500,6 +531,39 @@ export class SupaToolbarPlugin implements SupaPlugin {
         font-size: 13px;
         flex: 1;
         min-width: 0;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .supaship-feature-override-indicator {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #ef4444;
+        flex-shrink: 0;
+      }
+
+      .supaship-toolbar-overrides-label {
+        font-size: 12px;
+        color: #888;
+        white-space: nowrap;
+        flex-shrink: 0;
+        transition: all 0.2s;
+      }
+
+      .supaship-toolbar-overrides-label-count.has-overrides {
+        background: #ef4444;
+        color: white;
+        font-size: 10px;
+        font-weight: 600;
+        min-width: 18px;
+        height: 18px;
+        border-radius: 9px;
+        padding: 2px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
       }
 
       .supaship-feature-actions {
@@ -804,19 +868,58 @@ export class SupaToolbarPlugin implements SupaPlugin {
 
     const contentId = `supaship-toolbar-content-${this.clientId}`
     const clearId = `supaship-clear-all-${this.clientId}`
+    const badgeId = `supaship-toolbar-badge-${this.clientId}`
+    const headerOverrideCountId = `supaship-header-override-count-${this.clientId}`
+    const toggleId = `supaship-toolbar-toggle-${this.clientId}`
 
     const content = document.getElementById(contentId)
     const clearAllBtn = document.getElementById(clearId) as HTMLButtonElement
+    const badge = document.getElementById(badgeId)
+    const headerOverrideCount = document.getElementById(headerOverrideCountId)
+    const toggleBtn = document.getElementById(toggleId) as HTMLButtonElement
 
     if (!content) {
       console.warn('[Toolbar] Content element not found:', contentId)
       return
     }
 
-    // Update clear all button state
-    const hasOverrides = Object.keys(this.state.overrides).length > 0
+    // Update clear all button state and badge
+    const overrideCount = Object.keys(this.state.overrides).length
+    const hasOverrides = overrideCount > 0
     if (clearAllBtn) {
       clearAllBtn.disabled = !hasOverrides
+    }
+
+    // Update badge on toggle button
+    if (badge) {
+      if (hasOverrides) {
+        badge.textContent = overrideCount > 99 ? '99+' : String(overrideCount)
+        badge.classList.add('show')
+      } else {
+        badge.classList.remove('show')
+      }
+    }
+
+    // Update tooltip on toggle button
+    if (toggleBtn) {
+      if (hasOverrides) {
+        toggleBtn.setAttribute(
+          'title',
+          `Supaship Toolbar, ${overrideCount} override${overrideCount === 1 ? '' : 's'}`
+        )
+        toggleBtn.setAttribute(
+          'aria-label',
+          `Supaship Toolbar, ${overrideCount} override${overrideCount === 1 ? '' : 's'}`
+        )
+      } else {
+        toggleBtn.setAttribute('title', 'Supaship Toolbar')
+        toggleBtn.setAttribute('aria-label', 'Supaship Toolbar')
+      }
+    }
+
+    // Update override count in header
+    if (headerOverrideCount) {
+      headerOverrideCount.innerHTML = `<span class="supaship-toolbar-overrides-label-count ${hasOverrides ? 'has-overrides' : ''}">${overrideCount}</span> override${overrideCount === 1 ? '' : 's'}`
     }
 
     const features = Array.from(this.state.features).sort()
@@ -851,7 +954,10 @@ export class SupaToolbarPlugin implements SupaPlugin {
           return `
           <div class="${itemClass}">
             <div class="supaship-feature-row">
-              <span class="supaship-feature-name">${this.escapeHtml(featureName)}</span>
+              <span class="supaship-feature-name">
+                ${this.escapeHtml(featureName)}
+                ${hasOverride ? '<span class="supaship-feature-override-indicator" title="Serving local override"></span>' : ''}
+              </span>
               <div class="supaship-feature-actions">
                 ${
                   hasOverride
@@ -898,7 +1004,10 @@ export class SupaToolbarPlugin implements SupaPlugin {
           return `
           <div class="${itemClass}">
             <div class="supaship-feature-row">
-              <span class="supaship-feature-name">${escapedFeatureName}</span>
+              <span class="supaship-feature-name">
+                ${escapedFeatureName}
+                ${hasOverride ? '<span class="supaship-feature-override-indicator" title="Serving local override"></span>' : ''}
+              </span>
               <div class="supaship-feature-actions">
                 ${
                   hasOverride
