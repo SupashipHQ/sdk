@@ -42,7 +42,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/supashiphq/sdk.git",
+    "url": "git+https://github.com/supashiphq/sdk.git",
     "directory": "packages/javascript"
   },
   "bugs": {
