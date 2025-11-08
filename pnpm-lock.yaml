@@ -81,7 +81,7 @@ importers:
   packages/react:
     dependencies:
       '@supashiphq/javascript-sdk':
-        specifier: workspace:^0.7.11
+        specifier: workspace:^0.7.12
         version: link:../javascript
       react:
         specifier: '>=16.8.0'
@@ -142,7 +142,7 @@ importers:
   packages/vue:
     dependencies:
       '@supashiphq/javascript-sdk':
-        specifier: workspace:^0.7.11
+        specifier: workspace:^0.7.12
         version: link:../javascript
       vue:
         specifier: '>=3.3.0'
