@@ -776,7 +776,7 @@ export class SupaToolbarPlugin implements SupaPlugin {
           this.removeOverride(featureName)
         } else if (action === 'set') {
           const textarea = content.querySelector(
-            `textarea[data-feature="${featureName}"]`
+            `textarea[data-feature="${this.escapeCssSelector(featureName)}"]`
           ) as HTMLTextAreaElement
           if (textarea && textarea.value.trim()) {
             try {
@@ -807,7 +807,7 @@ export class SupaToolbarPlugin implements SupaPlugin {
           const featureName = target.dataset.feature!
           const originalValue = target.dataset.original || ''
           const overrideBtn = content.querySelector(
-            `button[data-action="set"][data-feature="${featureName}"]`
+            `button[data-action="set"][data-feature="${this.escapeCssSelector(featureName)}"]`
           ) as HTMLButtonElement
 
           if (overrideBtn) {
@@ -850,7 +850,7 @@ export class SupaToolbarPlugin implements SupaPlugin {
           e.preventDefault()
           const featureName = target.dataset.feature!
           const overrideBtn = content.querySelector(
-            `button[data-action="set"][data-feature="${featureName}"]`
+            `button[data-action="set"][data-feature="${this.escapeCssSelector(featureName)}"]`
           ) as HTMLButtonElement
 
           if (overrideBtn && !overrideBtn.disabled) {
@@ -919,7 +919,9 @@ export class SupaToolbarPlugin implements SupaPlugin {
 
     // Update override count in header
     if (headerOverrideCount) {
-      headerOverrideCount.innerHTML = `<span class="supaship-toolbar-overrides-label-count ${hasOverrides ? 'has-overrides' : ''}">${overrideCount}</span> override${overrideCount === 1 ? '' : 's'}`
+      // Escape overrideCount to prevent any potential XSS (defense in depth)
+      const escapedCount = this.escapeHtml(String(overrideCount))
+      headerOverrideCount.innerHTML = `<span class="supaship-toolbar-overrides-label-count ${hasOverrides ? 'has-overrides' : ''}">${escapedCount}</span> override${overrideCount === 1 ? '' : 's'}`
     }
 
     const features = Array.from(this.state.features).sort()
@@ -1058,7 +1060,7 @@ export class SupaToolbarPlugin implements SupaPlugin {
         const featureName = textareaElement.dataset.feature!
         const originalValue = textareaElement.dataset.original || ''
         const overrideBtn = content.querySelector(
-          `button[data-action="set"][data-feature="${featureName}"]`
+          `button[data-action="set"][data-feature="${this.escapeCssSelector(featureName)}"]`
         ) as HTMLButtonElement
 
         if (overrideBtn) {
@@ -1086,5 +1088,14 @@ export class SupaToolbarPlugin implements SupaPlugin {
       }
       return escapeMap[char]
     })
+  }
+
+  /**
+   * Escapes special characters in CSS attribute selectors to prevent CSS injection
+   * @param value The value to escape for use in CSS attribute selectors
+   */
+  private escapeCssSelector(value: string): string {
+    // Escape special CSS selector characters: ", ', ], \
+    return value.replace(/["'\\\]]/g, '\\$&')
   }
 }
