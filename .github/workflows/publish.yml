@@ -3,14 +3,17 @@ name: Publish to NPM
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Tag to publish (e.g., v1.0.0)'
+        description: "Tag to publish (e.g., v1.0.0)"
         required: true
         type: string
 
+permissions:
+  id-token: write # Required for OIDC
+  contents: read
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -32,11 +35,9 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          registry-url: 'https://registry.npmjs.org'
-          cache: 'pnpm'
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+          cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -126,8 +127,6 @@ jobs:
 
           # Process packages in the defined order (javascript first, then react)
           process_packages_in_order "publish"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
 
       - name: Publication Summary
         run: |
