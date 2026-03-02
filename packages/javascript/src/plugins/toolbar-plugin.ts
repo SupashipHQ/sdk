@@ -274,37 +274,37 @@ export class SupaToolbarPlugin implements SupaPlugin {
             viewBox="0 0 256 256"
             width="24"
             style="vertical-align: middle;">
-            <rect width="256" height="256" rx="16" fill="none"></rect>
+            <rect width='256' height='256' rx='128' fill='#e4f222'></rect>
             <line
-              x1="40"
-              y1="128"
-              x2="128"
-              y2="40"
-              fill="none"
-              stroke="currentColor"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="16"></line>
+              x1='66'
+              y1='118'
+              x2='118'
+              y2='66'
+              fill='none'
+              stroke='#000'
+              stroke-linecap='round'
+              stroke-linejoin='round'
+              stroke-width='24'></line>
             <line
-              x1="216"
-              y1="40"
-              x2="40"
-              y2="216"
-              fill="none"
-              stroke="currentColor"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="16"></line>
+              x1='186'
+              y1='70'
+              x2='70'
+              y2='186'
+              fill='none'
+              stroke='#000'
+              stroke-linecap='round'
+              stroke-linejoin='round'
+              stroke-width='24'></line>
             <line
-              x1="216"
-              y1="128"
-              x2="128"
-              y2="216"
-              fill="none"
-              stroke="currentColor"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="16"></line>
+              x1='190'
+              y1='138'
+              x2='138'
+              y2='190'
+              fill='none'
+              stroke='#000'
+              stroke-linecap='round'
+              stroke-linejoin='round'
+              stroke-width='24'></line>
           </svg>
           <span class="supaship-toolbar-badge" id="${badgeId}"></span>
         </button>

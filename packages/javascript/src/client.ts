@@ -240,7 +240,6 @@ export class SupaClient<TFeatures extends FeaturesWithFallbacks> {
           Authorization: `Bearer ${this.apiKey}`,
         }
         const body = JSON.stringify({
-          apiKey: this.apiKey,
           environment: this.environment,
           features: featureNamesArray,
           context: mergedContext,
