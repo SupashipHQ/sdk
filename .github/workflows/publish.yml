@@ -40,6 +40,11 @@ jobs:
           registry-url: "https://registry.npmjs.org"
           cache: "pnpm"
 
+      - name: Verify Node and npm versions
+        run: |
+          echo "Node: $(node -v)"
+          echo "npm:  $(npm -v)"
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -60,10 +65,24 @@ jobs:
           fi
           echo "✅ OIDC token context detected"
 
-          # Force npm to use OIDC trusted publishing, not token auth.
-          unset NODE_AUTH_TOKEN
-          unset NPM_TOKEN
-          npm config delete //registry.npmjs.org/:_authToken || true
+          # Trusted publishing requires npm >= 11.5.1
+          REQUIRED_NPM_VERSION="11.5.1"
+          CURRENT_NPM_VERSION="$(npm -v)"
+          if ! node -e "
+            const current = process.argv[1].split('.').map(Number);
+            const required = process.argv[2].split('.').map(Number);
+            for (let i = 0; i < Math.max(current.length, required.length); i++) {
+              const c = current[i] || 0;
+              const r = required[i] || 0;
+              if (c > r) process.exit(0);
+              if (c < r) process.exit(1);
+            }
+            process.exit(0);
+          " "$CURRENT_NPM_VERSION" "$REQUIRED_NPM_VERSION"; then
+            echo "❌ npm $CURRENT_NPM_VERSION is too old for trusted publishing (requires >= $REQUIRED_NPM_VERSION)."
+            exit 1
+          fi
+          echo "✅ npm version is compatible: $CURRENT_NPM_VERSION"
 
           # Determine release type and extract prerelease identifier
           # Use manual input tag if provided, otherwise use the pushed tag
@@ -125,10 +144,10 @@ jobs:
               
               if [ "$RELEASE_TYPE" = "prerelease" ]; then
                 echo "🧪 Publishing $PACKAGE_NAME@$PACKAGE_VERSION as prerelease with @$PUBLISH_TAG tag..."
-                npm publish --access public --tag "$PUBLISH_TAG" --provenance
+                npm publish --access public --tag "$PUBLISH_TAG"
               else
                 echo "📦 Publishing $PACKAGE_NAME@$PACKAGE_VERSION as stable release..."
-                npm publish --access public --provenance
+                npm publish --access public
               fi
               echo "✅ Successfully published $PACKAGE_NAME@$PACKAGE_VERSION ($RELEASE_TYPE)"
             fi
