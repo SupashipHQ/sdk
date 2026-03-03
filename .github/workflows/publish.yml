@@ -12,8 +12,9 @@ on:
         type: string
 
 permissions:
-  id-token: write # Required for OIDC
   contents: read
+  id-token: write # Required for OIDC
+
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -23,7 +24,7 @@ jobs:
       id-token: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.event.inputs.tag || github.ref }}
 
@@ -33,9 +34,8 @@ jobs:
           version: latest
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: "20"
           registry-url: "https://registry.npmjs.org"
           cache: "pnpm"
 
@@ -50,9 +50,14 @@ jobs:
           # Source the shared package configuration
           source .github/scripts/package-config.sh
 
-          # Verify npm authentication
-          echo "🔐 Verifying npm authentication..."
-          npm whoami
+          # Verify OIDC context for npm trusted publishing.
+          # `npm whoami` requires token-based auth and fails with OIDC-only setup.
+          echo "🔐 Verifying OIDC context for npm trusted publishing..."
+          if [ -z "$ACTIONS_ID_TOKEN_REQUEST_URL" ] || [ -z "$ACTIONS_ID_TOKEN_REQUEST_TOKEN" ]; then
+            echo "❌ GitHub OIDC token context not available."
+            exit 1
+          fi
+          echo "✅ OIDC token context detected"
 
           # Determine release type and extract prerelease identifier
           # Use manual input tag if provided, otherwise use the pushed tag
