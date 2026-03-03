@@ -26,6 +26,7 @@ export class SupaClient<TFeatures extends FeaturesWithFallbacks> {
   private plugins: SupaPlugin[]
   private featureDefinitions: Features<TFeatures>
   private clientId: string
+  private sensitiveContextProperties: Set<string>
 
   private fetchImpl: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
   private networkConfig: ResolvedNetworkConfig
@@ -35,6 +36,7 @@ export class SupaClient<TFeatures extends FeaturesWithFallbacks> {
     this.environment = config.environment
     this.defaultContext = config.context
     this.featureDefinitions = config.features as Features<TFeatures>
+    this.sensitiveContextProperties = new Set(config.sensitiveContextProperties ?? [])
 
     // Generate unique client ID
     this.clientId = this.generateClientId()
@@ -78,6 +80,52 @@ export class SupaClient<TFeatures extends FeaturesWithFallbacks> {
         })
       )
     ).catch(console.error)
+  }
+
+  /**
+   * Hashes configured sensitive context fields before sending requests.
+   */
+  private async hashSensitiveContext(
+    context?: FeatureContext
+  ): Promise<FeatureContext | undefined> {
+    if (!context || this.sensitiveContextProperties.size === 0) {
+      return context
+    }
+
+    const transformedContext = { ...context }
+    const sensitiveEntries = Object.entries(context).filter(([key]) =>
+      this.sensitiveContextProperties.has(key)
+    )
+
+    for (const [key, value] of sensitiveEntries) {
+      if (value === null || value === undefined) {
+        continue
+      }
+
+      transformedContext[key] = await this.hashStringValue(String(value))
+    }
+
+    return transformedContext
+  }
+
+  private async hashStringValue(value: string): Promise<string> {
+    const subtleCrypto = (globalThis as unknown as { crypto?: { subtle?: SubtleCrypto } }).crypto
+      ?.subtle
+    const subtleAlgorithm = 'SHA-256'
+
+    if (subtleCrypto && typeof TextEncoder !== 'undefined') {
+      const digest = await subtleCrypto.digest(subtleAlgorithm, new TextEncoder().encode(value))
+      return this.toHexString(digest)
+    }
+
+    const { createHash } = await import('node:crypto')
+    return createHash('sha256').update(value).digest('hex')
+  }
+
+  private toHexString(buffer: ArrayBuffer): string {
+    return Array.from(new Uint8Array(buffer))
+      .map(byte => byte.toString(16).padStart(2, '0'))
+      .join('')
   }
 
   /**
@@ -239,10 +287,11 @@ export class SupaClient<TFeatures extends FeaturesWithFallbacks> {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${this.apiKey}`,
         }
+        const requestContext = await this.hashSensitiveContext(mergedContext)
         const body = JSON.stringify({
           environment: this.environment,
           features: featureNamesArray,
-          context: mergedContext,
+          context: requestContext,
         })
 
         // Notify plugins before request
