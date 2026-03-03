@@ -32,7 +32,7 @@ function App() {
         environment: 'production',
         features,
         context: {
-          userID: '123',
+          userId: '123',
           email: 'user@example.com',
         },
       }}
@@ -129,7 +129,7 @@ const config = {
   }),
   context: {
     // Optional: targeting context
-    userID: 'user-123',
+    userId: 'user-123',
     email: 'user@example.com',
     plan: 'premium',
   },

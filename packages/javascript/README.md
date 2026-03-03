@@ -33,7 +33,7 @@ const client = new SupaClient({
   environment: 'production',
   features,
   context: {
-    userID: '123',
+    userId: '123',
     email: 'user@example.com',
     plan: 'premium',
   },
@@ -197,7 +197,7 @@ const theme = await client.getFeature('theme-config')
 
 // With context override
 const darkMode = await client.getFeature('dark-mode', {
-  context: { userID: '123', plan: 'premium' },
+  context: { userId: '123', plan: 'premium' },
 })
 ```
 
@@ -239,7 +239,7 @@ const results = await client.getFeatures(['new-ui', 'premium-content'])
 
 // With context override
 const results = await client.getFeatures(['new-ui', 'beta-mode'], {
-  context: { userID: '123', plan: 'premium' },
+  context: { userId: '123', plan: 'premium' },
 })
 ```
 
@@ -260,10 +260,10 @@ updateContext(context: FeatureContext, mergeWithExisting?: boolean): void
 
 ```typescript
 // Merge with existing context
-client.updateContext({ userID: '456' })
+client.updateContext({ userId: '456' })
 
 // Replace entire context
-client.updateContext({ userID: '456', newField: 'value' }, false)
+client.updateContext({ userId: '456', newField: 'value' }, false)
 ```
 
 ##### getContext()
@@ -303,7 +303,7 @@ interface FeatureContext {
 
 Common context properties:
 
-- `userID`: User identifier
+- `userId`: User identifier
 - `email`: User email
 - `plan`: Membership plan (e.g., 'premium', 'free')
 - `version`: Application version (e.g., 1.0.0)
@@ -386,7 +386,7 @@ const client = new SupaClient({
   environment: 'production',
   features,
   context: {
-    userID: user.id,
+    userId: user.id,
     email: user.email,
     plan: user.subscriptionPlan,
     version: process.env.APP_VERSION!,
@@ -396,7 +396,7 @@ const client = new SupaClient({
 // Update context when user state changes
 function onUserLogin(user) {
   client.updateContext({
-    userID: user.id,
+    userId: user.id,
     email: user.email,
     plan: user.plan,
   })
@@ -519,7 +519,7 @@ app.get('/api/config', async (req, res) => {
 app.get('/api/user-features/:userId', async (req, res) => {
   const results = await featureClient.getFeatures(['new-api', 'cache-enabled'], {
     context: {
-      userID: req.params.userId,
+      userId: req.params.userId,
       plan: req.user.plan,
       region: req.headers['cloudfront-viewer-country'],
     },
@@ -604,7 +604,7 @@ export class FeatureFlagService {
       environment: 'production',
       features,
       context: {
-        userID: this.getCurrentUserId(),
+        userId: this.getCurrentUserId(),
         version: environment.version,
       },
     })
@@ -623,7 +623,7 @@ export class FeatureFlagService {
   }
 
   private getCurrentUserId(): string {
-    return localStorage.getItem('userID') || 'anonymous'
+    return localStorage.getItem('userId') || 'anonymous'
   }
 }
 

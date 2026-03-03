@@ -22,7 +22,7 @@ const client = new SupaClient({
   apiKey: 'api-key',
   environment: 'production',
   context: {
-    userID: '123',
+    userId: '123',
     version: '1.0.1',
   },
 })
@@ -37,7 +37,7 @@ const features = await client.getFeatures({
     feature2: true,
   },
   context: {
-    userID: '123',
+    userId: '123',
   },
 })
 ```
