@@ -395,7 +395,6 @@ export class SupaToolbarPlugin implements SupaPlugin {
         width: 36px;
         height: 36px;
         border-radius: 100%;
-        background: #000;
         border: none;
         color: white;
         cursor: pointer;
@@ -1044,8 +1043,11 @@ export class SupaToolbarPlugin implements SupaPlugin {
                       data-action="remove"
                       title="Reset to default"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="14" height="14">
-                        <path d="M240,56v48a8,8,0,0,1-8,8H184a8,8,0,0,1,0-16H211.4L184.81,71.64l-.25-.24a80,80,0,1,0-1.67,114.78,8,8,0,0,1,11,11.63A95.44,95.44,0,0,1,128,224h-1.32A96,96,0,1,1,195.75,60L224,85.8V56a8,8,0,1,1,16,0Z" fill="currentColor"/>
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                        <path d="M3 3v5h5"/>
+                        <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+                        <path d="M16 16h5v5"/>
                       </svg>
                     </button>
                   `
