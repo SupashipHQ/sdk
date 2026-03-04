@@ -121,20 +121,39 @@ new SupaClient(config: SupaClientConfig)
 
 **Configuration Options:**
 
-| Option          | Type                    | Required | Description                                                     |
-| --------------- | ----------------------- | -------- | --------------------------------------------------------------- |
-| `apiKey`        | `string`                | Yes      | Your Supaship API key (Project Settings -> API Keys)            |
-| `environment`   | `string`                | Yes      | Environment slug (e.g., `production`, `staging`, `development`) |
-| `features`      | `FeaturesWithFallbacks` | Yes      | Feature definitions with fallback values                        |
-| `context`       | `FeatureContext`        | Yes      | Default context for feature evaluation                          |
-| `networkConfig` | `NetworkConfig`         | No       | Network settings (endpoints, retry, timeout, custom fetch)      |
-| `plugins`       | `SupaPlugin[]`          | No       | Plugins for observability, caching, etc.                        |
+| Option                       | Type                    | Required | Description                                                                        |
+| ---------------------------- | ----------------------- | -------- | ---------------------------------------------------------------------------------- |
+| `apiKey`                     | `string`                | Yes      | Your Supaship API key (Project Settings -> API Keys)                               |
+| `environment`                | `string`                | Yes      | Environment slug (e.g., `production`, `staging`, `development`)                    |
+| `features`                   | `FeaturesWithFallbacks` | Yes      | Feature definitions with fallback values                                           |
+| `context`                    | `FeatureContext`        | Yes      | Default context for feature evaluation                                             |
+| `sensitiveContextProperties` | `string[]`              | No       | Hash sensitive context properties such as PII on the client before sending to Edge |
+| `networkConfig`              | `NetworkConfig`         | No       | Network settings (endpoints, retry, timeout, custom fetch)                         |
+| `plugins`                    | `SupaPlugin[]`          | No       | Plugins for observability, caching, etc.                                           |
 
 **Feature Context:**
 
 | Field           | Type                               | Description                                 |
 | --------------- | ---------------------------------- | ------------------------------------------- |
 | `[key: string]` | `string` `number` `boolean` `null` | Key value pairs for feature flag evaluation |
+
+**Privacy / PII hashing (client-side):**
+
+Use `sensitiveContextProperties` to hash selected context property values on the client before requests are sent to Edge.
+
+```typescript
+const client = new SupaClient({
+  apiKey: 'your-api-key',
+  environment: 'production',
+  features,
+  context: {
+    userID: 'user-123',
+    email: 'user@example.com',
+    plan: 'premium',
+  },
+  sensitiveContextProperties: ['email', 'userID'],
+})
+```
 
 **Network Configuration:**
 

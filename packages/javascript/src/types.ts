@@ -25,6 +25,11 @@ export interface SupaClientConfig {
    */
   context: FeatureContext
   /**
+   * Optional privacy controls for hashing sensitive context fields before sending
+   * requests to Supaship APIs.
+   */
+  sensitiveContextProperties?: string[]
+  /**
    * Optional network configuration allowing you to override API endpoints.
    * If omitted, defaults are used.
    */
@@ -43,6 +48,7 @@ export interface SupaClientConfig {
    */
   toolbar?: false | SupaToolbarPluginConfig
 }
+
 export interface FeatureContext {
   [key: string]: string | number | boolean | null | undefined
 }

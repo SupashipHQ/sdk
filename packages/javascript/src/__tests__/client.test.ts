@@ -1,6 +1,7 @@
 import { SupaClient } from '../client'
 import { FeatureContext, FeaturesWithFallbacks } from '../types'
 import '../types/jest.d.ts'
+import { createHash } from 'node:crypto'
 
 // Mock Response type for fetch
 interface MockResponse {
@@ -377,6 +378,70 @@ describe('SupaClient', () => {
       expect(mockPlugin.afterGetFeatures).toHaveBeenCalled()
       expect(mockPlugin.beforeRequest).toHaveBeenCalled()
       expect(mockPlugin.afterResponse).toHaveBeenCalled()
+    })
+
+    it('should hash configured sensitive context fields with sha256 by default', async (): Promise<void> => {
+      const mockFetch = jest.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ features: { feature1: { variation: 'true' } } }),
+      } as MockResponse)
+      const testClient = new SupaClient({
+        apiKey: mockApiKey,
+        environment: 'test-environment',
+        features: { feature1: null } satisfies FeaturesWithFallbacks,
+        context: {
+          email: 'user@example.com',
+          plan: 'pro',
+        },
+        sensitiveContextProperties: ['email'],
+        networkConfig: {
+          fetchFn: mockFetch,
+        },
+      })
+
+      await testClient.getFeatures(['feature1'])
+
+      expect(mockFetch).toHaveBeenCalledTimes(1)
+      const requestInit = mockFetch.mock.calls[0][1] as RequestInit
+      const requestBody = JSON.parse(requestInit.body as string) as { context: FeatureContext }
+      const expectedHashedEmail = createHash('sha256').update('user@example.com').digest('hex')
+
+      expect(requestBody.context).toEqual({
+        email: expectedHashedEmail,
+        plan: 'pro',
+      })
+    })
+
+    it('should always hash sensitive context fields with sha256', async (): Promise<void> => {
+      const mockFetch = jest.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ features: { feature1: { variation: 'true' } } }),
+      } as MockResponse)
+      const testClient = new SupaClient({
+        apiKey: mockApiKey,
+        environment: 'test-environment',
+        features: { feature1: null } satisfies FeaturesWithFallbacks,
+        context: {
+          userId: 'abc-123',
+          cohort: 'beta',
+        },
+        sensitiveContextProperties: ['userId'],
+        networkConfig: {
+          fetchFn: mockFetch,
+        },
+      })
+
+      await testClient.getFeatures(['feature1'])
+
+      expect(mockFetch).toHaveBeenCalledTimes(1)
+      const requestInit = mockFetch.mock.calls[0][1] as RequestInit
+      const requestBody = JSON.parse(requestInit.body as string) as { context: FeatureContext }
+      const expectedHashedUserId = createHash('sha256').update('abc-123').digest('hex')
+
+      expect(requestBody.context).toEqual({
+        userId: expectedHashedUserId,
+        cohort: 'beta',
+      })
     })
   })
 

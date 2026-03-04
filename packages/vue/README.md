@@ -111,6 +111,8 @@ const config = {
     email: 'user@example.com',
     plan: 'premium',
   },
+  // Hash sensitive context properties such as PII on the client before sending to Edge
+  sensitiveContextProperties: ['email', 'userID'],
   networkConfig: {
     // Optional: network settings
     featuresAPIUrl: 'https://api.supashiphq.com/features',
@@ -123,6 +125,8 @@ const config = {
   },
 }
 ```
+
+> Privacy note: set `sensitiveContextProperties` to hash PII/sensitive context property values on the client before requests are sent to the Edge API.
 
 **Supported Feature Value Types:**
 
