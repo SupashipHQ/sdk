@@ -53,11 +53,7 @@ For framework-specific examples and detailed documentation, see:
 ```php
 <?php
 
-use Nyholm\Psr7\Factory\Psr17Factory;
 use Supaship\Sdk\SupaClient;
-use Symfony\Component\HttpClient\Psr18Client;
-
-$psr17 = new Psr17Factory();
 
 $client = SupaClient::fromArray(
     [
@@ -69,10 +65,7 @@ $client = SupaClient::fromArray(
         'context' => [
             'userId' => '123',
         ],
-    ],
-    new Psr18Client(),
-    $psr17,
-    $psr17
+    ]
 );
 
 $isEnabled = $client->getFeature('new-ui');

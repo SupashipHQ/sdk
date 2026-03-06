@@ -4,25 +4,13 @@ declare(strict_types=1);
 
 namespace Supaship\Sdk\Tests;
 
-use Nyholm\Psr7\Factory\Psr17Factory;
-use Nyholm\Psr7\Response;
 use PHPUnit\Framework\TestCase;
-use Psr\Http\Client\ClientExceptionInterface;
-use Psr\Http\Client\ClientInterface;
-use Psr\Http\Message\RequestInterface;
-use Psr\Http\Message\ResponseInterface;
 use Supaship\Sdk\Config\SupaClientConfig;
+use Supaship\Sdk\Exception\SdkException;
 use Supaship\Sdk\SupaClient;
 
 final class SupaClientTest extends TestCase
 {
-    private Psr17Factory $psr17Factory;
-
-    protected function setUp(): void
-    {
-        $this->psr17Factory = new Psr17Factory();
-    }
-
     public function testConfigDefaultsAreApplied(): void
     {
         $config = SupaClientConfig::fromArray([
@@ -43,7 +31,7 @@ final class SupaClientTest extends TestCase
     public function testGetFeatureReturnsVariation(): void
     {
         $client = $this->makeClientWithResponses(
-            [new Response(200, [], json_encode(['features' => ['new-ui' => ['variation' => true]]]))]
+            [['status' => 200, 'body' => json_encode(['features' => ['new-ui' => ['variation' => true]]])]]
         );
 
         self::assertTrue($client->getFeature('new-ui'));
@@ -52,7 +40,7 @@ final class SupaClientTest extends TestCase
     public function testGetFeaturesReturnsFallbackWhenVariationIsNull(): void
     {
         $client = $this->makeClientWithResponses(
-            [new Response(200, [], json_encode(['features' => ['new-ui' => ['variation' => null]]]))]
+            [['status' => 200, 'body' => json_encode(['features' => ['new-ui' => ['variation' => null]]])]]
         );
 
         $result = $client->getFeatures(['new-ui']);
@@ -61,7 +49,9 @@ final class SupaClientTest extends TestCase
 
     public function testUpdateContextMergesByDefault(): void
     {
-        $spy = new SpyHttpClient([new Response(200, [], json_encode(['features' => ['new-ui' => ['variation' => true]]]))]);
+        $spy = new SpyTransport([
+            ['status' => 200, 'body' => json_encode(['features' => ['new-ui' => ['variation' => true]]])],
+        ]);
         $client = $this->makeClient($spy, ['context' => ['userId' => '123', 'plan' => 'free']]);
 
         $client->updateContext(['plan' => 'pro']);
@@ -76,7 +66,7 @@ final class SupaClientTest extends TestCase
     public function testUpdateContextCanReplace(): void
     {
         $client = $this->makeClientWithResponses(
-            [new Response(200, [], json_encode(['features' => ['new-ui' => ['variation' => true]]]))],
+            [['status' => 200, 'body' => json_encode(['features' => ['new-ui' => ['variation' => true]]])]],
             ['context' => ['userId' => '123', 'plan' => 'free']]
         );
 
@@ -87,7 +77,9 @@ final class SupaClientTest extends TestCase
 
     public function testRequestContextOverrideIsMerged(): void
     {
-        $spy = new SpyHttpClient([new Response(200, [], json_encode(['features' => ['new-ui' => ['variation' => true]]]))]);
+        $spy = new SpyTransport([
+            ['status' => 200, 'body' => json_encode(['features' => ['new-ui' => ['variation' => true]]])],
+        ]);
         $client = $this->makeClient($spy);
 
         $client->getFeature('new-ui', ['context' => ['plan' => 'pro']]);
@@ -100,7 +92,9 @@ final class SupaClientTest extends TestCase
 
     public function testSensitiveContextPropertiesAreHashed(): void
     {
-        $spy = new SpyHttpClient([new Response(200, [], json_encode(['features' => ['new-ui' => ['variation' => true]]]))]);
+        $spy = new SpyTransport([
+            ['status' => 200, 'body' => json_encode(['features' => ['new-ui' => ['variation' => true]]])],
+        ]);
         $client = $this->makeClient($spy, ['sensitiveContextProperties' => ['email']]);
 
         $client->getFeature('new-ui');
@@ -114,9 +108,9 @@ final class SupaClientTest extends TestCase
     public function testRetryEnabledRetriesAndThenSucceeds(): void
     {
         $client = $this->makeClient(
-            new SequenceHttpClient([
-                new FakeClientException('temporary error'),
-                new Response(200, [], json_encode(['features' => ['new-ui' => ['variation' => true]]])),
+            new SequenceTransport([
+                new SdkException('temporary error'),
+                ['status' => 200, 'body' => json_encode(['features' => ['new-ui' => ['variation' => true]]])],
             ]),
             [
                 'networkConfig' => [
@@ -131,7 +125,7 @@ final class SupaClientTest extends TestCase
     public function testRetryDisabledReturnsFallbackOnFirstFailure(): void
     {
         $client = $this->makeClient(
-            new SequenceHttpClient([new FakeClientException('network error')]),
+            new SequenceTransport([new SdkException('network error')]),
             [
                 'networkConfig' => [
                     'retry' => ['enabled' => false, 'maxAttempts' => 3, 'backoff' => 0],
@@ -144,22 +138,23 @@ final class SupaClientTest extends TestCase
 
     public function testHttpErrorFallsBack(): void
     {
-        $client = $this->makeClientWithResponses([new Response(401, [], '{}')]);
+        $client = $this->makeClientWithResponses([['status' => 401, 'body' => '{}']]);
 
         self::assertFalse($client->getFeature('new-ui'));
     }
 
-    public function testTimeoutConfigIsAddedToRequestHeader(): void
+    public function testTimeoutConfigIsPassedToTransport(): void
     {
-        $spy = new SpyHttpClient([new Response(200, [], json_encode(['features' => ['new-ui' => ['variation' => true]]]))]);
+        $spy = new SpyTransport([
+            ['status' => 200, 'body' => json_encode(['features' => ['new-ui' => ['variation' => true]]])],
+        ]);
         $client = $this->makeClient($spy, [
             'networkConfig' => ['requestTimeoutMs' => 2500],
         ]);
 
         $client->getFeature('new-ui');
 
-        self::assertNotNull($spy->lastRequest);
-        self::assertSame('2500', $spy->lastRequest->getHeaderLine('X-Supaship-Timeout-Ms'));
+        self::assertSame(2500, $spy->lastTimeoutMs);
     }
 
     public function testGetFeatureFallbackReturnsDefinedFallback(): void
@@ -170,18 +165,18 @@ final class SupaClientTest extends TestCase
     }
 
     /**
-     * @param list<ResponseInterface|ClientExceptionInterface> $queue
+     * @param list<array{status: int, body: string}|\Throwable> $queue
      * @param array<string, mixed> $overrides
      */
     private function makeClientWithResponses(array $queue, array $overrides = []): SupaClient
     {
-        return $this->makeClient(new SequenceHttpClient($queue), $overrides);
+        return $this->makeClient(new SequenceTransport($queue), $overrides);
     }
 
     /**
      * @param array<string, mixed> $overrides
      */
-    private function makeClient(ClientInterface $httpClient, array $overrides = []): SupaClient
+    private function makeClient(callable $transport, array $overrides = []): SupaClient
     {
         $config = array_replace_recursive(
             [
@@ -198,36 +193,35 @@ final class SupaClientTest extends TestCase
             $overrides
         );
 
-        return SupaClient::fromArray(
-            $config,
-            $httpClient,
-            $this->psr17Factory,
-            $this->psr17Factory
-        );
+        return SupaClient::fromArray($config, $transport);
     }
 }
 
-final class SequenceHttpClient implements ClientInterface
+final class SequenceTransport
 {
-    /** @var list<ResponseInterface|ClientExceptionInterface> */
+    /** @var list<array{status: int, body: string}|\Throwable> */
     private array $queue;
 
     /**
-     * @param list<ResponseInterface|ClientExceptionInterface> $queue
+     * @param list<array{status: int, body: string}|\Throwable> $queue
      */
     public function __construct(array $queue)
     {
         $this->queue = $queue;
     }
 
-    public function sendRequest(RequestInterface $request): ResponseInterface
+    /**
+     * @param array<string, string> $headers
+     * @return array{status: int, body: string}
+     */
+    public function __invoke(string $url, array $headers, string $body, int $timeoutMs): array
     {
         if ($this->queue === []) {
-            return new Response(200, [], json_encode(['features' => []]));
+            return ['status' => 200, 'body' => (string) json_encode(['features' => []])];
         }
 
         $next = array_shift($this->queue);
-        if ($next instanceof ClientExceptionInterface) {
+        if ($next instanceof \Throwable) {
             throw $next;
         }
 
@@ -235,42 +229,46 @@ final class SequenceHttpClient implements ClientInterface
     }
 }
 
-final class SpyHttpClient implements ClientInterface
+final class SpyTransport
 {
-    /** @var list<ResponseInterface|ClientExceptionInterface> */
+    /** @var list<array{status: int, body: string}|\Throwable> */
     private array $queue;
-    public ?RequestInterface $lastRequest = null;
     /** @var array<string, mixed>|null */
     public ?array $lastPayload = null;
+    /** @var array<string, string>|null */
+    public ?array $lastHeaders = null;
+    public ?string $lastUrl = null;
+    public ?int $lastTimeoutMs = null;
 
     /**
-     * @param list<ResponseInterface|ClientExceptionInterface> $queue
+     * @param list<array{status: int, body: string}|\Throwable> $queue
      */
     public function __construct(array $queue)
     {
         $this->queue = $queue;
     }
 
-    public function sendRequest(RequestInterface $request): ResponseInterface
+    /**
+     * @param array<string, string> $headers
+     * @return array{status: int, body: string}
+     */
+    public function __invoke(string $url, array $headers, string $body, int $timeoutMs): array
     {
-        $this->lastRequest = $request;
-        $body = (string) $request->getBody();
+        $this->lastUrl = $url;
+        $this->lastHeaders = $headers;
+        $this->lastTimeoutMs = $timeoutMs;
         $decoded = json_decode($body, true);
         $this->lastPayload = is_array($decoded) ? $decoded : null;
 
         if ($this->queue === []) {
-            return new Response(200, [], json_encode(['features' => []]));
+            return ['status' => 200, 'body' => (string) json_encode(['features' => []])];
         }
 
         $next = array_shift($this->queue);
-        if ($next instanceof ClientExceptionInterface) {
+        if ($next instanceof \Throwable) {
             throw $next;
         }
 
         return $next;
     }
-}
-
-final class FakeClientException extends \RuntimeException implements ClientExceptionInterface
-{
 }

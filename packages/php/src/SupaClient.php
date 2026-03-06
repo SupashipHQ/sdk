@@ -4,11 +4,6 @@ declare(strict_types=1);
 
 namespace Supaship\Sdk;
 
-use Psr\Http\Client\ClientInterface;
-use Psr\Http\Client\ClientExceptionInterface;
-use Psr\Http\Message\RequestFactoryInterface;
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\StreamFactoryInterface;
 use Supaship\Sdk\Config\SupaClientConfig;
 use Supaship\Sdk\Exception\SdkException;
 use Supaship\Sdk\Support\Retry;
@@ -22,16 +17,17 @@ final class SupaClient
     private array $defaultContext;
     /** @var array<string, bool> */
     private array $sensitiveContextLookup;
+    /** @var callable(string, array<string, string>, string, int): array{status: int, body: string} */
+    private $transport;
 
     public function __construct(
         private readonly SupaClientConfig $config,
-        private readonly ClientInterface $httpClient,
-        private readonly RequestFactoryInterface $requestFactory,
-        private readonly StreamFactoryInterface $streamFactory
+        ?callable $transport = null
     ) {
         $this->featureDefinitions = $config->features;
         $this->defaultContext = $config->context;
         $this->sensitiveContextLookup = array_fill_keys($config->sensitiveContextProperties, true);
+        $this->transport = $transport ?? self::defaultTransport(...);
     }
 
     /**
@@ -49,18 +45,9 @@ final class SupaClient
      *   }
      * } $config
      */
-    public static function fromArray(
-        array $config,
-        ClientInterface $httpClient,
-        RequestFactoryInterface $requestFactory,
-        StreamFactoryInterface $streamFactory
-    ): self {
-        return new self(
-            SupaClientConfig::fromArray($config),
-            $httpClient,
-            $requestFactory,
-            $streamFactory
-        );
+    public static function fromArray(array $config, ?callable $transport = null): self
+    {
+        return new self(SupaClientConfig::fromArray($config), $transport);
     }
 
     public function getFeature(string $featureName, ?array $options = null): mixed
@@ -127,14 +114,20 @@ final class SupaClient
             'context' => $this->hashSensitiveContext($context),
         ];
 
-        $request = $this->requestFactory
-            ->createRequest('POST', $this->config->featuresApiUrl)
-            ->withHeader('Content-Type', 'application/json')
-            ->withHeader('Authorization', 'Bearer ' . $this->config->apiKey)
-            ->withHeader('X-Supaship-Timeout-Ms', (string) $this->config->requestTimeoutMs)
-            ->withBody($this->streamFactory->createStream((string) json_encode($requestPayload)));
+        $body = (string) json_encode($requestPayload);
+        $headers = [
+            'Content-Type' => 'application/json',
+            'Authorization' => 'Bearer ' . $this->config->apiKey,
+            'X-Supaship-Timeout-Ms' => (string) $this->config->requestTimeoutMs,
+        ];
+        /** @var array{status: int, body: string} $response */
+        $response = ($this->transport)(
+            $this->config->featuresApiUrl,
+            $headers,
+            $body,
+            $this->config->requestTimeoutMs
+        );
 
-        $response = $this->sendRequest($request);
         $decoded = $this->decodeResponse($response);
 
         $result = [];
@@ -151,27 +144,18 @@ final class SupaClient
         return $result;
     }
 
-    private function sendRequest(\Psr\Http\Message\RequestInterface $request): ResponseInterface
-    {
-        try {
-            $response = $this->httpClient->sendRequest($request);
-        } catch (ClientExceptionInterface $exception) {
-            throw new SdkException('Failed to fetch features: ' . $exception->getMessage(), 0, $exception);
-        }
-
-        if ($response->getStatusCode() < 200 || $response->getStatusCode() >= 300) {
-            throw new SdkException('Failed to fetch features: HTTP ' . $response->getStatusCode());
-        }
-
-        return $response;
-    }
-
     /**
-     * @return array{features?: array<string, array{variation?: mixed}>}
+     * @param array{status: int, body: string} $response
+     * @return array<string, mixed>
      */
-    private function decodeResponse(ResponseInterface $response): array
+    private function decodeResponse(array $response): array
     {
-        $decoded = json_decode((string) $response->getBody(), true);
+        $status = $response['status'] ?? 0;
+        if ($status < 200 || $status >= 300) {
+            throw new SdkException('Failed to fetch features: HTTP ' . $status);
+        }
+
+        $decoded = json_decode($response['body'] ?? '', true);
         if (!is_array($decoded)) {
             throw new SdkException('Failed to decode features response.');
         }
@@ -226,5 +210,99 @@ final class SupaClient
         }
 
         return $fallbacks;
+    }
+
+    /**
+     * @param array<string, string> $headers
+     * @return array{status: int, body: string}
+     */
+    private static function defaultTransport(
+        string $url,
+        array $headers,
+        string $body,
+        int $timeoutMs
+    ): array {
+        if (function_exists('curl_init')) {
+            return self::curlTransport($url, $headers, $body, $timeoutMs);
+        }
+
+        return self::streamTransport($url, $headers, $body, $timeoutMs);
+    }
+
+    /**
+     * @param array<string, string> $headers
+     * @return array{status: int, body: string}
+     */
+    private static function curlTransport(string $url, array $headers, string $body, int $timeoutMs): array
+    {
+        $ch = curl_init($url);
+        if ($ch === false) {
+            throw new SdkException('Failed to initialize cURL.');
+        }
+
+        $headerLines = [];
+        foreach ($headers as $name => $value) {
+            $headerLines[] = $name . ': ' . $value;
+        }
+
+        curl_setopt_array($ch, [
+            CURLOPT_POST => true,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER => $headerLines,
+            CURLOPT_POSTFIELDS => $body,
+            CURLOPT_TIMEOUT_MS => $timeoutMs,
+        ]);
+
+        $responseBody = curl_exec($ch);
+        if ($responseBody === false) {
+            $error = curl_error($ch);
+            curl_close($ch);
+            throw new SdkException('Failed to fetch features: ' . $error);
+        }
+
+        $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        return [
+            'status' => $status,
+            'body' => (string) $responseBody,
+        ];
+    }
+
+    /**
+     * @param array<string, string> $headers
+     * @return array{status: int, body: string}
+     */
+    private static function streamTransport(string $url, array $headers, string $body, int $timeoutMs): array
+    {
+        $headerLines = [];
+        foreach ($headers as $name => $value) {
+            $headerLines[] = $name . ': ' . $value;
+        }
+
+        $context = stream_context_create([
+            'http' => [
+                'method' => 'POST',
+                'header' => implode("\r\n", $headerLines),
+                'content' => $body,
+                'timeout' => max(1, (int) ceil($timeoutMs / 1000)),
+                'ignore_errors' => true,
+            ],
+        ]);
+
+        $responseBody = @file_get_contents($url, false, $context);
+        if ($responseBody === false) {
+            throw new SdkException('Failed to fetch features using stream transport.');
+        }
+
+        $status = 0;
+        if (isset($http_response_header[0]) && preg_match('/\s(\d{3})\s/', $http_response_header[0], $m) === 1) {
+            $status = (int) $m[1];
+        }
+
+        return [
+            'status' => $status,
+            'body' => $responseBody,
+        ];
     }
 }
