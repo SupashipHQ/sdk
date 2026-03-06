@@ -8,8 +8,9 @@ This monorepo contains the following packages:
 
 - [@supashiphq/javascript-sdk](./packages/javascript/README.md) - Core JavaScript SDK for feature flag management
 - [@supashiphq/react-sdk](./packages/react/README.md) - React SDK (hooks and components)
+- [supashiphq/php-sdk](./packages/php/README.md) - Framework-agnostic PHP SDK (Laravel, CodeIgniter, WordPress, standalone)
 
-More packages will be added in the future to support additional platforms and frameworks.
+More packages will be added over time to support additional platforms and frameworks.
 
 ## Quick Start
 
@@ -45,6 +46,37 @@ const features = await client.getFeatures({
 For framework-specific examples and detailed documentation, see:
 
 - [React SDK Documentation](./packages/react/README.md)
+- [PHP SDK Documentation](./packages/php/README.md)
+
+### PHP SDK
+
+```php
+<?php
+
+use Nyholm\Psr7\Factory\Psr17Factory;
+use Supaship\Sdk\SupaClient;
+use Symfony\Component\HttpClient\Psr18Client;
+
+$psr17 = new Psr17Factory();
+
+$client = SupaClient::fromArray(
+    [
+        'apiKey' => 'api-key',
+        'environment' => 'production',
+        'features' => [
+            'new-ui' => false,
+        ],
+        'context' => [
+            'userId' => '123',
+        ],
+    ],
+    new Psr18Client(),
+    $psr17,
+    $psr17
+);
+
+$isEnabled = $client->getFeature('new-ui');
+```
 
 ## Development
 
