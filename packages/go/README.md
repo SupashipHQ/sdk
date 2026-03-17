@@ -612,6 +612,35 @@ func main() {
 
 ---
 
+## Publishing a New Release
+
+The `scripts/publish.sh` script handles pre-flight checks, git tagging, and proxy warm-up:
+
+```bash
+# Interactive (prompts for version)
+./scripts/publish.sh
+
+# Non-interactive
+./scripts/publish.sh v0.2.0
+
+# Dry run — validates without creating any tags
+./scripts/publish.sh v0.2.0 --dry-run
+```
+
+The script will:
+
+1. Validate the version is valid semver (`vMAJOR.MINOR.PATCH`)
+2. Verify the working tree is clean
+3. Run `go vet ./...` and `go build ./...`
+4. Run `go test ./...` if test files are present
+5. Prompt for confirmation
+6. Create an annotated git tag (`packages/go/vX.Y.Z`) and push it to origin
+7. Warm up the Go module proxy so the version is immediately fetchable
+
+**Module versioning note:** Because the SDK lives at `packages/go/` inside the `supashiphq/sdk` monorepo, Go module proxy expects tags prefixed with the subdirectory path (e.g. `packages/go/v0.2.0`). The module import path is therefore `github.com/supashiphq/sdk/packages/go`. If you later move the module to its own repository (`github.com/supashiphq/go-sdk`), use plain `vX.Y.Z` tags instead.
+
+---
+
 ## License
 
 MIT — see [LICENSE](../../LICENSE).
