@@ -8,7 +8,8 @@
   "files": [
     "dist",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "SECURITY.md"
   ],
   "scripts": {
     "clean": "rimraf dist",
@@ -48,5 +49,9 @@
   "bugs": {
     "url": "https://github.com/SupashipHQ/sdk/issues"
   },
-  "homepage": "https://supaship.com"
+  "homepage": "https://supaship.com",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
 }
