@@ -3,11 +3,11 @@ name: Publish to NPM
 on:
   push:
     tags:
-      - "v*"
+      - 'v*'
   workflow_dispatch:
     inputs:
       tag:
-        description: "Tag to publish (e.g., v1.0.0)"
+        description: 'Tag to publish (e.g., v1.0.0)'
         required: true
         type: string
 
@@ -36,9 +36,9 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: "24"
-          registry-url: "https://registry.npmjs.org"
-          cache: "pnpm"
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'pnpm'
 
       - name: Verify Node and npm versions
         run: |
@@ -125,10 +125,10 @@ jobs:
               
               if [ "$RELEASE_TYPE" = "prerelease" ]; then
                 echo "🧪 Publishing $PACKAGE_NAME@$PACKAGE_VERSION as prerelease with @$PUBLISH_TAG tag..."
-                npm publish --access public --tag "$PUBLISH_TAG"
+                npm publish --access public --provenance --tag "$PUBLISH_TAG"
               else
                 echo "📦 Publishing $PACKAGE_NAME@$PACKAGE_VERSION as stable release..."
-                npm publish --access public
+                npm publish --access public --provenance
               fi
               echo "✅ Successfully published $PACKAGE_NAME@$PACKAGE_VERSION ($RELEASE_TYPE)"
             fi
