@@ -1,6 +1,6 @@
 {
   "name": "@supashiphq/vue-sdk",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Supaship SDK for Vue 3",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -33,7 +33,7 @@
     "vue": ">=3.3.0"
   },
   "dependencies": {
-    "@supashiphq/javascript-sdk": "workspace:^1.0.0"
+    "@supashiphq/javascript-sdk": "workspace:^1.0.1"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
