@@ -5,10 +5,10 @@ export type { SupaToolbarPluginConfig } from './plugins/toolbar-plugin'
 
 export interface SupaClientConfig {
   /**
-   * API key used to authenticate requests to Supaship services.
+   * SDK key used to authenticate requests to Supaship services.
    * Typically created in your project settings.
    */
-  apiKey: string
+  sdkKey: string
   /**
    * Environment identifier used for feature flag evaluation (e.g. "production", "staging").
    */

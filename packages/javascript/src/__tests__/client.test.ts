@@ -18,7 +18,7 @@ jest.mock('../utils', () => ({
 }))
 
 describe('SupaClient', () => {
-  const mockApiKey = 'test-api-key'
+  const mockSdkKey = 'test-sdk-key'
   const mockBaseUrl = 'https://test-api.com'
   const testFeatures = {
     testFeature: null,
@@ -29,7 +29,7 @@ describe('SupaClient', () => {
 
   beforeEach((): void => {
     client = new SupaClient({
-      apiKey: mockApiKey,
+      sdkKey: mockSdkKey,
       environment: 'test-environment',
       networkConfig: {
         featuresAPIUrl: `${mockBaseUrl}/features`,
@@ -43,7 +43,7 @@ describe('SupaClient', () => {
   describe('constructor and configuration', () => {
     it('should use default featuresAPIUrl when not provided', (): void => {
       const client = new SupaClient({
-        apiKey: 'test',
+        sdkKey: 'test',
         environment: 'test-environment',
         context: {},
         features: {} satisfies FeaturesWithFallbacks,
@@ -53,7 +53,7 @@ describe('SupaClient', () => {
 
     it('should use default retry configuration', (): void => {
       const client = new SupaClient({
-        apiKey: 'test',
+        sdkKey: 'test',
         environment: 'test-environment',
         features: {} satisfies FeaturesWithFallbacks,
         context: {},
@@ -65,7 +65,7 @@ describe('SupaClient', () => {
 
     it('should use custom retry configuration', (): void => {
       const client = new SupaClient({
-        apiKey: 'test',
+        sdkKey: 'test',
         environment: 'test-environment',
         features: {} satisfies FeaturesWithFallbacks,
         context: {},
@@ -80,7 +80,7 @@ describe('SupaClient', () => {
 
     it('should handle empty plugins array', (): void => {
       const client = new SupaClient({
-        apiKey: 'test',
+        sdkKey: 'test',
         environment: 'test-environment',
         features: {} satisfies FeaturesWithFallbacks,
         context: {},
@@ -91,7 +91,7 @@ describe('SupaClient', () => {
 
     it('should handle undefined plugins', (): void => {
       const client = new SupaClient({
-        apiKey: 'test',
+        sdkKey: 'test',
         environment: 'test-environment',
         features: {} satisfies FeaturesWithFallbacks,
         context: {},
@@ -103,7 +103,7 @@ describe('SupaClient', () => {
   describe('updateContext', () => {
     it('should merge context by default', (): void => {
       const testClient = new SupaClient({
-        apiKey: mockApiKey,
+        sdkKey: mockSdkKey,
         environment: 'test-environment',
         features: testFeatures,
         context: { existing: 'value', toUpdate: 'old' },
@@ -121,7 +121,7 @@ describe('SupaClient', () => {
 
     it('should replace context when mergeWithExisting is false', (): void => {
       const testClient = new SupaClient({
-        apiKey: mockApiKey,
+        sdkKey: mockSdkKey,
         environment: 'test-environment',
         features: testFeatures,
         context: { existing: 'value', toUpdate: 'old' },
@@ -150,7 +150,7 @@ describe('SupaClient', () => {
       }
 
       const testClient = new SupaClient({
-        apiKey: mockApiKey,
+        sdkKey: mockSdkKey,
         environment: 'test-environment',
         features: testFeatures,
         context: { old: 'value' },
@@ -252,7 +252,7 @@ describe('SupaClient', () => {
       }
 
       const testClient = new SupaClient({
-        apiKey: mockApiKey,
+        sdkKey: mockSdkKey,
         environment: 'test-environment',
         features: testFeatures,
         context: {},
@@ -290,7 +290,7 @@ describe('SupaClient', () => {
       }
 
       const testClient = new SupaClient({
-        apiKey: mockApiKey,
+        sdkKey: mockSdkKey,
         environment: 'test-environment',
         features: { feature1: null } satisfies FeaturesWithFallbacks,
         context: { default: 'value' },
@@ -329,7 +329,7 @@ describe('SupaClient', () => {
       }
 
       const testClient = new SupaClient({
-        apiKey: mockApiKey,
+        sdkKey: mockSdkKey,
         environment: 'test-environment',
         features: {
           feature1: false as boolean,
@@ -359,7 +359,7 @@ describe('SupaClient', () => {
       }
 
       const testClient = new SupaClient({
-        apiKey: mockApiKey,
+        sdkKey: mockSdkKey,
         environment: 'test-environment',
         features: { feature1: null } satisfies FeaturesWithFallbacks,
         context: {},
@@ -386,7 +386,7 @@ describe('SupaClient', () => {
         json: () => Promise.resolve({ features: { feature1: { variation: 'true' } } }),
       } as MockResponse)
       const testClient = new SupaClient({
-        apiKey: mockApiKey,
+        sdkKey: mockSdkKey,
         environment: 'test-environment',
         features: { feature1: null } satisfies FeaturesWithFallbacks,
         context: {
@@ -418,7 +418,7 @@ describe('SupaClient', () => {
         json: () => Promise.resolve({ features: { feature1: { variation: 'true' } } }),
       } as MockResponse)
       const testClient = new SupaClient({
-        apiKey: mockApiKey,
+        sdkKey: mockSdkKey,
         environment: 'test-environment',
         features: { feature1: null } satisfies FeaturesWithFallbacks,
         context: {
@@ -469,7 +469,7 @@ describe('SupaClient', () => {
 
     it('should work with retry disabled', async (): Promise<void> => {
       const testClient = new SupaClient({
-        apiKey: mockApiKey,
+        sdkKey: mockSdkKey,
         environment: 'test-environment',
         features: { testFeature: null } satisfies FeaturesWithFallbacks,
         context: {},
@@ -498,7 +498,7 @@ describe('SupaClient', () => {
       }
 
       const testClient = new SupaClient({
-        apiKey: mockApiKey,
+        sdkKey: mockSdkKey,
         environment: 'test-environment',
         features: { testFeature: null } satisfies FeaturesWithFallbacks,
         context: {},
