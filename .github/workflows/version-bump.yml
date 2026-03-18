@@ -1,18 +1,12 @@
 name: Version Bump and Release
 
-# To trigger the publish workflow automatically, create a Personal Access Token (PAT):
-# 1. Go to GitHub Settings > Developer settings > Personal access tokens > Tokens (classic)
-# 2. Generate a new token with 'repo' and 'workflow' scopes
-# 3. Add it as a repository secret named 'GH_ACCESS_TOKEN'
-# Without GH_ACCESS_TOKEN, the publish workflow won't be triggered automatically
-
 on:
   workflow_dispatch:
     inputs:
       version_type:
-        description: 'Version bump type'
+        description: "Version bump type"
         required: true
-        default: 'patch'
+        default: "patch"
         type: choice
         options:
           - major
@@ -23,7 +17,7 @@ on:
           - prepatch
           - prerelease
       prerelease_id:
-        description: 'Prerelease identifier (only used for prerelease versions)'
+        description: "Prerelease identifier (only used for prerelease versions)"
         required: false
         type: choice
         options:
@@ -34,29 +28,38 @@ on:
           - canary
           - next
 
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: version-bump
+  cancel-in-progress: true
+
 jobs:
   version-bump:
     runs-on: ubuntu-latest
     name: Bump Version and Create Release
     permissions:
       contents: write
+      pull-requests: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.1.1
         with:
-          token: ${{ secrets.GH_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
+          token: ${{ github.token }}
           fetch-depth: 0
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v4.0.0
         with:
           version: latest
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v4.0.2
         with:
-          node-version: '20'
-          cache: 'pnpm'
+          node-version: "20"
+          cache: "pnpm"
 
       - name: Configure git
         run: |
@@ -69,8 +72,8 @@ jobs:
       - name: Build packages
         run: pnpm build
 
-      # - name: Run tests
-      #   run: pnpm test
+      - name: Run tests
+        run: pnpm test
 
       - name: Bump version in root package.json
         id: version-root
@@ -185,31 +188,44 @@ jobs:
           - Updated all workspace packages to $NEW_VERSION
           - Updated cross-package dependencies automatically"
 
-      - name: Create and push tag
+      - name: Push release branch
+        id: push-branch
         run: |
           NEW_VERSION="${{ steps.version-root.outputs.new_version }}"
-          git tag "$NEW_VERSION"
-          git push origin main
-          git push origin "$NEW_VERSION"
+          RELEASE_BRANCH="release/${NEW_VERSION#v}"
+
+          git checkout -b "$RELEASE_BRANCH"
+          git push origin "$RELEASE_BRANCH"
+
+          echo "release_branch=$RELEASE_BRANCH" >> $GITHUB_OUTPUT
+
+      - name: Authenticate GitHub CLI
+        run: gh auth setup-git
+
+      - name: Create Pull Request
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NEW_VERSION="${{ steps.version-root.outputs.new_version }}"
+          RELEASE_BRANCH="${{ steps.push-branch.outputs.release_branch }}"
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.version-root.outputs.new_version }}
-          name: Release ${{ steps.version-root.outputs.new_version }}
-          body: |
-            ## Changes in ${{ steps.version-root.outputs.new_version }}
+          gh pr create \
+            --base main \
+            --head "$RELEASE_BRANCH" \
+            --title "chore: bump version to $NEW_VERSION" \
+            --body "$(cat <<EOF
+          ## Release preparation for $NEW_VERSION
 
-            This release was automatically created by the version bump workflow.
+          This PR was generated automatically by the version bump workflow.
 
-            ### Packages Updated:
-            All workspace packages have been updated to ${{ steps.version-root.outputs.new_version }}
+          ### Changes included
+          - Updated all workspace package versions to $NEW_VERSION
+          - Updated cross-package dependency versions
+          - Updated lockfile
 
-            ### Dependencies Updated:
-            Cross-package dependencies have been automatically updated to maintain consistency
-
-            See the [full changelog](https://github.com/${{ github.repository }}/compare/v0.1.0...${{ steps.version-root.outputs.new_version }}) for more details.
-          draft: false
-          prerelease: ${{ steps.version-root.outputs.is_prerelease == 'true' }}
+          ### Next steps
+          1. Review and merge this PR
+          2. Create and push tag \`$NEW_VERSION\` from \`main\`
+          3. Publish workflow will run from tag push
+          EOF
+          )"
