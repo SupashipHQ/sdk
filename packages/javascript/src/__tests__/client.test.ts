@@ -14,7 +14,17 @@ interface MockResponse {
 declare const jest: any
 
 jest.mock('../utils', () => ({
-  retry: async (fn: () => Promise<unknown>): Promise<unknown> => await fn(),
+  retry: async (
+    fn: () => Promise<unknown>,
+    _maxAttempts?: number,
+    _backoff?: number,
+    onRetry?: (attempt: number, error: Error, willRetry: boolean) => void
+  ): Promise<unknown> => {
+    if (onRetry) {
+      onRetry(1, new Error('mock retry callback'), false)
+    }
+    return await fn()
+  },
 }))
 
 describe('SupaClient', () => {
@@ -169,7 +179,7 @@ describe('SupaClient', () => {
 
   describe('getFeature', () => {
     it('should get a feature with fallback', async (): Promise<void> => {
-      const mockResponse = { features: { testFeature: { variation: 'true' } } }
+      const mockResponse = { features: { testFeature: { variation: true } } }
       global.fetch = jest.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve(mockResponse),
@@ -180,7 +190,7 @@ describe('SupaClient', () => {
     })
 
     it('should handle null fallback', async (): Promise<void> => {
-      const mockResponse = { features: { testFeature: { variation: 'true' } } }
+      const mockResponse = { features: { testFeature: { variation: true } } }
       global.fetch = jest.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve(mockResponse),
@@ -191,7 +201,7 @@ describe('SupaClient', () => {
     })
 
     it('should handle context being null in options', async (): Promise<void> => {
-      const mockResponse = { features: { testFeature: { variation: 'true' } } }
+      const mockResponse = { features: { testFeature: { variation: true } } }
       global.fetch = jest.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve(mockResponse),
@@ -204,7 +214,7 @@ describe('SupaClient', () => {
     })
 
     it('should handle context being undefined in options', async (): Promise<void> => {
-      const mockResponse = { features: { testFeature: { variation: 'true' } } }
+      const mockResponse = { features: { testFeature: { variation: true } } }
       global.fetch = jest.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve(mockResponse),
@@ -221,7 +231,7 @@ describe('SupaClient', () => {
         typeof fetch
       >
 
-      const result = await client.getFeature('testFeature')
+      const result = await client.getFeature('feature1')
       expect(result).toBe(false)
     })
 
@@ -267,12 +277,36 @@ describe('SupaClient', () => {
       expect(result).toBe(null)
       expect(mockPlugin.onFallbackUsed).toHaveBeenCalled()
     })
+
+    it('should run getFeature error hooks when getFeatures throws', async (): Promise<void> => {
+      const mockPlugin = {
+        name: 'testPlugin',
+        onError: jest.fn().mockResolvedValue(undefined),
+        onFallbackUsed: jest.fn().mockResolvedValue(undefined),
+      }
+      const testClient = new SupaClient({
+        sdkKey: mockSdkKey,
+        environment: 'test-environment',
+        features: { testFeature: null } satisfies FeaturesWithFallbacks,
+        context: {},
+        plugins: [mockPlugin],
+      })
+
+      jest
+        .spyOn(testClient, 'getFeatures')
+        .mockRejectedValueOnce(new Error('forced getFeatures error'))
+
+      const result = await testClient.getFeature('testFeature')
+      expect(result).toBe(null)
+      expect(mockPlugin.onError).toHaveBeenCalled()
+      expect(mockPlugin.onFallbackUsed).toHaveBeenCalledWith('testFeature', null, expect.any(Error))
+    })
   })
 
   describe('getFeatures', () => {
     it('should get multiple features', async (): Promise<void> => {
       const mockResponse = {
-        features: { feature1: { variation: 'true' }, feature2: { variation: 'false' } },
+        features: { feature1: { variation: true }, feature2: { variation: false } },
       }
       global.fetch = jest.fn().mockResolvedValue({
         ok: true,
@@ -297,7 +331,7 @@ describe('SupaClient', () => {
         plugins: [mockPlugin],
       })
 
-      const mockResponse = { features: { feature1: { variation: 'true' } } }
+      const mockResponse = { features: { feature1: { variation: true } } }
       global.fetch = jest.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve(mockResponse),
@@ -366,7 +400,7 @@ describe('SupaClient', () => {
         plugins: [mockPlugin],
       })
 
-      const mockResponse = { features: { feature1: { variation: 'true' } } }
+      const mockResponse = { features: { feature1: { variation: true } } }
       global.fetch = jest.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve(mockResponse),
@@ -380,10 +414,30 @@ describe('SupaClient', () => {
       expect(mockPlugin.afterResponse).toHaveBeenCalled()
     })
 
+    it('should return fallback values when no fetch implementation is available', async (): Promise<void> => {
+      const originalFetch = global.fetch
+      const testClient = new SupaClient({
+        sdkKey: mockSdkKey,
+        environment: 'test-environment',
+        features: { feature1: false as boolean } satisfies FeaturesWithFallbacks,
+        context: {},
+      })
+
+      try {
+        // Simulate runtime without global fetch and without injected fetchFn.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        delete (globalThis as any).fetch
+        const result = await testClient.getFeatures(['feature1'])
+        expect(result).toEqual({ feature1: false })
+      } finally {
+        global.fetch = originalFetch
+      }
+    })
+
     it('should hash configured sensitive context fields with sha256 by default', async (): Promise<void> => {
       const mockFetch = jest.fn().mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({ features: { feature1: { variation: 'true' } } }),
+        json: () => Promise.resolve({ features: { feature1: { variation: true } } }),
       } as MockResponse)
       const testClient = new SupaClient({
         sdkKey: mockSdkKey,
@@ -415,7 +469,7 @@ describe('SupaClient', () => {
     it('should always hash sensitive context fields with sha256', async (): Promise<void> => {
       const mockFetch = jest.fn().mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({ features: { feature1: { variation: 'true' } } }),
+        json: () => Promise.resolve({ features: { feature1: { variation: true } } }),
       } as MockResponse)
       const testClient = new SupaClient({
         sdkKey: mockSdkKey,
@@ -479,7 +533,7 @@ describe('SupaClient', () => {
         },
       })
 
-      const mockResponse = { features: { testFeature: { variation: 'true' } } }
+      const mockResponse = { features: { testFeature: { variation: true } } }
       global.fetch = jest.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve(mockResponse),

@@ -42,40 +42,23 @@ describe('SupaProvider', () => {
 
     expect(SupaClient).toHaveBeenCalledWith({
       ...config,
-      plugins: [],
+      toolbar: false,
     })
   })
 
-  it('should initialize client with config and plugins', () => {
-    const mockPlugin = { name: 'test-plugin' }
-
+  it('should initialize client with default toolbar configuration', () => {
     render(
-      <SupaProvider config={config} plugins={[mockPlugin]} toolbar={false}>
+      <SupaProvider config={config}>
         <div>Test</div>
       </SupaProvider>
     )
 
-    expect(SupaClient).toHaveBeenCalledWith({
-      ...config,
-      plugins: [mockPlugin],
-    })
-  })
-
-  it('should merge plugins from config and props', () => {
-    const configPlugin = { name: 'config-plugin' }
-    const propPlugin = { name: 'prop-plugin' }
-    const configWithPlugins = { ...config, plugins: [configPlugin] }
-
-    render(
-      <SupaProvider config={configWithPlugins} plugins={[propPlugin]} toolbar={false}>
-        <div>Test</div>
-      </SupaProvider>
+    expect(SupaClient).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ...config,
+        toolbar: expect.objectContaining({ onOverrideChange: expect.any(Function) }),
+      })
     )
-
-    expect(SupaClient).toHaveBeenCalledWith({
-      ...configWithPlugins,
-      plugins: [configPlugin, propPlugin],
-    })
   })
 
   it('should show error when useClient is used outside provider', () => {

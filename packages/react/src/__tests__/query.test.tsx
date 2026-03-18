@@ -1,5 +1,5 @@
-import { renderHook, act } from '@testing-library/react'
-import { useQuery } from '../query'
+import { renderHook, act, waitFor } from '@testing-library/react'
+import { useQuery, queryCache } from '../query'
 import { jest, describe, it, expect, beforeEach } from '@jest/globals'
 
 // Mock the SupaClient
@@ -15,6 +15,7 @@ describe('useQuery', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     jest.useRealTimers()
+    queryCache.clear()
   })
 
   it('should show loading state initially', () => {
@@ -51,7 +52,9 @@ describe('useQuery', () => {
       await promise
     })
 
-    expect(result.current.isSuccess).toBe(true)
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true)
+    })
     expect(result.current.data).toEqual(data)
     expect(onSuccess).toHaveBeenCalledWith(data)
   })
@@ -135,7 +138,9 @@ describe('useQuery', () => {
       }
     })
 
-    expect(result.current.isError).toBe(true)
+    await waitFor(() => {
+      expect(result.current.isError).toBe(true)
+    })
     expect(onSettled).toHaveBeenCalledWith(undefined, error)
   })
 
