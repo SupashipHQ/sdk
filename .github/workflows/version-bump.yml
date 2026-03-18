@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       version_type:
-        description: "Version bump type"
+        description: 'Version bump type'
         required: true
-        default: "patch"
+        default: 'patch'
         type: choice
         options:
           - major
@@ -17,7 +17,7 @@ on:
           - prepatch
           - prerelease
       prerelease_id:
-        description: "Prerelease identifier (only used for prerelease versions)"
+        description: 'Prerelease identifier (only used for prerelease versions)'
         required: false
         type: choice
         options:
@@ -58,8 +58,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4.0.2
         with:
-          node-version: "20"
-          cache: "pnpm"
+          node-version: '20'
+          cache: 'pnpm'
 
       - name: Configure git
         run: |
@@ -199,9 +199,6 @@ jobs:
 
           echo "release_branch=$RELEASE_BRANCH" >> $GITHUB_OUTPUT
 
-      - name: Authenticate GitHub CLI
-        run: gh auth setup-git
-
       - name: Create Pull Request
         env:
           GH_TOKEN: ${{ github.token }}
@@ -225,7 +222,7 @@ jobs:
 
           ### Next steps
           1. Review and merge this PR
-          2. Create and push tag \`$NEW_VERSION\` from \`main\`
-          3. Publish workflow will run from tag push
+          2. Tag is created automatically after merge
+          3. Publish workflow runs from the tag push
           EOF
           )"
