@@ -19,7 +19,7 @@ More packages will be added in the future to support additional platforms and fr
 import { SupaClient } from '@supashiphq/javascript-sdk'
 
 const client = new SupaClient({
-  apiKey: 'api-key',
+  sdkKey: 'sdk-key',
   environment: 'production',
   context: {
     userId: '123',

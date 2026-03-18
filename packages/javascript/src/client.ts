@@ -20,7 +20,7 @@ type ResolvedNetworkConfig = {
 }
 
 export class SupaClient<TFeatures extends FeaturesWithFallbacks> {
-  private apiKey: string
+  private sdkKey: string
   private environment: string
   private defaultContext?: FeatureContext
   private plugins: SupaPlugin[]
@@ -32,7 +32,7 @@ export class SupaClient<TFeatures extends FeaturesWithFallbacks> {
   private networkConfig: ResolvedNetworkConfig
 
   constructor(config: SupaClientConfig & { features: TFeatures }) {
-    this.apiKey = config.apiKey
+    this.sdkKey = config.sdkKey
     this.environment = config.environment
     this.defaultContext = config.context
     this.featureDefinitions = config.features as Features<TFeatures>
@@ -285,7 +285,7 @@ export class SupaClient<TFeatures extends FeaturesWithFallbacks> {
         const url = this.networkConfig.featuresAPIUrl
         const headers: Record<string, string> = {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.apiKey}`,
+          Authorization: `Bearer ${this.sdkKey}`,
         }
         const requestContext = await this.hashSensitiveContext(mergedContext)
         const body = JSON.stringify({

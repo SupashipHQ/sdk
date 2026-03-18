@@ -54,7 +54,7 @@ const TestComponent = ({
 }
 
 const config = {
-  apiKey: 'test-api-key',
+  sdkKey: 'test-sdk-key',
   environment: 'test-environment',
   baseUrl: 'https://api.test.com',
   context: {},

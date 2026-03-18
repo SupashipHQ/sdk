@@ -28,7 +28,7 @@ function App() {
   return (
     <SupaProvider
       config={{
-        apiKey: 'your-api-key',
+        sdkKey: 'your-sdk-key',
         environment: 'production',
         features,
         context: {
@@ -120,7 +120,7 @@ The provider component that makes feature flags available to your React componen
 import { createFeatures } from '@supashiphq/react-sdk'
 
 const config = {
-  apiKey: 'your-api-key',
+  sdkKey: 'your-sdk-key',
   environment: 'production',
   features: createFeatures({
     // Required: define all feature flags with fallback values
@@ -458,7 +458,7 @@ function App() {
   return (
     <SupaProvider
       config={{
-        apiKey: 'your-api-key',
+        sdkKey: 'your-sdk-key',
         features: FEATURE_FLAGS,
         context: {
           userId: user?.id,
@@ -542,7 +542,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <SupaProvider
       config={{
-        apiKey: process.env.NEXT_PUBLIC_SUPASHIP_API_KEY!,
+        sdkKey: process.env.NEXT_PUBLIC_SUPASHIP_SDK_KEY!,
         environment: process.env.NODE_ENV!,
         features: FEATURE_FLAGS,
       }}
@@ -591,7 +591,7 @@ export default function App({ Component, pageProps }: AppProps) {
   return (
     <SupaProvider
       config={{
-        apiKey: process.env.NEXT_PUBLIC_SUPASHIP_API_KEY!,
+        sdkKey: process.env.NEXT_PUBLIC_SUPASHIP_SDK_KEY!,
         environment: process.env.NODE_ENV!,
         features: FEATURE_FLAGS,
       }}
@@ -617,9 +617,9 @@ function App() {
   return (
     <SupaProvider
       config={{
-        apiKey: import.meta.env.VITE_SUPASHIP_API_KEY, // Vite
+        sdkKey: import.meta.env.VITE_SUPASHIP_SDK_KEY, // Vite
         // or
-        apiKey: process.env.REACT_APP_SUPASHIP_API_KEY, // CRA
+        sdkKey: process.env.REACT_APP_SUPASHIP_SDK_KEY, // CRA
         environment: import.meta.env.MODE,
         features: FEATURE_FLAGS,
       }}
@@ -669,7 +669,7 @@ export function TestProviders({ children, features = {} as FeaturesWithFallbacks
   return (
     <SupaProvider
       config={{
-        apiKey: 'test-key',
+        sdkKey: 'test-key',
         environment: 'test',
         features,
         context: {},
@@ -762,7 +762,7 @@ function App() {
 
 #### Features Not Loading
 
-- **Check API key:** Verify your API key is correct
+- **Check SDK key:** Verify your SDK key is correct
 - **Check network:** Open browser dev tools and check network requests
 - **Check features config:** Ensure features are defined in the config
 

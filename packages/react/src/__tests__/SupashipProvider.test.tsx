@@ -23,7 +23,7 @@ jest.mock('@supashiphq/javascript-sdk', () => ({
 describe('SupaProvider', () => {
   const config = {
     baseUrl: 'https://api.test.com',
-    apiKey: 'test-api-key',
+    sdkKey: 'test-sdk-key',
     environment: 'test-environment',
     context: {},
     features: {} satisfies FeaturesWithFallbacks,

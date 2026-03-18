@@ -35,7 +35,7 @@ declare module '@supashiphq/vue-sdk' {
 
 const supaship = createSupaship({
   config: {
-    apiKey: 'your-api-key',
+    sdkKey: 'your-sdk-key',
     environment: 'production',
     features: FEATURE_FLAGS,
     context: {
@@ -98,7 +98,7 @@ app.mount('#app')
 
 ```ts
 const config = {
-  apiKey: 'your-api-key',
+  sdkKey: 'your-sdk-key',
   environment: 'production',
   features: {
     // Required: define all feature flags with fallback values
@@ -374,7 +374,7 @@ import { createSupaship } from '@supashiphq/vue-sdk'
 
 const supaship = createSupaship({
   config: {
-    apiKey: 'your-api-key',
+    sdkKey: 'your-sdk-key',
     features: FEATURE_FLAGS,
     context: {
       // Initial context - can be updated later with useFeatureContext
@@ -496,7 +496,7 @@ const FEATURE_FLAGS = {
 
 const supaship = createSupaship({
   config: {
-    apiKey: import.meta.env.VITE_SUPASHIP_API_KEY,
+    sdkKey: import.meta.env.VITE_SUPASHIP_SDK_KEY,
     environment: import.meta.env.MODE,
     features: FEATURE_FLAGS,
   },
@@ -523,7 +523,7 @@ export default defineNuxtPlugin(nuxtApp => {
   const config = useRuntimeConfig()
   const supaship = createSupaship({
     config: {
-      apiKey: config.public.supashipApiKey as string,
+      sdkKey: config.public.supashipSDKKey as string,
       environment: process.env.NODE_ENV || 'production',
       features: FEATURE_FLAGS,
     },
@@ -538,7 +538,7 @@ export default defineNuxtPlugin(nuxtApp => {
 export default defineNuxtConfig({
   runtimeConfig: {
     public: {
-      supashipApiKey: process.env.NUXT_PUBLIC_SUPASHIP_API_KEY || '',
+      supashipSDKKey: process.env.NUXT_PUBLIC_SUPASHIP_SDK_KEY || '',
     },
   },
 })
@@ -626,7 +626,7 @@ import { createSupaship, FeaturesWithFallbacks } from '@supashiphq/vue-sdk'
 export function createTestSupaship(features: FeaturesWithFallbacks) {
   return createSupaship({
     config: {
-      apiKey: 'test-key',
+      sdkKey: 'test-key',
       environment: 'test',
       features,
       context: {},
@@ -741,7 +741,7 @@ app.mount('#app')  // Plugin missing!
 
 #### Features Not Loading
 
-- **Check API key:** Verify your API key is correct
+- **Check SDK key:** Verify your SDK key is correct
 - **Check network:** Open browser dev tools and check network requests
 - **Check features config:** Ensure features are defined in the config
 

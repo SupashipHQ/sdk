@@ -29,7 +29,7 @@ const features = {
 
 // Create client with features
 const client = new SupaClient({
-  apiKey: 'your-api-key',
+  sdkKey: 'your-sdk-key',
   environment: 'production',
   features,
   context: {
@@ -96,7 +96,7 @@ const features: FeaturesWithFallbacks = {
 }
 
 const client = new SupaClient({
-  apiKey: 'your-api-key',
+  sdkKey: 'your-sdk-key',
   environment: 'production',
   features,
   context: {},
@@ -123,7 +123,7 @@ new SupaClient(config: SupaClientConfig)
 
 | Option                       | Type                    | Required | Description                                                                        |
 | ---------------------------- | ----------------------- | -------- | ---------------------------------------------------------------------------------- |
-| `apiKey`                     | `string`                | Yes      | Your Supaship API key (Project Settings -> API Keys)                               |
+| `sdkKey`                     | `string`                | Yes      | Your Supaship SDK key (Project Settings -> SDK Keys)                               |
 | `environment`                | `string`                | Yes      | Environment slug (e.g., `production`, `staging`, `development`)                    |
 | `features`                   | `FeaturesWithFallbacks` | Yes      | Feature definitions with fallback values                                           |
 | `context`                    | `FeatureContext`        | Yes      | Default context for feature evaluation                                             |
@@ -143,7 +143,7 @@ Use `sensitiveContextProperties` to hash selected context property values on the
 
 ```typescript
 const client = new SupaClient({
-  apiKey: 'your-api-key',
+  sdkKey: 'your-sdk-key',
   environment: 'production',
   features,
   context: {
@@ -200,7 +200,7 @@ const features = {
 } satisfies FeaturesWithFallbacks
 
 const client = new SupaClient({
-  apiKey: 'key',
+  sdkKey: 'key',
   environment: 'production',
   features,
   context: {},
@@ -246,7 +246,7 @@ const features = {
 } satisfies FeaturesWithFallbacks
 
 const client = new SupaClient({
-  apiKey: 'key',
+  sdkKey: 'key',
   environment: 'prod',
   features,
   context: {},
@@ -352,7 +352,7 @@ import { SupaClient } from '@supashiphq/javascript-sdk'
 import { features } from './features'
 
 export const client = new SupaClient({
-  apiKey: process.env.SUPASHIP_API_KEY!,
+  sdkKey: process.env.SUPASHIP_SDK_KEY!,
   environment: process.env.ENVIRONMENT!,
   features,
   context: {},
@@ -383,7 +383,7 @@ const features: FeaturesWithFallbacks = {
 }
 
 const client = new SupaClient({
-  apiKey: 'key',
+  sdkKey: 'key',
   environment: 'prod',
   features,
   context: {},
@@ -401,7 +401,7 @@ const theme = config.theme // ✅ Type-safe, inferred as 'light' literal
 
 ```typescript
 const client = new SupaClient({
-  apiKey: 'your-api-key',
+  sdkKey: 'your-sdk-key',
   environment: 'production',
   features,
   context: {
@@ -456,7 +456,7 @@ const features = {
 
 // ✅ Automatic (recommended) - Toolbar auto-enabled in browser with 'auto' mode
 const client = new SupaClient({
-  apiKey: 'your-api-key',
+  sdkKey: 'your-sdk-key',
   environment: 'development',
   features,
   context: {},
@@ -464,7 +464,7 @@ const client = new SupaClient({
 
 // 🎨 Custom configuration
 const client = new SupaClient({
-  apiKey: 'your-api-key',
+  sdkKey: 'your-sdk-key',
   environment: 'development',
   features,
   context: {},
@@ -479,7 +479,7 @@ const client = new SupaClient({
 
 // ❌ Opt-out (disable toolbar)
 const client = new SupaClient({
-  apiKey: 'your-api-key',
+  sdkKey: 'your-sdk-key',
   environment: 'production',
   features,
   context: {},
@@ -518,7 +518,7 @@ const features = {
 } satisfies FeaturesWithFallbacks
 
 const featureClient = new SupaClient({
-  apiKey: process.env.SUPASHIP_API_KEY!,
+  sdkKey: process.env.SUPASHIP_SDK_KEY!,
   environment: 'production',
   features,
   context: {},
@@ -561,7 +561,7 @@ const features = {
 } satisfies FeaturesWithFallbacks
 
 const client = new SupaClient({
-  apiKey: import.meta.env.VITE_SUPASHIP_API_KEY,
+  sdkKey: import.meta.env.VITE_SUPASHIP_SDK_KEY,
   environment: 'production',
   features,
   context: {},
@@ -619,7 +619,7 @@ export class FeatureFlagService {
 
   constructor() {
     this.client = new SupaClient({
-      apiKey: environment.SUPASHIP_API_KEY,
+      sdkKey: environment.SUPASHIP_SDK_KEY,
       environment: 'production',
       features,
       context: {
