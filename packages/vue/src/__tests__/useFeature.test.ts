@@ -41,7 +41,7 @@ const TestComponent = defineComponent({
   },
   setup(props) {
     const featureState = useFeature(props.featureKey, props.options)
-    return () =>
+    return (): ReturnType<typeof h> =>
       h('div', [
         h('div', { 'data-testid': 'feature-loading' }, String(featureState.isLoading.value)),
         h('div', { 'data-testid': 'feature-success' }, String(featureState.isSuccess.value)),
@@ -103,7 +103,17 @@ describe('useFeature', () => {
 
     // Get the mocked SupaClient instance
     const { SupaClient } = await import('@supashiphq/javascript-sdk')
-    ;(SupaClient as any).mockImplementation(() => ({
+    const mockedSupaClient = SupaClient as unknown as {
+      mockImplementation: (
+        fn: () => {
+          getFeature: typeof mockGetFeature
+          getFeatureFallback: (key: string) => (typeof testFeatures)[keyof typeof testFeatures]
+          updateContext: ReturnType<typeof vi.fn>
+          getContext: ReturnType<typeof vi.fn>
+        }
+      ) => void
+    }
+    mockedSupaClient.mockImplementation(() => ({
       getFeature: mockGetFeature,
       getFeatureFallback: vi.fn((key: string) => testFeatures[key as keyof typeof testFeatures]),
       updateContext: vi.fn(),

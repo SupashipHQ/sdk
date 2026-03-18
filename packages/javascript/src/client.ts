@@ -28,7 +28,7 @@ export class SupaClient<TFeatures extends FeaturesWithFallbacks> {
   private clientId: string
   private sensitiveContextProperties: Set<string>
 
-  private fetchImpl: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
+  private fetchFn?: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
   private networkConfig: ResolvedNetworkConfig
 
   constructor(config: SupaClientConfig & { features: TFeatures }) {
@@ -52,19 +52,8 @@ export class SupaClient<TFeatures extends FeaturesWithFallbacks> {
       requestTimeoutMs: config.networkConfig?.requestTimeoutMs ?? 10000,
     }
 
-    // Prefer injected fetch, then global fetch if available
-    const globalFetch: typeof fetch | undefined =
-      typeof globalThis !== 'undefined'
-        ? (globalThis as unknown as { fetch?: typeof fetch }).fetch
-        : undefined
     if (config.networkConfig?.fetchFn) {
-      this.fetchImpl = config.networkConfig.fetchFn
-    } else if (typeof globalFetch === 'function') {
-      this.fetchImpl = globalFetch.bind(globalThis)
-    } else {
-      throw new Error(
-        'No fetch implementation available. Provide fetchFn in config or use a runtime with global fetch (e.g., Node 18+, browsers).'
-      )
+      this.fetchFn = config.networkConfig.fetchFn
     }
 
     // Initialize plugins with automatic toolbar plugin in browser
@@ -201,9 +190,9 @@ export class SupaClient<TFeatures extends FeaturesWithFallbacks> {
     return this.featureDefinitions[featureName]
   }
 
-  private getVariationValue(variation: FeatureValue, fallback: FeatureValue): FeatureValue {
+  private getVariationValue(variation: unknown, fallback: FeatureValue): FeatureValue {
     if (variation !== undefined && variation !== null) {
-      return variation
+      return variation as FeatureValue
     }
 
     return fallback ?? null
@@ -312,7 +301,18 @@ export class SupaClient<TFeatures extends FeaturesWithFallbacks> {
         }
         let response: Response
         try {
-          response = await this.fetchImpl(url, {
+          const fetchImpl =
+            this.fetchFn ??
+            (typeof globalThis !== 'undefined'
+              ? (globalThis as unknown as { fetch?: typeof fetch }).fetch?.bind(globalThis)
+              : undefined)
+          if (!fetchImpl) {
+            throw new Error(
+              'No fetch implementation available. Provide fetchFn in config or use a runtime with global fetch (e.g., Node 18+, browsers).'
+            )
+          }
+
+          response = await fetchImpl(url, {
             method: 'POST',
             headers,
             body,
@@ -368,6 +368,10 @@ export class SupaClient<TFeatures extends FeaturesWithFallbacks> {
       // Return the fetched features
       return result as { [K in TKeys[number]]: Features<TFeatures>[K] }
     } catch (error) {
+      if (featureNamesArray.length === 0) {
+        throw error
+      }
+
       // Run onError hooks
       await Promise.all(this.plugins.map(plugin => plugin.onError?.(error as Error, mergedContext)))
 

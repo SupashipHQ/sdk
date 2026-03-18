@@ -26,7 +26,9 @@ interface SupaContextValue<TFeatures extends Features<Record<string, FeatureValu
   getContext: () => FeatureContext | undefined
 }
 
-const SupaContext = createContext<SupaContextValue<any> | null>(null)
+type SupaGenericFeatures = Features<Record<string, FeatureValue>>
+
+const SupaContext = createContext<SupaContextValue<SupaGenericFeatures> | null>(null)
 
 interface SupaProviderProps<TFeatures extends Features<Record<string, FeatureValue>>> {
   config: Omit<SupaProviderConfig, 'plugins' | 'toolbar'> & { features: TFeatures }
@@ -151,7 +153,7 @@ export function useClient<
  * Hook to update the context dynamically
  * Useful when context depends on authentication or other async operations
  */
-export function useFeatureContext(): Omit<SupaContextValue<any>, 'client'> {
+export function useFeatureContext(): Omit<SupaContextValue<SupaGenericFeatures>, 'client'> {
   const context = useContext(SupaContext)
   if (!context) {
     throw new Error('useFeatureContext must be used within a SupaProvider')

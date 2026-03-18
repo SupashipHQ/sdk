@@ -22,7 +22,7 @@
     "build": "pnpm clean && pnpm build:tsup",
     "build:tsup": "tsup",
     "dev": "tsup --watch",
-    "test": "vitest",
+    "test": "vitest run",
     "test:watch": "vitest --watch",
     "test:coverage": "vitest --coverage",
     "lint": "eslint src --ext .ts,.vue",
