@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       version_type:
-        description: 'Version bump type'
+        description: "Version bump type"
         required: true
-        default: 'patch'
+        default: "patch"
         type: choice
         options:
           - major
@@ -17,7 +17,7 @@ on:
           - prepatch
           - prerelease
       prerelease_id:
-        description: 'Prerelease identifier (only used for prerelease versions)'
+        description: "Prerelease identifier (only used for prerelease versions)"
         required: false
         type: choice
         options:
@@ -58,8 +58,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4.0.2
         with:
-          node-version: '20'
-          cache: 'pnpm'
+          node-version: "20"
+          cache: "pnpm"
 
       - name: Configure git
         run: |
@@ -195,16 +195,12 @@ jobs:
           - Updated cross-package dependencies automatically"
           echo "has_changes=true" >> $GITHUB_OUTPUT
 
-      - name: Push release branch
-        id: push-branch
+      - name: Prepare release branch name
+        id: release-branch
         if: steps.commit-changes.outputs.has_changes == 'true'
         run: |
           NEW_VERSION="${{ steps.version-root.outputs.new_version }}"
           RELEASE_BRANCH="release/${NEW_VERSION#v}"
-
-          git checkout -b "$RELEASE_BRANCH"
-          git push --set-upstream origin "$RELEASE_BRANCH"
-
           echo "release_branch=$RELEASE_BRANCH" >> $GITHUB_OUTPUT
 
       - name: Check for existing PR
@@ -213,7 +209,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          RELEASE_BRANCH="${{ steps.push-branch.outputs.release_branch }}"
+          RELEASE_BRANCH="${{ steps.release-branch.outputs.release_branch }}"
           EXISTING_PR_URL=$(gh pr list \
             --base main \
             --head "$RELEASE_BRANCH" \
@@ -230,19 +226,86 @@ jobs:
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
 
+      - name: Replace release branch when safe
+        id: push-branch
+        if: steps.commit-changes.outputs.has_changes == 'true' && steps.existing-pr.outputs.exists == 'false'
+        run: |
+          RELEASE_BRANCH="${{ steps.release-branch.outputs.release_branch }}"
+
+          # If a stale remote release branch exists and no open PR references it, replace it.
+          if git ls-remote --heads origin "$RELEASE_BRANCH" | grep -q "$RELEASE_BRANCH"; then
+            echo "Remote branch $RELEASE_BRANCH exists. Deleting before pushing fresh branch..."
+            git push origin --delete "$RELEASE_BRANCH"
+          fi
+
+          git checkout -B "$RELEASE_BRANCH"
+          git push --set-upstream origin "$RELEASE_BRANCH"
+          echo "release_branch=$RELEASE_BRANCH" >> $GITHUB_OUTPUT
+
+      - name: Collect merged PRs since last release
+        id: merged-prs
+        if: steps.commit-changes.outputs.has_changes == 'true' && steps.existing-pr.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          LAST_RELEASE_TAG=$(gh release list --limit 1 --json tagName --jq '.[0].tagName // ""')
+
+          if [ -n "$LAST_RELEASE_TAG" ]; then
+            LAST_RELEASE_DATE=$(gh release view "$LAST_RELEASE_TAG" --json publishedAt --jq '.publishedAt')
+          else
+            LAST_RELEASE_DATE=""
+          fi
+
+          if [ -n "$LAST_RELEASE_DATE" ]; then
+            echo "Collecting merged PRs after release $LAST_RELEASE_TAG ($LAST_RELEASE_DATE)"
+            MERGED_PRS=$(gh pr list \
+              --state merged \
+              --base main \
+              --search "merged:>$LAST_RELEASE_DATE" \
+              --json number,title,url,mergedAt \
+              --limit 200 \
+              --jq 'sort_by(.mergedAt) | .[] | "- #\(.number) \(.title) (\(.url))"')
+          else
+            echo "No prior release found. No merged PR baseline available."
+            MERGED_PRS=""
+          fi
+
+          {
+            echo "last_release_tag=$LAST_RELEASE_TAG"
+            echo "last_release_date=$LAST_RELEASE_DATE"
+            echo "items<<EOF"
+            if [ -n "$MERGED_PRS" ]; then
+              echo "$MERGED_PRS"
+            else
+              echo "- No merged PRs found since the last release."
+            fi
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Create Pull Request
         if: steps.commit-changes.outputs.has_changes == 'true' && steps.existing-pr.outputs.exists == 'false'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           NEW_VERSION="${{ steps.version-root.outputs.new_version }}"
-          RELEASE_BRANCH="${{ steps.push-branch.outputs.release_branch }}"
+          RELEASE_BRANCH="${{ steps.release-branch.outputs.release_branch }}"
+          TEAM_REVIEWER="${{ github.repository_owner }}/sdk-core"
+          LAST_RELEASE_TAG="${{ steps.merged-prs.outputs.last_release_tag }}"
+          LAST_RELEASE_DATE="${{ steps.merged-prs.outputs.last_release_date }}"
+          MERGED_PRS_ITEMS="${{ steps.merged-prs.outputs.items }}"
+
+          if [ -n "$LAST_RELEASE_TAG" ]; then
+            RELEASE_REF_TEXT="Last release: $LAST_RELEASE_TAG ($LAST_RELEASE_DATE)"
+          else
+            RELEASE_REF_TEXT="Last release: none found"
+          fi
 
           set +e
           PR_OUTPUT=$(gh pr create \
             --base main \
             --head "$RELEASE_BRANCH" \
-            --title "chore: bump version to $NEW_VERSION" \
+            --title "Release preparation for $NEW_VERSION" \
+            --reviewer "$TEAM_REVIEWER" \
             --body "$(cat <<EOF
           ## Release preparation for $NEW_VERSION
 
@@ -252,6 +315,11 @@ jobs:
           - Updated all workspace package versions to $NEW_VERSION
           - Updated cross-package dependency versions
           - Updated lockfile
+
+          ### Merged PRs since last release
+          $RELEASE_REF_TEXT
+
+          $MERGED_PRS_ITEMS
 
           ### Next steps
           1. Review and merge this PR
