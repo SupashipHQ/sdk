@@ -180,33 +180,66 @@ jobs:
         run: pnpm install --lockfile-only
 
       - name: Commit version changes
+        id: commit-changes
         run: |
           NEW_VERSION="${{ steps.version-root.outputs.new_version }}"
           git add .
+          if git diff --cached --quiet; then
+            echo "No version changes detected; skipping commit."
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
           git commit -m "chore: bump version to $NEW_VERSION
 
           - Updated all workspace packages to $NEW_VERSION
           - Updated cross-package dependencies automatically"
+          echo "has_changes=true" >> $GITHUB_OUTPUT
 
       - name: Push release branch
         id: push-branch
+        if: steps.commit-changes.outputs.has_changes == 'true'
         run: |
           NEW_VERSION="${{ steps.version-root.outputs.new_version }}"
           RELEASE_BRANCH="release/${NEW_VERSION#v}"
 
           git checkout -b "$RELEASE_BRANCH"
-          git push origin "$RELEASE_BRANCH"
+          git push --set-upstream origin "$RELEASE_BRANCH"
 
           echo "release_branch=$RELEASE_BRANCH" >> $GITHUB_OUTPUT
 
+      - name: Check for existing PR
+        id: existing-pr
+        if: steps.commit-changes.outputs.has_changes == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          RELEASE_BRANCH="${{ steps.push-branch.outputs.release_branch }}"
+          EXISTING_PR_URL=$(gh pr list \
+            --base main \
+            --head "$RELEASE_BRANCH" \
+            --state open \
+            --json url \
+            --jq '.[0].url')
+
+          if [ -n "$EXISTING_PR_URL" ]; then
+            echo "Found existing PR: $EXISTING_PR_URL"
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "url=$EXISTING_PR_URL" >> $GITHUB_OUTPUT
+          else
+            echo "No existing PR found."
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Create Pull Request
+        if: steps.commit-changes.outputs.has_changes == 'true' && steps.existing-pr.outputs.exists == 'false'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           NEW_VERSION="${{ steps.version-root.outputs.new_version }}"
           RELEASE_BRANCH="${{ steps.push-branch.outputs.release_branch }}"
 
-          gh pr create \
+          set +e
+          PR_OUTPUT=$(gh pr create \
             --base main \
             --head "$RELEASE_BRANCH" \
             --title "chore: bump version to $NEW_VERSION" \
@@ -225,4 +258,31 @@ jobs:
           2. Tag is created automatically after merge
           3. Publish workflow runs from the tag push
           EOF
-          )"
+          )" 2>&1)
+          EXIT_CODE=$?
+          set -e
+
+          echo "$PR_OUTPUT"
+
+          if [ "$EXIT_CODE" -ne 0 ]; then
+            if echo "$PR_OUTPUT" | grep -q "GitHub Actions is not permitted to create or approve pull requests"; then
+              echo "❌ Pull request creation is blocked for GITHUB_TOKEN in this repository."
+              echo "ℹ️  Enable 'Allow GitHub Actions to create and approve pull requests' in repository Actions settings."
+            fi
+            exit "$EXIT_CODE"
+          fi
+
+      - name: Pull Request summary
+        if: steps.commit-changes.outputs.has_changes == 'true'
+        run: |
+          if [ "${{ steps.existing-pr.outputs.exists }}" = "true" ]; then
+            echo "## Release PR" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Using existing PR: ${{ steps.existing-pr.outputs.url }}" >> $GITHUB_STEP_SUMMARY
+          else
+            NEW_VERSION="${{ steps.version-root.outputs.new_version }}"
+            RELEASE_BRANCH="${{ steps.push-branch.outputs.release_branch }}"
+            echo "## Release PR" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Created PR for $NEW_VERSION from branch \`$RELEASE_BRANCH\`." >> $GITHUB_STEP_SUMMARY
+          fi
