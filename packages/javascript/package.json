@@ -9,7 +9,8 @@
     "dist",
     "README.md",
     "LICENSE",
-    "SECURITY.md"
+    "SECURITY.md",
+    "socket.json"
   ],
   "scripts": {
     "clean": "rimraf dist",

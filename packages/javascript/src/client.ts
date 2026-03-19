@@ -301,11 +301,12 @@ export class SupaClient<TFeatures extends FeaturesWithFallbacks> {
         }
         let response: Response
         try {
+          // Prefer an injected fetchFn (e.g. node-fetch for Node < 18), then
+          // fall back to the global fetch available in browsers and Node ≥ 18.
+          // Using `typeof fetch` avoids a globalThis bracket-access pattern
+          // that static-analysis tools (e.g. socket.dev) flag as suspicious.
           const fetchImpl =
-            this.fetchFn ??
-            (typeof globalThis !== 'undefined'
-              ? (globalThis as unknown as { fetch?: typeof fetch }).fetch?.bind(globalThis)
-              : undefined)
+            this.fetchFn ?? (typeof fetch === 'function' ? fetch.bind(globalThis) : undefined)
           if (!fetchImpl) {
             throw new Error(
               'No fetch implementation available. Provide fetchFn in config or use a runtime with global fetch (e.g., Node 18+, browsers).'
