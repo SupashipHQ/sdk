@@ -1,0 +1,6 @@
+{
+  "$schema": "https://cdn.jsdelivr.net/npm/@socketsecurity/config@2/schema.json",
+  "issueRules": {
+    "networkAccess": "ignore"
+  }
+}
