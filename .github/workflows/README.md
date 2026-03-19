@@ -61,16 +61,17 @@ See [scripts/README.md](../scripts/README.md) for detailed documentation.
 
 **Steps**:
 
-1. Run full test suite to ensure code quality
-2. Bump version in root `package.json` and all workspace packages (in dependency order)
+1. Install/build the workspace
+2. Bump versions in root `package.json` and workspace packages (dependency order)
 3. **Automatically detect and update cross-package dependencies**:
    - Scans all packages for dependencies on the package being version bumped
    - Updates `dependencies`, `devDependencies`, and `peerDependencies` automatically
    - Works for any number of packages and dependency relationships
-4. Update `pnpm-lock.yaml` to reflect new versions
-5. Commit changes to main branch
-6. Create and push git tag (e.g., `v1.2.3` or `v1.2.3-beta.1`)
-7. Create GitHub release (marked as prerelease for beta versions)
+4. Update `pnpm-lock.yaml`
+5. Create a release branch (`release/x.y.z`) and commit changes
+6. Open a pull request to `main`
+7. After merge, `tag-on-release-pr-merge.yml` creates and pushes the version tag, then creates a GitHub Release
+8. `publish.yml` runs from the tag push and publishes packages
 
 **Version Types**:
 
@@ -106,13 +107,7 @@ See [scripts/README.md](../scripts/README.md) for detailed documentation.
 
 ### 1. Required Secrets
 
-Add these secrets in your GitHub repository settings:
-
-- `NPM_AUTH_TOKEN`: Your npm access token with publish permissions
-  - Go to [npm Access Tokens](https://www.npmjs.com/settings/tokens)
-  - Generate a **Granular Access Token** or **Classic Token**
-  - Ensure it has publish access to your packages
-  - Add it to GitHub repository secrets
+No additional repository secret is required for version bump PR creation when `GITHUB_TOKEN` is allowed to create PRs.
 
 ### 2. npm Package Access
 
@@ -123,10 +118,13 @@ Ensure your npm token has permission to publish to:
 
 ### 3. Repository Permissions
 
-The workflows need these permissions (automatically granted):
+The workflows need these permissions:
 
-- `contents: write` - to create releases and push tags
-- `id-token: write` - for npm publishing
+- `contents: write` - to push release branches and tags
+- `pull-requests: write` - to create release PRs
+- `id-token: write` - for npm trusted publishing
+
+Enable **Settings → Actions → General → Workflow permissions → Allow GitHub Actions to create and approve pull requests**.
 
 ## Usage Examples
 
@@ -211,6 +209,14 @@ If the version bump workflow fails with npm dependency errors:
 - Works correctly with pnpm workspaces
 
 **Testing**: The workflow has been tested to ensure dependency updates work correctly with pnpm workspaces.
+
+### Pull Request Creation Fails
+
+**Error**: `GraphQL: GitHub Actions is not permitted to create or approve pull requests (createPullRequest)`
+
+**Cause**: The workflow is attempting to create a PR with `GITHUB_TOKEN`, but repository policy blocks this action.
+
+**Fix**: Enable GitHub Actions PR creation in repository Actions settings.
 
 ## Recommended Branching Strategy
 
