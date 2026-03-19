@@ -11,8 +11,8 @@ By participating in this project, you agree to abide by our [Code of Conduct](./
 1. Fork the repository
 2. Clone your fork:
    ```bash
-   git clone https://github.com/YOUR_USERNAME/sdk.git
-   cd sdk
+   git clone https://github.com/YOUR_USERNAME/javascript-sdk.git
+   cd javascript-sdk
    ```
 3. Install dependencies:
    ```bash

@@ -84,7 +84,7 @@ This project is licensed under the MIT License - see the [LICENSE](./LICENSE) fi
 ## Support
 
 - [Documentation](https://supaship.com/docs)
-- [GitHub Issues](https://github.com/supashiphq/sdk/issues)
+- [GitHub Issues](https://github.com/supashiphq/javascript-sdk/issues)
 
 ## Security
 
