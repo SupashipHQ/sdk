@@ -289,7 +289,6 @@ jobs:
         run: |
           NEW_VERSION="${{ steps.version-root.outputs.new_version }}"
           RELEASE_BRANCH="${{ steps.release-branch.outputs.release_branch }}"
-          TEAM_REVIEWER="${{ github.repository_owner }}/sdk-core"
           LAST_RELEASE_TAG="${{ steps.merged-prs.outputs.last_release_tag }}"
           LAST_RELEASE_DATE="${{ steps.merged-prs.outputs.last_release_date }}"
           MERGED_PRS_ITEMS="${{ steps.merged-prs.outputs.items }}"
@@ -305,7 +304,6 @@ jobs:
             --base main \
             --head "$RELEASE_BRANCH" \
             --title "Release preparation for $NEW_VERSION" \
-            --reviewer "$TEAM_REVIEWER" \
             --body "$(cat <<EOF
           ## Release preparation for $NEW_VERSION
 
