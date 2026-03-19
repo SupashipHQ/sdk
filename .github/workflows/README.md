@@ -69,9 +69,11 @@ See [scripts/README.md](../scripts/README.md) for detailed documentation.
    - Works for any number of packages and dependency relationships
 4. Update `pnpm-lock.yaml`
 5. Create a release branch (`release/x.y.z`) and commit changes
-6. Open a pull request to `main`
+6. Open a pull request to `main` with a reference list of merged PRs since the last release and request review from `sdk-core`
 7. After merge, `tag-on-release-pr-merge.yml` creates and pushes the version tag, then creates a GitHub Release
 8. `publish.yml` runs from the tag push and publishes packages
+
+If a same-name release branch already exists remotely, the workflow replaces it before pushing (only when there is no open PR for that branch).
 
 **Version Types**:
 
