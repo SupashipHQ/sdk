@@ -38,13 +38,7 @@
     "prepublishOnly": "pnpm build"
   },
   "peerDependencies": {
-    "react": ">=16.8.0",
-    "react-native": ">=0.71.0"
-  },
-  "peerDependenciesMeta": {
-    "react-native": {
-      "optional": true
-    }
+    "react": ">=16.8.0"
   },
   "dependencies": {
     "@supashiphq/javascript-sdk": "workspace:^1.0.3"
@@ -52,7 +46,6 @@
   "devDependencies": {
     "@types/node": "^20.0.0",
     "@types/react": "^18.2.0",
-    "@types/react-native": "^0.73.0",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
     "eslint": "^8.0.0",

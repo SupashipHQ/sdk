@@ -11,6 +11,8 @@ Shared React layer for Supaship: provider wiring, feature hooks infrastructure, 
 
 Install the SDK that matches your stack. Those packages re-export the API you need (`SupaProvider`, `useFeature`, etc.) and pin the correct focus/refetch behavior (browser vs app lifecycle).
 
+The `focus-native` export is for React Native apps only; it imports `AppState` from `react-native`, which must be supplied by your app (not listed as a peer here to keep this package’s dev graph free of the full native SDK).
+
 ## When to depend on this package directly
 
 Only for advanced or custom integrations (e.g. building another renderer on top of `createSupashipReact` or `createQueryHooks`). Most applications should **not** add `@supashiphq/react-core` explicitly.
