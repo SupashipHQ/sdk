@@ -1,7 +1,15 @@
 'use client'
 
-export * from './types'
+export {
+  SupaProvider,
+  useClient,
+  useFeatureContext,
+  useQuery,
+  useQueryClient,
+  queryCache,
+  QueryClient,
+  getInitialQueryState,
+} from './supaship'
 export * from './hooks'
-export * from './provider'
-export * from './query'
+export * from './types'
 export * from './components'

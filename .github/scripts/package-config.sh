@@ -3,8 +3,8 @@
 # Shared package configuration for GitHub workflows
 # This script defines the package ordering and common functions used across workflows
 
-# Define package order: javascript first, then react
-export PACKAGE_ORDER=("javascript" "react" "vue")
+# Define package order: javascript first, then framework SDKs
+export PACKAGE_ORDER=("javascript" "react-core" "react" "vue")
 
 # Function to get package information
 get_package_info() {
