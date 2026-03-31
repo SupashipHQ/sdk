@@ -46,7 +46,8 @@
     "rimraf": "^6.0.1",
     "tsup": "^8.0.0",
     "typescript": "~5.3.3",
-    "vitest": "^1.0.0"
+    "vitest": "^1.0.0",
+    "vue": "^3.4.0"
   },
   "keywords": [
     "feature-flags",

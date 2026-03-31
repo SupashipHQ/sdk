@@ -4,7 +4,7 @@
 # This script defines the package ordering and common functions used across workflows
 
 # Define package order: javascript first, then framework SDKs
-export PACKAGE_ORDER=("javascript" "react-core" "react" "vue")
+export PACKAGE_ORDER=("javascript" "react-core" "react" "react-native" "vue")
 
 # Function to get package information
 get_package_info() {
