@@ -1,6 +1,6 @@
 {
   "name": "@supashiphq/react-core",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Shared React primitives for Supaship web and React Native SDKs",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -41,7 +41,7 @@
     "react": ">=16.8.0"
   },
   "dependencies": {
-    "@supashiphq/javascript-sdk": "workspace:^1.0.3"
+    "@supashiphq/javascript-sdk": "workspace:^1.0.4"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
