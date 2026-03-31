@@ -1,6 +1,6 @@
 {
   "name": "@supashiphq/react-native-sdk",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Supaship SDK for React Native",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -35,8 +35,8 @@
     "react-native": ">=0.71.0"
   },
   "dependencies": {
-    "@supashiphq/javascript-sdk": "workspace:^1.0.3",
-    "@supashiphq/react-core": "workspace:^1.0.3"
+    "@supashiphq/javascript-sdk": "workspace:^1.0.4",
+    "@supashiphq/react-core": "workspace:^1.0.4"
   },
   "devDependencies": {
     "@jest/globals": "^30.0.0",
