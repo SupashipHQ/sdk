@@ -3,7 +3,9 @@ import type {
   FeatureContext,
   FeaturesWithFallbacks,
 } from '@supashiphq/javascript-sdk'
-import type { QueryState } from './query'
+import type { QueryState } from '@supashiphq/react-core'
+
+export type { UseFeatureResult, UseFeaturesResult } from '@supashiphq/react-core'
 
 export type {
   SupaClientConfig as SupaProviderConfig,

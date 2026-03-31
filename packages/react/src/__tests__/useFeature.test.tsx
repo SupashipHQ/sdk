@@ -2,7 +2,7 @@ import React from 'react'
 import { render, screen, act } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { useFeature } from '../hooks'
-import { SupaProvider } from '../provider'
+import { SupaProvider } from '../supaship'
 import { FeatureValue, FeatureContext, FeaturesWithFallbacks } from '@supashiphq/javascript-sdk'
 import { jest, describe, it, expect, beforeEach } from '@jest/globals'
 

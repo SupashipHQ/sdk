@@ -1,6 +1,6 @@
 import React from 'react'
 import { render } from '@testing-library/react'
-import { SupaProvider, useClient, useFeatureContext } from '../provider'
+import { SupaProvider, useClient, useFeatureContext } from '../supaship'
 import { SupaClient, FeaturesWithFallbacks } from '@supashiphq/javascript-sdk'
 import { jest, describe, it, expect } from '@jest/globals'
 
