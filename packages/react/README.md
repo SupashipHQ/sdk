@@ -1,6 +1,6 @@
 # Supaship React SDK
 
-A React SDK for Supaship that provides hooks and components for feature flag management with full TypeScript type safety.
+[Supaship](https://supashp.com) SDK for React, that provides hooks and components for feature flag management with full TypeScript type safety.
 
 ## Installation
 
@@ -93,8 +93,6 @@ function MyComponent() {
 }
 ```
 
-[See detailed type-safe usage guide](./TYPE_SAFE_FEATURES.md)
-
 ## API Reference
 
 ### SupaProvider
@@ -117,16 +115,17 @@ The provider component that makes feature flags available to your React componen
 **Configuration Options:**
 
 ```tsx
-import { createFeatures } from '@supashiphq/react-sdk'
+import type { FeaturesWithFallbacks } from '@supashiphq/react-sdk'
+
+const FEATURE_FLAGS = {
+  'my-feature': false,
+  config: { theme: 'light' as const },
+} satisfies FeaturesWithFallbacks
 
 const config = {
   sdkKey: 'your-sdk-key',
   environment: 'production',
-  features: createFeatures({
-    // Required: define all feature flags with fallback values
-    'my-feature': false,
-    config: { theme: 'light' },
-  }),
+  features: FEATURE_FLAGS,
   context: {
     // Optional: targeting context
     userId: 'user-123',

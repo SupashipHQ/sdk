@@ -1,6 +1,6 @@
 # Supaship Vue SDK
 
-Supaship SDK for Vue 3 that provides composables for feature flag management with full TypeScript type safety.
+[Supaship](https://supashp.com) SDK for Vue 3 that provides composables for feature flag management with full TypeScript type safety.
 
 ## Installation
 
@@ -17,7 +17,7 @@ pnpm add @supashiphq/vue-sdk
 ```ts
 // main.ts
 import { createApp } from 'vue'
-import { createSupaship, FeaturesWithFallbacks } from '@supashiphq/vue-sdk'
+import { createSupaship, FeaturesWithFallbacks, InferFeatures } from '@supashiphq/vue-sdk'
 import App from './App.vue'
 
 // Define your features with type safety
@@ -27,7 +27,7 @@ const FEATURE_FLAGS = {
   'beta-features': [] as string[],
 } satisfies FeaturesWithFallbacks
 
-// REQUIRED: for type safety
+// REQUIRED: for type-safe useFeature / useFeatures keys and value types
 declare module '@supashiphq/vue-sdk' {
   // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   interface Features extends InferFeatures<typeof FEATURE_FLAGS> {}
@@ -613,84 +613,29 @@ The toolbar allows you to:
 - See feature value types and current values
 - Clear local overrides
 
-## Testing
+## Unit testing in your app
 
-### Mocking Feature Flags in Tests
-
-The plugin approach makes testing straightforward - just install the plugin with test features:
+Register the plugin on the test app with **`toolbar: false`** and the feature map you want for that case:
 
 ```ts
-// test-utils/setup.ts
-import { createSupaship, FeaturesWithFallbacks } from '@supashiphq/vue-sdk'
-
-export function createTestSupaship(features: FeaturesWithFallbacks) {
-  return createSupaship({
-    config: {
-      sdkKey: 'test-key',
-      environment: 'test',
-      features,
-      context: {},
-    },
-  })
-}
-```
-
-### Example Test with Vitest
-
-```ts
-// MyComponent.test.ts
 import { mount } from '@vue/test-utils'
-import { describe, it, expect } from 'vitest'
-import { createTestSupaship } from '../test-utils/setup'
-import MyComponent from './MyComponent.vue'
+import { createSupaship, FeaturesWithFallbacks } from '@supashiphq/vue-sdk'
+import MyBanner from './MyBanner.vue'
 
-describe('MyComponent', () => {
-  it('shows new feature when enabled', () => {
-    const wrapper = mount(MyComponent, {
-      global: {
-        plugins: [
-          createTestSupaship({
-            'new-feature': true,
-          }),
-        ],
-      },
-    })
+const features = { 'show-banner': true } satisfies FeaturesWithFallbacks
 
-    expect(wrapper.text()).toContain('New Feature Content')
-  })
+const plugin = createSupaship({
+  config: { sdkKey: 'test', environment: 'test', features, context: {} },
+  toolbar: false,
+})
 
-  it('shows old feature when disabled', () => {
-    const wrapper = mount(MyComponent, {
-      global: {
-        plugins: [
-          createTestSupaship({
-            'new-feature': false,
-          }),
-        ],
-      },
-    })
-
-    expect(wrapper.text()).toContain('Old Feature Content')
-  })
-
-  it('handles multiple features', () => {
-    const wrapper = mount(MyComponent, {
-      global: {
-        plugins: [
-          createTestSupaship({
-            'feature-a': true,
-            'feature-b': false,
-            config: { theme: 'dark' },
-          }),
-        ],
-      },
-    })
-
-    expect(wrapper.find('.feature-a').exists()).toBe(true)
-    expect(wrapper.find('.feature-b').exists()).toBe(false)
-  })
+it('renders the banner', () => {
+  const w = mount(MyBanner, { global: { plugins: [plugin] } })
+  expect(w.find('[data-testid="banner"]').exists()).toBe(true)
 })
 ```
+
+`useFeature` / `useFeatures` work inside that tree. For **plain functions** that take a `SupaClient`, use `new SupaClient(...)` and mock `fetch` like the JavaScript SDK example if you want no network.
 
 ## Troubleshooting
 

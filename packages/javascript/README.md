@@ -1,6 +1,6 @@
 # Supaship JavaScript SDK
 
-A type-safe JavaScript SDK for Supaship that provides a simple way to manage feature flags in your JavaScript applications.
+A type-safe [Supaship](https://supashp.com) for JavaScript, that provides a simple way to manage feature flags in your JavaScript applications.
 
 ## Installation
 
