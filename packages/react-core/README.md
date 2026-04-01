@@ -1,6 +1,6 @@
 # @supashiphq/react-core
 
-Shared React layer for Supaship: provider wiring, feature hooks infrastructure, and query cache. It is a **dependency** of the published framework packages below—not the primary package you install in an app.
+Shared React layer for [Supaship](https://supashp.com): provider wiring, feature hooks infrastructure, and query cache. It is a **dependency** of the published framework packages below—not the primary package you install in an app.
 
 ## Use these instead
 

@@ -20,7 +20,7 @@ describe('useQuery', () => {
 
   it('should show loading state initially', () => {
     const queryFn = jest.fn<() => Promise<TestData>>()
-    const { result } = renderHook(() => useQuery(['test'], queryFn))
+    const { result } = renderHook(() => useQuery(['test'], queryFn, { staleTime: Infinity }))
     expect(result.current.isLoading).toBe(true)
   })
 
@@ -43,6 +43,7 @@ describe('useQuery', () => {
 
     const { result } = renderHook(() =>
       useQuery(['test'], queryFn, {
+        staleTime: Infinity,
         onSuccess,
       })
     )
@@ -70,6 +71,7 @@ describe('useQuery', () => {
 
     const { result } = renderHook(() =>
       useQuery(['test'], queryFn, {
+        staleTime: Infinity,
         onError,
         retry: 0,
       })
@@ -100,6 +102,7 @@ describe('useQuery', () => {
 
     const { result } = renderHook(() =>
       useQuery(['test'], queryFn, {
+        staleTime: Infinity,
         onSettled,
       })
     )
@@ -124,6 +127,7 @@ describe('useQuery', () => {
 
     const { result } = renderHook(() =>
       useQuery(['test'], queryFn, {
+        staleTime: Infinity,
         onSettled,
         retry: 0,
       })
@@ -154,6 +158,7 @@ describe('useQuery', () => {
 
     const { result } = renderHook(() =>
       useQuery(['test'], queryFn, {
+        staleTime: Infinity,
         retry: false,
       })
     )

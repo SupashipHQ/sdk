@@ -1,13 +1,14 @@
 # Supaship React Native SDK
 
-React Native bindings for Supaship: the same hooks and patterns as [`@supashiphq/react-sdk`](https://www.npmjs.com/package/@supashiphq/react-sdk), without browser-only APIs.
+[Supaship](https://supashp.com) SDK for React Native: same hooks and provider model as [`@supashiphq/react-sdk`](https://www.npmjs.com/package/@supashiphq/react-sdk).
 
 ## Installation
 
 ```bash
 npm install @supashiphq/react-native-sdk
-# peers: react, react-native (@supashiphq/javascript-sdk is bundled as a dependency)
 ```
+
+**Peer dependencies:** `react`, `react-native` (≥ 0.71). The core HTTP client ships inside `@supashiphq/javascript-sdk` via this package’s dependencies.
 
 ## Quick start
 
@@ -28,7 +29,6 @@ export function App() {
         environment: 'production',
         features,
         context: { userId: '123' },
-        // Optional: disable toolbar explicitly (dev toolbar is web-only; native apps never show it)
         toolbar: false,
       }}
     >
@@ -44,15 +44,19 @@ function Home() {
 }
 ```
 
+Use `toolbar: false` in native apps (the dev toolbar targets browsers only).
+
 ## Type-safe feature flags
 
-Same module augmentation as the React SDK; use `@supashiphq/react-native-sdk` in your `declare module`:
+Declare flags once, then augment **this** package so hooks stay typed:
 
 ```ts
+// features.ts
 import { FeaturesWithFallbacks, InferFeatures } from '@supashiphq/react-native-sdk'
 
 export const FEATURE_FLAGS = {
   'new-header': false,
+  'theme-config': { mode: 'dark' as const, showLogo: true },
 } satisfies FeaturesWithFallbacks
 
 declare module '@supashiphq/react-native-sdk' {
@@ -60,21 +64,116 @@ declare module '@supashiphq/react-native-sdk' {
 }
 ```
 
-## API
+After that, `useFeature('new-header')` and `useFeature('theme-config')` infer correct value types. Invalid keys are a TypeScript error.
 
-Exports match the React SDK where applicable:
+## Use cases
 
-- `SupaProvider`, `useClient`, `useFeatureContext`
-- `useFeature`, `useFeatures`
-- `SupaFeature` (boolean-style variations; children are `ReactNode`, e.g. RN `View` / `Text`)
+### Several flags in one request
 
-### Query behavior / `refetchOnWindowFocus`
+```tsx
+import { useFeatures } from '@supashiphq/react-native-sdk'
 
-The underlying `useQuery` option **`refetchOnWindowFocus`** keeps the same name as the web SDK. On React Native it triggers a refetch when the app moves to **`AppState` `active`** (foreground), not browser window focus. The default in `useFeature` / `useFeatures` remains `false`, same as React.
+function Dashboard() {
+  const { features, isLoading } = useFeatures(['new-header', 'paywall-v2'] as const, {
+    context: { plan: 'pro' },
+  })
+  if (isLoading) return <Text>…</Text>
+  return <Text>{features['paywall-v2'] ? 'Paywall B' : 'Paywall A'}</Text>
+}
+```
+
+### Declarative boolean gate (`SupaFeature`)
+
+```tsx
+import { SupaFeature } from '@supashiphq/react-native-sdk'
+import { View, Text } from 'react-native'
+
+function Header() {
+  return (
+    <SupaFeature
+      feature="new-header"
+      loading={<Text>…</Text>}
+      variations={{
+        true: <Text>New header</Text>,
+        false: <Text>Legacy header</Text>,
+      }}
+    />
+  )
+}
+```
+
+Children are normal `ReactNode` values (`View`, `Text`, etc.).
+
+### Update targeting context after login
+
+```tsx
+import { useFeatureContext } from '@supashiphq/react-native-sdk'
+import { useEffect } from 'react'
+
+function SessionBridge({ userId }: { userId: string | undefined }) {
+  const { updateContext } = useFeatureContext()
+  useEffect(() => {
+    if (userId) updateContext({ userId })
+  }, [userId, updateContext])
+  return null
+}
+```
+
+Merging behavior matches the web SDK (`mergeWithExisting` defaults to `true`).
+
+### Advanced: `useClient` and `useQuery`
+
+```tsx
+import { useClient, useQuery } from '@supashiphq/react-native-sdk'
+
+function RemoteConfig() {
+  const client = useClient()
+  const { data, isLoading } = useQuery(['remote-config'], () =>
+    client.getFeature('theme-config').then(theme => ({ theme }))
+  )
+  if (isLoading || !data) return null
+  return <Text>{JSON.stringify(data.theme)}</Text>
+}
+```
+
+`refetchOnWindowFocus` on `useQuery` still uses that name for API parity; on native it refetches when the app becomes **`active`** again.
+
+## `refetchOnWindowFocus` and AppState
+
+| Platform | Trigger for refetch (when option is `true`) |
+| -------- | ------------------------------------------- |
+| Web SDK  | Browser `visibilitychange` / window focus   |
+| Native   | `AppState` transitions to **`active`**      |
+
+Defaults for `useFeature` / `useFeatures` keep network minimal (`refetchOnWindowFocus`: off unless you opt in).
 
 ## Sensitive context hashing
 
-If you use `sensitiveContextProperties` on the client, evaluation uses the Web Crypto API when available. In some Hermes/React Native setups you may need a `crypto.subtle` polyfill for hashing; feature fetching without that path is unaffected. See `@supashiphq/javascript-sdk` for details.
+If you set `sensitiveContextProperties`, hashing uses Web Crypto where available. Some Hermes setups need a `crypto.subtle` polyfill; see `@supashiphq/javascript-sdk` for details.
+
+## Unit testing in your app
+
+Same idea as the React SDK: wrap in **`SupaProvider`** with test `config` and **`toolbar={false}`**, then `render` your screen.
+
+If Jest resolves `react-native` from this package’s internals, add a tiny stub so tests do not need the full native binary:
+
+```js
+// jest.config.js
+module.exports = {
+  moduleNameMapper: {
+    '^react-native$': '<rootDir>/test/react-native-stub.js',
+  },
+}
+```
+
+```js
+// test/react-native-stub.js
+exports.AppState = {
+  addEventListener() {
+    return { remove() {} }
+  },
+}
+```
 
 ## License
 
