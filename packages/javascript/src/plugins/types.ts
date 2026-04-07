@@ -1,6 +1,6 @@
 import { FeatureContext, FeatureValue } from '../types'
 
-export interface SupaPluginConfig {
+export interface SupashipPluginConfig {
   enabled?: boolean
 }
 interface Plugin {
@@ -9,7 +9,7 @@ interface Plugin {
   // cleanup?(): Promise<void>
 }
 
-export interface SupaPlugin extends Plugin {
+export interface SupashipPlugin extends Plugin {
   // Lifecycle hooks
   onInit?(params: {
     clientId: string

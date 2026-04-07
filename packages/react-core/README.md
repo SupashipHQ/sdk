@@ -9,7 +9,7 @@ Shared React layer for [Supaship](https://supashp.com): provider wiring, feature
 | Web / React / NextJS | `@supashiphq/react-sdk`        | [npm](https://www.npmjs.com/package/@supashiphq/react-sdk)        |
 | React Native         | `@supashiphq/react-native-sdk` | [npm](https://www.npmjs.com/package/@supashiphq/react-native-sdk) |
 
-Install the SDK that matches your stack. Those packages re-export the API you need (`SupaProvider`, `useFeature`, etc.) and pin the correct focus/refetch behavior (browser vs app lifecycle).
+Install the SDK that matches your stack. Those packages re-export the API you need (`SupashipProvider`, `useFeature`, etc.) and pin the correct focus/refetch behavior (browser vs app lifecycle).
 
 The `focus-native` export is for React Native apps only; it imports `AppState` from `react-native`, which must be supplied by your app (not listed as a peer here to keep this package’s dev graph free of the full native SDK).
 

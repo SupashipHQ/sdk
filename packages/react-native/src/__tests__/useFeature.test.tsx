@@ -2,7 +2,7 @@ import React from 'react'
 import { render, screen, act } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { useFeature } from '../hooks'
-import { SupaProvider } from '../supaship'
+import { SupashipProvider } from '../supaship'
 import { FeatureValue, FeatureContext, FeaturesWithFallbacks } from '@supashiphq/javascript-sdk'
 import { jest, describe, it, expect, beforeEach } from '@jest/globals'
 
@@ -21,7 +21,7 @@ const mockGetFeatureFallback = jest.fn(
   (key: string) => testFeatures[key as keyof typeof testFeatures]
 )
 jest.mock('@supashiphq/javascript-sdk', () => ({
-  SupaClient: jest.fn().mockImplementation(() => ({
+  SupashipClient: jest.fn().mockImplementation(() => ({
     getFeature: mockGetFeature,
     getFeatureFallback: mockGetFeatureFallback,
     updateContext: jest.fn(),
@@ -73,9 +73,9 @@ describe('useFeature', () => {
     mockGetFeature.mockReturnValueOnce(promise)
 
     render(
-      <SupaProvider config={config}>
+      <SupashipProvider config={config}>
         <TestComponent featureKey="test-feature" />
-      </SupaProvider>
+      </SupashipProvider>
     )
 
     expect(screen.getByTestId('feature-data').textContent).toBe('true')
@@ -100,9 +100,9 @@ describe('useFeature', () => {
     mockGetFeature.mockReturnValueOnce(promise)
 
     render(
-      <SupaProvider config={config}>
+      <SupashipProvider config={config}>
         <TestComponent featureKey="other-feature" />
-      </SupaProvider>
+      </SupashipProvider>
     )
 
     await act(async () => {
@@ -122,9 +122,9 @@ describe('useFeature', () => {
     mockGetFeature.mockReturnValueOnce(promise)
 
     render(
-      <SupaProvider config={config}>
+      <SupashipProvider config={config}>
         <TestComponent featureKey="test-feature" options={{ context }} />
-      </SupaProvider>
+      </SupashipProvider>
     )
 
     await act(async () => {
@@ -137,9 +137,9 @@ describe('useFeature', () => {
 
   it('should not fetch when shouldFetch is false', async () => {
     render(
-      <SupaProvider config={config}>
+      <SupashipProvider config={config}>
         <TestComponent featureKey="test-feature" options={{ shouldFetch: false }} />
-      </SupaProvider>
+      </SupashipProvider>
     )
 
     expect(mockGetFeature).not.toHaveBeenCalled()

@@ -13,7 +13,7 @@ npm install @supashiphq/react-native-sdk
 ## Quick start
 
 ```tsx
-import { SupaProvider, useFeature, FeaturesWithFallbacks } from '@supashiphq/react-native-sdk'
+import { SupashipProvider, useFeature, FeaturesWithFallbacks } from '@supashiphq/react-native-sdk'
 import { View, Text } from 'react-native'
 
 const features = {
@@ -23,7 +23,7 @@ const features = {
 
 export function App() {
   return (
-    <SupaProvider
+    <SupashipProvider
       config={{
         sdkKey: 'your-sdk-key',
         environment: 'production',
@@ -33,7 +33,7 @@ export function App() {
       }}
     >
       <Home />
-    </SupaProvider>
+    </SupashipProvider>
   )
 }
 
@@ -82,15 +82,15 @@ function Dashboard() {
 }
 ```
 
-### Declarative boolean gate (`SupaFeature`)
+### Declarative boolean gate (`SupashipFeature`)
 
 ```tsx
-import { SupaFeature } from '@supashiphq/react-native-sdk'
+import { SupashipFeature } from '@supashiphq/react-native-sdk'
 import { View, Text } from 'react-native'
 
 function Header() {
   return (
-    <SupaFeature
+    <SupashipFeature
       feature="new-header"
       loading={<Text>…</Text>}
       variations={{
@@ -153,7 +153,7 @@ If you set `sensitiveContextProperties`, hashing uses Web Crypto where available
 
 ## Unit testing in your app
 
-Same idea as the React SDK: wrap in **`SupaProvider`** with test `config` and **`toolbar={false}`**, then `render` your screen.
+Same idea as the React SDK: wrap in **`SupashipProvider`** with test `config` and **`toolbar={false}`**, then `render` your screen.
 
 If Jest resolves `react-native` from this package’s internals, add a tiny stub so tests do not need the full native binary:
 

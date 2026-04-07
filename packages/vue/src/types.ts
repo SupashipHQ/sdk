@@ -6,11 +6,11 @@ import type {
 } from '@supashiphq/javascript-sdk'
 
 export type {
-  SupaPlugin,
+  SupashipPlugin,
   FeatureValue,
   FeatureContext,
-  SupaToolbarPluginConfig,
-  SupaToolbarPosition,
+  SupashipToolbarPluginConfig,
+  SupashipToolbarPosition,
 } from '@supashiphq/javascript-sdk'
 
 /**

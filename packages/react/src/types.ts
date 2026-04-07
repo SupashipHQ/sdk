@@ -8,12 +8,12 @@ import type { QueryState } from '@supashiphq/react-core'
 export type { UseFeatureResult, UseFeaturesResult } from '@supashiphq/react-core'
 
 export type {
-  SupaClientConfig as SupaProviderConfig,
-  SupaPlugin,
+  SupashipClientConfig as SupashipProviderConfig,
+  SupashipPlugin,
   FeatureValue,
   FeatureContext,
-  SupaToolbarPluginConfig,
-  SupaToolbarPosition,
+  SupashipToolbarPluginConfig,
+  SupashipToolbarPosition,
 } from '@supashiphq/javascript-sdk'
 
 /**

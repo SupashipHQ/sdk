@@ -16,9 +16,9 @@ More packages will be added in the future to support additional platforms and fr
 ### JavaScript SDK
 
 ```javascript
-import { SupaClient } from '@supashiphq/javascript-sdk'
+import { SupashipClient } from '@supashiphq/javascript-sdk'
 
-const client = new SupaClient({
+const client = new SupashipClient({
   sdkKey: 'sdk-key',
   environment: 'production',
   context: {

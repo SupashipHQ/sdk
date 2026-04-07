@@ -1,7 +1,7 @@
-import { SupaPlugin, SupaPluginConfig } from './types'
+import { SupashipPlugin, SupashipPluginConfig } from './types'
 import { FeatureContext, FeatureValue } from '../types'
 
-export interface ObservabilityPluginConfig extends SupaPluginConfig {
+export interface ObservabilityPluginConfig extends SupashipPluginConfig {
   metricsEndpoint?: string
   includeTimings?: boolean
   includePayloads?: boolean
@@ -13,7 +13,7 @@ interface MetricEvent {
   data: Record<string, unknown>
 }
 
-export class ObservabilityPlugin implements SupaPlugin {
+export class ObservabilityPlugin implements SupashipPlugin {
   name = 'observability'
   private enabled: boolean
   metricsEndpoint: string

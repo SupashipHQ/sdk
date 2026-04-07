@@ -1,9 +1,9 @@
-import { SupaPlugin } from './plugins/types'
-import { SupaToolbarPluginConfig } from './plugins/toolbar-plugin'
+import { SupashipPlugin } from './plugins/types'
+import { SupashipToolbarPluginConfig } from './plugins/toolbar-plugin'
 
-export type { SupaToolbarPluginConfig } from './plugins/toolbar-plugin'
+export type { SupashipToolbarPluginConfig } from './plugins/toolbar-plugin'
 
-export interface SupaClientConfig {
+export interface SupashipClientConfig {
   /**
    * SDK key used to authenticate requests to Supaship services.
    * Typically created in your project settings.
@@ -37,7 +37,7 @@ export interface SupaClientConfig {
   /**
    * Optional plugins to observe or augment client behavior.
    */
-  plugins?: SupaPlugin[]
+  plugins?: SupashipPlugin[]
   /**
    * Toolbar plugin configuration (browser only).
    * - `false`: Disable toolbar (opt-out)
@@ -46,7 +46,7 @@ export interface SupaClientConfig {
    *
    * Default: Enabled in browser with 'auto' mode (shows only on localhost)
    */
-  toolbar?: false | SupaToolbarPluginConfig
+  toolbar?: false | SupashipToolbarPluginConfig
 }
 
 export interface FeatureContext {
@@ -118,7 +118,7 @@ export type WidenFeatures<T extends Record<string, FeatureValue>> = {
  * ⚠️ IMPORTANT: Use with `satisfies` operator, NOT type annotation
  *
  * Type representing feature flag definitions with their fallback values.
- * Used to configure the SupaClient with feature flags.
+ * Used to configure the SupashipClient with feature flags.
  *
  * **Why `satisfies` over type annotation:**
  * - ✅ `satisfies` preserves exact types ('feature-flag' stays 'feature-flag')

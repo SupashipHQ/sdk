@@ -1,28 +1,28 @@
-import { SupaPlugin, SupaPluginConfig } from './types'
+import { SupashipPlugin, SupashipPluginConfig } from './types'
 import { FeatureContext, FeatureValue } from '../types'
 
-export interface SupaToolbarPosition {
+export interface SupashipToolbarPosition {
   placement?: 'bottom-left' | 'bottom-right' | 'top-left' | 'top-right'
   offset?: { x: string; y: string }
 }
 
-export type SupaToolbarOverrideChange = {
+export type SupashipToolbarOverrideChange = {
   feature: string
   value: FeatureValue
 }
 
-export type SupaToolbarOverrideChangeCallback = (
-  featureOverride: SupaToolbarOverrideChange,
+export type SupashipToolbarOverrideChangeCallback = (
+  featureOverride: SupashipToolbarOverrideChange,
   allOverrides: Record<string, FeatureValue>
 ) => void
 
-export interface SupaToolbarPluginConfig extends Omit<SupaPluginConfig, 'enabled'> {
+export interface SupashipToolbarPluginConfig extends Omit<SupashipPluginConfig, 'enabled'> {
   enabled?: boolean | 'auto' // auto means show only on localhost
-  position?: SupaToolbarPosition
-  onOverrideChange?: SupaToolbarOverrideChangeCallback
+  position?: SupashipToolbarPosition
+  onOverrideChange?: SupashipToolbarOverrideChangeCallback
 }
 
-interface SupaToolbarState {
+interface SupashipToolbarState {
   overrides: Record<string, FeatureValue>
   features: Set<string>
   featureValues: Record<string, FeatureValue>
@@ -39,18 +39,18 @@ const NO_FEATURES_MESSAGE = `No feature flags configured in the client.`
  * Toolbar plugin for local feature flag testing
  * Provides a visual interface to override feature flags during development
  */
-export class SupaToolbarPlugin implements SupaPlugin {
+export class SupashipToolbarPlugin implements SupashipPlugin {
   name = 'toolbar-plugin'
   private config: {
     enabled: boolean | 'auto'
-    position: Required<SupaToolbarPosition>
-    onOverrideChange?: SupaToolbarOverrideChangeCallback
+    position: Required<SupashipToolbarPosition>
+    onOverrideChange?: SupashipToolbarOverrideChangeCallback
   }
-  private state: SupaToolbarState
+  private state: SupashipToolbarState
   private clientId?: string
   private storageKey: string = DEFAULT_STORAGE_KEY
 
-  constructor(config: SupaToolbarPluginConfig = {}) {
+  constructor(config: SupashipToolbarPluginConfig = {}) {
     this.config = {
       enabled: config.enabled ?? 'auto',
       position: {

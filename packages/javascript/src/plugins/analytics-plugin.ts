@@ -1,7 +1,7 @@
-import { SupaPlugin, SupaPluginConfig } from './types'
+import { SupashipPlugin, SupashipPluginConfig } from './types'
 import { FeatureContext, FeatureValue } from '../types'
 
-export interface AnalyticsPluginConfig extends SupaPluginConfig {
+export interface AnalyticsPluginConfig extends SupashipPluginConfig {
   endpoint?: string
   batchSize?: number
   flushInterval?: number
@@ -15,7 +15,7 @@ interface AnalyticsEvent {
   timestamp: number
 }
 
-export class AnalyticsPlugin implements SupaPlugin {
+export class AnalyticsPlugin implements SupashipPlugin {
   name = 'analytics'
   private enabled: boolean
   private endpoint: string

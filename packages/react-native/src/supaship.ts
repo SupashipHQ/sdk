@@ -4,7 +4,7 @@ import { useNativeFocusRefetchEffect } from '@supashiphq/react-core/focus-native
 const supaship = createSupashipReact(useNativeFocusRefetchEffect)
 
 export const {
-  SupaProvider,
+  SupashipProvider,
   useClient,
   useFeatureContext,
   useQuery,

@@ -1,4 +1,4 @@
-import { SupaClient } from '../client'
+import { SupashipClient } from '../client'
 import { FeatureContext, FeaturesWithFallbacks } from '../types'
 import '../types/jest.d.ts'
 import { createHash } from 'node:crypto'
@@ -27,7 +27,7 @@ jest.mock('../utils', () => ({
   },
 }))
 
-describe('SupaClient', () => {
+describe('SupashipClient', () => {
   const mockSdkKey = 'test-sdk-key'
   const mockBaseUrl = 'https://test-api.com'
   const testFeatures = {
@@ -35,10 +35,10 @@ describe('SupaClient', () => {
     feature1: false as boolean,
     feature2: true as boolean,
   } satisfies FeaturesWithFallbacks
-  let client: SupaClient<typeof testFeatures>
+  let client: SupashipClient<typeof testFeatures>
 
   beforeEach((): void => {
-    client = new SupaClient({
+    client = new SupashipClient({
       sdkKey: mockSdkKey,
       environment: 'test-environment',
       networkConfig: {
@@ -52,7 +52,7 @@ describe('SupaClient', () => {
 
   describe('constructor and configuration', () => {
     it('should use default featuresAPIUrl when not provided', (): void => {
-      const client = new SupaClient({
+      const client = new SupashipClient({
         sdkKey: 'test',
         environment: 'test-environment',
         context: {},
@@ -62,7 +62,7 @@ describe('SupaClient', () => {
     })
 
     it('should use default retry configuration', (): void => {
-      const client = new SupaClient({
+      const client = new SupashipClient({
         sdkKey: 'test',
         environment: 'test-environment',
         features: {} satisfies FeaturesWithFallbacks,
@@ -74,7 +74,7 @@ describe('SupaClient', () => {
     })
 
     it('should use custom retry configuration', (): void => {
-      const client = new SupaClient({
+      const client = new SupashipClient({
         sdkKey: 'test',
         environment: 'test-environment',
         features: {} satisfies FeaturesWithFallbacks,
@@ -89,7 +89,7 @@ describe('SupaClient', () => {
     })
 
     it('should handle empty plugins array', (): void => {
-      const client = new SupaClient({
+      const client = new SupashipClient({
         sdkKey: 'test',
         environment: 'test-environment',
         features: {} satisfies FeaturesWithFallbacks,
@@ -100,7 +100,7 @@ describe('SupaClient', () => {
     })
 
     it('should handle undefined plugins', (): void => {
-      const client = new SupaClient({
+      const client = new SupashipClient({
         sdkKey: 'test',
         environment: 'test-environment',
         features: {} satisfies FeaturesWithFallbacks,
@@ -112,7 +112,7 @@ describe('SupaClient', () => {
 
   describe('updateContext', () => {
     it('should merge context by default', (): void => {
-      const testClient = new SupaClient({
+      const testClient = new SupashipClient({
         sdkKey: mockSdkKey,
         environment: 'test-environment',
         features: testFeatures,
@@ -130,7 +130,7 @@ describe('SupaClient', () => {
     })
 
     it('should replace context when mergeWithExisting is false', (): void => {
-      const testClient = new SupaClient({
+      const testClient = new SupashipClient({
         sdkKey: mockSdkKey,
         environment: 'test-environment',
         features: testFeatures,
@@ -159,7 +159,7 @@ describe('SupaClient', () => {
         onContextUpdate: jest.fn(),
       }
 
-      const testClient = new SupaClient({
+      const testClient = new SupashipClient({
         sdkKey: mockSdkKey,
         environment: 'test-environment',
         features: testFeatures,
@@ -261,7 +261,7 @@ describe('SupaClient', () => {
         onFallbackUsed: jest.fn(),
       }
 
-      const testClient = new SupaClient({
+      const testClient = new SupashipClient({
         sdkKey: mockSdkKey,
         environment: 'test-environment',
         features: testFeatures,
@@ -284,7 +284,7 @@ describe('SupaClient', () => {
         onError: jest.fn().mockResolvedValue(undefined),
         onFallbackUsed: jest.fn().mockResolvedValue(undefined),
       }
-      const testClient = new SupaClient({
+      const testClient = new SupashipClient({
         sdkKey: mockSdkKey,
         environment: 'test-environment',
         features: { testFeature: null } satisfies FeaturesWithFallbacks,
@@ -323,7 +323,7 @@ describe('SupaClient', () => {
         onContextUpdate: jest.fn(),
       }
 
-      const testClient = new SupaClient({
+      const testClient = new SupashipClient({
         sdkKey: mockSdkKey,
         environment: 'test-environment',
         features: { feature1: null } satisfies FeaturesWithFallbacks,
@@ -362,7 +362,7 @@ describe('SupaClient', () => {
         onFallbackUsed: jest.fn(),
       }
 
-      const testClient = new SupaClient({
+      const testClient = new SupashipClient({
         sdkKey: mockSdkKey,
         environment: 'test-environment',
         features: {
@@ -392,7 +392,7 @@ describe('SupaClient', () => {
         afterResponse: jest.fn().mockResolvedValue(undefined),
       }
 
-      const testClient = new SupaClient({
+      const testClient = new SupashipClient({
         sdkKey: mockSdkKey,
         environment: 'test-environment',
         features: { feature1: null } satisfies FeaturesWithFallbacks,
@@ -416,7 +416,7 @@ describe('SupaClient', () => {
 
     it('should return fallback values when no fetch implementation is available', async (): Promise<void> => {
       const originalFetch = global.fetch
-      const testClient = new SupaClient({
+      const testClient = new SupashipClient({
         sdkKey: mockSdkKey,
         environment: 'test-environment',
         features: { feature1: false as boolean } satisfies FeaturesWithFallbacks,
@@ -439,7 +439,7 @@ describe('SupaClient', () => {
         ok: true,
         json: () => Promise.resolve({ features: { feature1: { variation: true } } }),
       } as MockResponse)
-      const testClient = new SupaClient({
+      const testClient = new SupashipClient({
         sdkKey: mockSdkKey,
         environment: 'test-environment',
         features: { feature1: null } satisfies FeaturesWithFallbacks,
@@ -471,7 +471,7 @@ describe('SupaClient', () => {
         ok: true,
         json: () => Promise.resolve({ features: { feature1: { variation: true } } }),
       } as MockResponse)
-      const testClient = new SupaClient({
+      const testClient = new SupashipClient({
         sdkKey: mockSdkKey,
         environment: 'test-environment',
         features: { feature1: null } satisfies FeaturesWithFallbacks,
@@ -522,7 +522,7 @@ describe('SupaClient', () => {
     })
 
     it('should work with retry disabled', async (): Promise<void> => {
-      const testClient = new SupaClient({
+      const testClient = new SupashipClient({
         sdkKey: mockSdkKey,
         environment: 'test-environment',
         features: { testFeature: null } satisfies FeaturesWithFallbacks,
@@ -551,7 +551,7 @@ describe('SupaClient', () => {
         onError: jest.fn().mockResolvedValue(undefined),
       }
 
-      const testClient = new SupaClient({
+      const testClient = new SupashipClient({
         sdkKey: mockSdkKey,
         environment: 'test-environment',
         features: { testFeature: null } satisfies FeaturesWithFallbacks,

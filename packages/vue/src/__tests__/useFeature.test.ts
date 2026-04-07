@@ -5,12 +5,12 @@ import { useFeature } from '../composables'
 import { createSupaship } from '../plugin'
 import { FeatureContext, FeaturesWithFallbacks } from '@supashiphq/javascript-sdk'
 
-// Mock the SupaClient
+// Mock the SupashipClient
 vi.mock('@supashiphq/javascript-sdk', async () => {
   const actual = await vi.importActual('@supashiphq/javascript-sdk')
   return {
     ...actual,
-    SupaClient: vi.fn().mockImplementation(() => ({
+    SupashipClient: vi.fn().mockImplementation(() => ({
       getFeature: vi.fn(),
       getFeatureFallback: vi.fn((key: string) => testFeatures[key as keyof typeof testFeatures]),
       updateContext: vi.fn(),
@@ -101,9 +101,9 @@ describe('useFeature', () => {
     const plugin = createSupaship({ config })
     const mockGetFeature = vi.fn()
 
-    // Get the mocked SupaClient instance
-    const { SupaClient } = await import('@supashiphq/javascript-sdk')
-    const mockedSupaClient = SupaClient as unknown as {
+    // Get the mocked SupashipClient instance
+    const { SupashipClient } = await import('@supashiphq/javascript-sdk')
+    const mockedSupashipClient = SupashipClient as unknown as {
       mockImplementation: (
         fn: () => {
           getFeature: typeof mockGetFeature
@@ -113,7 +113,7 @@ describe('useFeature', () => {
         }
       ) => void
     }
-    mockedSupaClient.mockImplementation(() => ({
+    mockedSupashipClient.mockImplementation(() => ({
       getFeature: mockGetFeature,
       getFeatureFallback: vi.fn((key: string) => testFeatures[key as keyof typeof testFeatures]),
       updateContext: vi.fn(),

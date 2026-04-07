@@ -3,7 +3,7 @@ import { useFeature } from './hooks'
 import { FeatureKey, FeatureContext } from './types'
 import { hasValue } from './utils'
 
-export interface SupaFeatureProps {
+export interface SupashipFeatureProps {
   /**
    * The feature flag key to evaluate
    */
@@ -38,7 +38,7 @@ export interface SupaFeatureProps {
  *
  * @example
  * ```tsx
- * <SupaFeature
+ * <SupashipFeature
  *   feature="new-header"
  *   loading={<ActivityIndicator />}
  *   variations={{
@@ -48,13 +48,13 @@ export interface SupaFeatureProps {
  * />
  * ```
  */
-export function SupaFeature({
+export function SupashipFeature({
   feature,
   context,
   shouldFetch = true,
   variations,
   loading,
-}: SupaFeatureProps): React.JSX.Element | null {
+}: SupashipFeatureProps): React.JSX.Element | null {
   const { feature: featureValue, isLoading } = useFeature(feature, {
     context,
     shouldFetch,
