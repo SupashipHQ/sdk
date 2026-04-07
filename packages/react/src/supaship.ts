@@ -5,7 +5,7 @@ import { createSupashipReact, useWebFocusRefetchEffect } from '@supashiphq/react
 const supaship = createSupashipReact(useWebFocusRefetchEffect)
 
 export const {
-  SupaProvider,
+  SupashipProvider,
   useClient,
   useFeatureContext,
   useQuery,

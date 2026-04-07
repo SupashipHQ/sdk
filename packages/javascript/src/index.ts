@@ -1,12 +1,12 @@
 export type * from './types'
-export { SupaClient } from './client'
-export type { SupaPlugin, SupaPluginConfig } from './plugins/types'
-export { SupaToolbarPlugin as ToolbarPlugin } from './plugins/toolbar-plugin'
+export { SupashipClient } from './client'
+export type { SupashipPlugin, SupashipPluginConfig } from './plugins/types'
+export { SupashipToolbarPlugin as ToolbarPlugin } from './plugins/toolbar-plugin'
 export type {
-  SupaToolbarPluginConfig,
-  SupaToolbarPosition,
-  SupaToolbarOverrideChange,
-  SupaToolbarOverrideChangeCallback,
+  SupashipToolbarPluginConfig,
+  SupashipToolbarPosition,
+  SupashipToolbarOverrideChange,
+  SupashipToolbarOverrideChangeCallback,
 } from './plugins/toolbar-plugin'
 // export { LoggingPlugin } from "./plugins/logging-plugin";
 // export { CachingPlugin } from "./plugins/caching-plugin";

@@ -5,7 +5,7 @@ import { useFeature } from './hooks'
 import { FeatureKey, FeatureContext } from './types'
 import { hasValue } from './utils'
 
-export interface SupaFeatureProps {
+export interface SupashipFeatureProps {
   /**
    * The feature flag key to evaluate
    */
@@ -36,12 +36,12 @@ export interface SupaFeatureProps {
 }
 
 /**
- * SupaFeature component that conditionally renders variations based on feature flag values.
+ * SupashipFeature component that conditionally renders variations based on feature flag values.
  * Uses the default value defined in the client configuration.
  *
  * @example
  * ```tsx
- * <SupaFeature
+ * <SupashipFeature
  *   feature="new-header"
  *   loading={<HeaderSkeleton />}
  *   variations={{
@@ -51,13 +51,13 @@ export interface SupaFeatureProps {
  * />
  * ```
  */
-export function SupaFeature({
+export function SupashipFeature({
   feature,
   context,
   shouldFetch = true,
   variations,
   loading,
-}: SupaFeatureProps): React.JSX.Element | null {
+}: SupashipFeatureProps): React.JSX.Element | null {
   const { feature: featureValue, isLoading } = useFeature(feature, {
     context,
     shouldFetch,

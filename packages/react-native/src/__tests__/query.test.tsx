@@ -3,7 +3,7 @@ import { useQuery, queryCache } from '../supaship'
 import { jest, describe, it, expect, beforeEach } from '@jest/globals'
 
 jest.mock('@supashiphq/javascript-sdk', () => ({
-  SupaClient: jest.fn().mockImplementation(() => ({
+  SupashipClient: jest.fn().mockImplementation(() => ({
     getFeatures: jest.fn(),
   })),
 }))

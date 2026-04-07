@@ -15,7 +15,7 @@ pnpm add @supashiphq/react-sdk
 ## Quick Start
 
 ```tsx
-import { SupaProvider, useFeature, FeaturesWithFallbacks } from '@supashiphq/react-sdk'
+import { SupashipProvider, useFeature, FeaturesWithFallbacks } from '@supashiphq/react-sdk'
 
 // Define your features with type safety
 const features = {
@@ -26,7 +26,7 @@ const features = {
 
 function App() {
   return (
-    <SupaProvider
+    <SupashipProvider
       config={{
         sdkKey: 'your-sdk-key',
         environment: 'production',
@@ -38,7 +38,7 @@ function App() {
       }}
     >
       <YourApp />
-    </SupaProvider>
+    </SupashipProvider>
   )
 }
 
@@ -95,22 +95,22 @@ function MyComponent() {
 
 ## API Reference
 
-### SupaProvider
+### SupashipProvider
 
 The provider component that makes feature flags available to your React component tree.
 
 ```tsx
-<SupaProvider config={config}>{children}</SupaProvider>
+<SupashipProvider config={config}>{children}</SupashipProvider>
 ```
 
 **Props:**
 
-| Prop       | Type               | Required | Description                  |
-| ---------- | ------------------ | -------- | ---------------------------- |
-| `config`   | `SupaClientConfig` | Yes      | Configuration for the client |
-| `children` | `React.ReactNode`  | Yes      | Child components             |
-| `plugins`  | `SupaPlugin[]`     | No       | Custom plugins               |
-| `toolbar`  | `ToolbarConfig`    | No       | Development toolbar settings |
+| Prop       | Type                   | Required | Description                  |
+| ---------- | ---------------------- | -------- | ---------------------------- |
+| `config`   | `SupashipClientConfig` | Yes      | Configuration for the client |
+| `children` | `React.ReactNode`      | Yes      | Child components             |
+| `plugins`  | `SupashipPlugin[]`     | No       | Custom plugins               |
+| `toolbar`  | `ToolbarConfig`        | No       | Development toolbar settings |
 
 **Configuration Options:**
 
@@ -298,12 +298,12 @@ function FeatureList() {
 }
 ```
 
-### SupaFeature Component
+### SupashipFeature Component
 
 A declarative component for rendering different UI based on boolean feature flag values.
 
 ```tsx
-<SupaFeature
+<SupashipFeature
   feature="feature-name"
   loading={<Skeleton />}
   variations={{
@@ -330,7 +330,7 @@ A declarative component for rendering different UI based on boolean feature flag
 // Simple boolean feature flag
 function Header() {
   return (
-    <SupaFeature
+    <SupashipFeature
       feature="new-header"
       loading={<HeaderSkeleton />}
       variations={{
@@ -346,7 +346,7 @@ function UserDashboard() {
   const { user } = useAuth()
 
   return (
-    <SupaFeature
+    <SupashipFeature
       feature="beta-dashboard"
       context={{ userId: user.id, plan: user.plan }}
       variations={{
@@ -391,7 +391,7 @@ function UserProfileSettings() {
 
 ### useClient Hook
 
-Access the underlying SupaClient instance for advanced use cases.
+Access the underlying SupashipClient instance for advanced use cases.
 
 ```tsx
 const client = useClient()
@@ -455,7 +455,7 @@ function App() {
   const { user } = useAuth()
 
   return (
-    <SupaProvider
+    <SupashipProvider
       config={{
         sdkKey: 'your-sdk-key',
         features: FEATURE_FLAGS,
@@ -468,7 +468,7 @@ function App() {
       }}
     >
       <YourApp />
-    </SupaProvider>
+    </SupashipProvider>
   )
 }
 ```
@@ -530,7 +530,7 @@ function UserDashboard() {
 ```tsx
 // app/providers.tsx
 'use client'
-import { SupaProvider, FeaturesWithFallbacks } from '@supashiphq/react-sdk'
+import { SupashipProvider, FeaturesWithFallbacks } from '@supashiphq/react-sdk'
 
 const FEATURE_FLAGS = {
   'new-hero': false,
@@ -539,7 +539,7 @@ const FEATURE_FLAGS = {
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <SupaProvider
+    <SupashipProvider
       config={{
         sdkKey: process.env.NEXT_PUBLIC_SUPASHIP_SDK_KEY!,
         environment: process.env.NODE_ENV!,
@@ -547,7 +547,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       }}
     >
       {children}
-    </SupaProvider>
+    </SupashipProvider>
   )
 }
 
@@ -579,7 +579,7 @@ export default function HomePage() {
 
 ```tsx
 // pages/_app.tsx
-import { SupaProvider, FeaturesWithFallbacks } from '@supashiphq/react-sdk'
+import { SupashipProvider, FeaturesWithFallbacks } from '@supashiphq/react-sdk'
 import type { AppProps } from 'next/app'
 
 const FEATURE_FLAGS = {
@@ -588,7 +588,7 @@ const FEATURE_FLAGS = {
 
 export default function App({ Component, pageProps }: AppProps) {
   return (
-    <SupaProvider
+    <SupashipProvider
       config={{
         sdkKey: process.env.NEXT_PUBLIC_SUPASHIP_SDK_KEY!,
         environment: process.env.NODE_ENV!,
@@ -596,7 +596,7 @@ export default function App({ Component, pageProps }: AppProps) {
       }}
     >
       <Component {...pageProps} />
-    </SupaProvider>
+    </SupashipProvider>
   )
 }
 ```
@@ -605,7 +605,7 @@ export default function App({ Component, pageProps }: AppProps) {
 
 ```tsx
 // src/main.tsx or src/index.tsx
-import { SupaProvider, FeaturesWithFallbacks } from '@supashiphq/react-sdk'
+import { SupashipProvider, FeaturesWithFallbacks } from '@supashiphq/react-sdk'
 
 const FEATURE_FLAGS = {
   'new-ui': false,
@@ -614,7 +614,7 @@ const FEATURE_FLAGS = {
 
 function App() {
   return (
-    <SupaProvider
+    <SupashipProvider
       config={{
         sdkKey: import.meta.env.VITE_SUPASHIP_SDK_KEY, // Vite
         // or
@@ -624,7 +624,7 @@ function App() {
       }}
     >
       <YourApp />
-    </SupaProvider>
+    </SupashipProvider>
   )
 }
 ```
@@ -634,7 +634,7 @@ function App() {
 The SDK includes a development toolbar for testing and debugging feature flags locally.
 
 ```tsx
-<SupaProvider
+<SupashipProvider
   config={{ ... }}
   toolbar={{
     enabled: 'auto', // 'auto' | 'always' | 'never'
@@ -642,7 +642,7 @@ The SDK includes a development toolbar for testing and debugging feature flags l
   }}
 >
   <YourApp />
-</SupaProvider>
+</SupashipProvider>
 ```
 
 - `'auto'`: Shows toolbar in development environments only (default)
@@ -662,11 +662,11 @@ The toolbar allows you to:
 
 ```tsx
 // test-utils/providers.tsx
-import { SupaProvider, FeaturesWithFallbacks } from '@supashiphq/react-sdk'
+import { SupashipProvider, FeaturesWithFallbacks } from '@supashiphq/react-sdk'
 
 export function TestProviders({ children, features = {} as FeaturesWithFallbacks }) {
   return (
-    <SupaProvider
+    <SupashipProvider
       config={{
         sdkKey: 'test-key',
         environment: 'test',
@@ -675,7 +675,7 @@ export function TestProviders({ children, features = {} as FeaturesWithFallbacks
       }}
     >
       {children}
-    </SupaProvider>
+    </SupashipProvider>
   )
 }
 ```
@@ -738,18 +738,18 @@ const features: FeaturesWithFallbacks = {
 #### Provider Not Found Error
 
 ```
-Error: useFeature must be used within a SupaProvider
+Error: useFeature must be used within a SupashipProvider
 ```
 
-**Solution:** Ensure your component is wrapped in a `SupaProvider`:
+**Solution:** Ensure your component is wrapped in a `SupashipProvider`:
 
 ```tsx
 // ✅ Correct
 function App() {
   return (
-    <SupaProvider config={{ ... }}>
+    <SupashipProvider config={{ ... }}>
       <MyComponent />
-    </SupaProvider>
+    </SupashipProvider>
   )
 }
 

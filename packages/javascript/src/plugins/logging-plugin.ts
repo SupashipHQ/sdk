@@ -1,4 +1,4 @@
-import { SupaPlugin, SupaPluginConfig } from './types'
+import { SupashipPlugin, SupashipPluginConfig } from './types'
 import { FeatureContext, FeatureValue } from '../types'
 
 export interface Logger {
@@ -8,11 +8,11 @@ export interface Logger {
   error(message: string, ...args: unknown[]): void
 }
 
-export interface LoggingPluginConfig extends SupaPluginConfig {
+export interface LoggingPluginConfig extends SupashipPluginConfig {
   level?: 'debug' | 'info' | 'warn' | 'error'
 }
 
-export class LoggingPlugin implements SupaPlugin {
+export class LoggingPlugin implements SupashipPlugin {
   name = 'logging'
   private logger: DefaultLogger
   private enabled: boolean

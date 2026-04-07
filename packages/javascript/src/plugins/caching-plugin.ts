@@ -1,4 +1,4 @@
-import { SupaPlugin, SupaPluginConfig } from './types'
+import { SupashipPlugin, SupashipPluginConfig } from './types'
 import { FeatureContext, FeatureValue } from '../types'
 
 export interface CacheEntry {
@@ -7,12 +7,12 @@ export interface CacheEntry {
   ttl: number
 }
 
-export interface CachingPluginConfig extends SupaPluginConfig {
+export interface CachingPluginConfig extends SupashipPluginConfig {
   storage?: 'memory' | 'localStorage' | 'sessionStorage'
   ttl?: number
 }
 
-export class CachingPlugin implements SupaPlugin {
+export class CachingPlugin implements SupashipPlugin {
   name = 'caching'
   private cache: Cache
   private enabled: boolean

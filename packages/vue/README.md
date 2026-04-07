@@ -89,10 +89,10 @@ app.mount('#app')
 
 **Options:**
 
-| Option    | Type               | Required | Description                  |
-| --------- | ------------------ | -------- | ---------------------------- |
-| `config`  | `SupaClientConfig` | Yes      | Configuration for the client |
-| `toolbar` | `ToolbarConfig`    | No       | Development toolbar settings |
+| Option    | Type                   | Required | Description                  |
+| --------- | ---------------------- | -------- | ---------------------------- |
+| `config`  | `SupashipClientConfig` | Yes      | Configuration for the client |
+| `toolbar` | `ToolbarConfig`        | No       | Development toolbar settings |
 
 **Configuration Options:**
 
@@ -635,7 +635,7 @@ it('renders the banner', () => {
 })
 ```
 
-`useFeature` / `useFeatures` work inside that tree. For **plain functions** that take a `SupaClient`, use `new SupaClient(...)` and mock `fetch` like the JavaScript SDK example if you want no network.
+`useFeature` / `useFeatures` work inside that tree. For **plain functions** that take a `SupashipClient`, use `new SupashipClient(...)` and mock `fetch` like the JavaScript SDK example if you want no network.
 
 ## Troubleshooting
 

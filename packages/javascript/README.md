@@ -15,7 +15,7 @@ pnpm add @supashiphq/javascript-sdk
 ## Quick Start
 
 ```typescript
-import { SupaClient, FeaturesWithFallbacks } from '@supashiphq/javascript-sdk'
+import { SupashipClient, FeaturesWithFallbacks } from '@supashiphq/javascript-sdk'
 
 // Define your features with fallback values
 const features = {
@@ -28,7 +28,7 @@ const features = {
 } satisfies FeaturesWithFallbacks
 
 // Create client with features
-const client = new SupaClient({
+const client = new SupashipClient({
   sdkKey: 'your-sdk-key',
   environment: 'production',
   features,
@@ -95,7 +95,7 @@ const features: FeaturesWithFallbacks = {
   },
 }
 
-const client = new SupaClient({
+const client = new SupashipClient({
   sdkKey: 'your-sdk-key',
   environment: 'production',
   features,
@@ -111,12 +111,12 @@ const value = await client.getFeature('unknown-feature')
 
 ## API Reference
 
-### SupaClient
+### SupashipClient
 
 #### Constructor
 
 ```typescript
-new SupaClient(config: SupaClientConfig)
+new SupashipClient(config: SupashipClientConfig)
 ```
 
 **Configuration Options:**
@@ -129,7 +129,7 @@ new SupaClient(config: SupaClientConfig)
 | `context`                    | `FeatureContext`        | Yes      | Default context for feature evaluation                                             |
 | `sensitiveContextProperties` | `string[]`              | No       | Hash sensitive context properties such as PII on the client before sending to Edge |
 | `networkConfig`              | `NetworkConfig`         | No       | Network settings (endpoints, retry, timeout, custom fetch)                         |
-| `plugins`                    | `SupaPlugin[]`          | No       | Plugins for observability, caching, etc.                                           |
+| `plugins`                    | `SupashipPlugin[]`      | No       | Plugins for observability, caching, etc.                                           |
 
 **Feature Context:**
 
@@ -142,7 +142,7 @@ new SupaClient(config: SupaClientConfig)
 Use `sensitiveContextProperties` to hash selected context property values on the client before requests are sent to Edge.
 
 ```typescript
-const client = new SupaClient({
+const client = new SupashipClient({
   sdkKey: 'your-sdk-key',
   environment: 'production',
   features,
@@ -199,7 +199,7 @@ const features = {
   'theme-config': { primary: '#007bff' },
 } satisfies FeaturesWithFallbacks
 
-const client = new SupaClient({
+const client = new SupashipClient({
   sdkKey: 'key',
   environment: 'production',
   features,
@@ -245,7 +245,7 @@ const features = {
   'beta-mode': false,
 } satisfies FeaturesWithFallbacks
 
-const client = new SupaClient({
+const client = new SupashipClient({
   sdkKey: 'key',
   environment: 'prod',
   features,
@@ -348,10 +348,10 @@ export const features = {
 } satisfies FeaturesWithFallbacks
 
 // client.ts
-import { SupaClient } from '@supashiphq/javascript-sdk'
+import { SupashipClient } from '@supashiphq/javascript-sdk'
 import { features } from './features'
 
-export const client = new SupaClient({
+export const client = new SupashipClient({
   sdkKey: process.env.SUPASHIP_SDK_KEY!,
   environment: process.env.ENVIRONMENT!,
   features,
@@ -382,7 +382,7 @@ const features: FeaturesWithFallbacks = {
   },
 }
 
-const client = new SupaClient({
+const client = new SupashipClient({
   sdkKey: 'key',
   environment: 'prod',
   features,
@@ -400,7 +400,7 @@ const theme = config.theme // ✅ Type-safe, inferred as 'light' literal
 ### 3. Use Context for Targeting
 
 ```typescript
-const client = new SupaClient({
+const client = new SupashipClient({
   sdkKey: 'your-sdk-key',
   environment: 'production',
   features,
@@ -447,7 +447,7 @@ Visual toolbar for local development and testing.
 **✨ Auto-enabled in browser environments!** The toolbar is automatically enabled in browsers with `enabled: 'auto'` (shows only on localhost). No manual configuration needed!
 
 ```typescript
-import { SupaClient, FeaturesWithFallbacks } from '@supashiphq/javascript-sdk'
+import { SupashipClient, FeaturesWithFallbacks } from '@supashiphq/javascript-sdk'
 
 const features = {
   'new-ui': false,
@@ -455,7 +455,7 @@ const features = {
 } satisfies FeaturesWithFallbacks
 
 // ✅ Automatic (recommended) - Toolbar auto-enabled in browser with 'auto' mode
-const client = new SupaClient({
+const client = new SupashipClient({
   sdkKey: 'your-sdk-key',
   environment: 'development',
   features,
@@ -463,7 +463,7 @@ const client = new SupaClient({
 })
 
 // 🎨 Custom configuration
-const client = new SupaClient({
+const client = new SupashipClient({
   sdkKey: 'your-sdk-key',
   environment: 'development',
   features,
@@ -478,7 +478,7 @@ const client = new SupaClient({
 })
 
 // ❌ Opt-out (disable toolbar)
-const client = new SupaClient({
+const client = new SupashipClient({
   sdkKey: 'your-sdk-key',
   environment: 'production',
   features,
@@ -509,7 +509,7 @@ For React applications, use our dedicated React SDK which provides hooks and com
 
 ```typescript
 import express from 'express'
-import { SupaClient, FeaturesWithFallbacks } from '@supashiphq/javascript-sdk'
+import { SupashipClient, FeaturesWithFallbacks } from '@supashiphq/javascript-sdk'
 
 const features = {
   'new-api': false,
@@ -517,7 +517,7 @@ const features = {
   'rate-limit': { maxRequests: 100, windowMs: 60000 },
 } satisfies FeaturesWithFallbacks
 
-const featureClient = new SupaClient({
+const featureClient = new SupashipClient({
   sdkKey: process.env.SUPASHIP_SDK_KEY!,
   environment: 'production',
   features,
@@ -552,7 +552,7 @@ app.get('/api/user-features/:userId', async (req, res) => {
 
 ```typescript
 // plugins/feature-flags.ts
-import { SupaClient, FeaturesWithFallbacks } from '@supashiphq/javascript-sdk'
+import { SupashipClient, FeaturesWithFallbacks } from '@supashiphq/javascript-sdk'
 
 const features = {
   'new-nav': false,
@@ -560,7 +560,7 @@ const features = {
   'premium-content': false,
 } satisfies FeaturesWithFallbacks
 
-const client = new SupaClient({
+const client = new SupashipClient({
   sdkKey: import.meta.env.VITE_SUPASHIP_SDK_KEY,
   environment: 'production',
   features,
@@ -577,9 +577,9 @@ export default {
 // components/MyComponent.vue
 <script setup lang="ts">
 import { inject, ref, onMounted } from 'vue'
-import type { SupaClient } from '@supashiphq/javascript-sdk'
+import type { SupashipClient } from '@supashiphq/javascript-sdk'
 
-const featureFlags = inject<SupaClient>('featureFlags')!
+const featureFlags = inject<SupashipClient>('featureFlags')!
 const showNewNav = ref(false)
 const darkMode = ref(false)
 
@@ -602,7 +602,7 @@ onMounted(async () => {
 ```typescript
 // feature-flag.service.ts
 import { Injectable } from '@angular/core'
-import { SupaClient, FeaturesWithFallbacks } from '@supashiphq/javascript-sdk'
+import { SupashipClient, FeaturesWithFallbacks } from '@supashiphq/javascript-sdk'
 import { environment } from '../environments/environment'
 
 const features = {
@@ -615,10 +615,10 @@ const features = {
   providedIn: 'root',
 })
 export class FeatureFlagService {
-  private client: SupaClient
+  private client: SupashipClient
 
   constructor() {
-    this.client = new SupaClient({
+    this.client = new SupashipClient({
       sdkKey: environment.SUPASHIP_SDK_KEY,
       environment: 'production',
       features,

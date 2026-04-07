@@ -1,5 +1,5 @@
 import {
-  SupaClientConfig,
+  SupashipClientConfig,
   FeatureContext,
   FeatureValue,
   NetworkConfig,
@@ -7,8 +7,8 @@ import {
   FeaturesWithFallbacks,
 } from './types'
 import { retry } from './utils'
-import { SupaPlugin } from './plugins/types'
-import { SupaToolbarPlugin } from './plugins/toolbar-plugin'
+import { SupashipPlugin } from './plugins/types'
+import { SupashipToolbarPlugin } from './plugins/toolbar-plugin'
 import { DEFAULT_FEATURES_URL, DEFAULT_EVENTS_URL } from './constants'
 
 type RequiredRetryConfig = Required<NonNullable<NetworkConfig['retry']>>
@@ -19,11 +19,11 @@ type ResolvedNetworkConfig = {
   requestTimeoutMs: number
 }
 
-export class SupaClient<TFeatures extends FeaturesWithFallbacks> {
+export class SupashipClient<TFeatures extends FeaturesWithFallbacks> {
   private sdkKey: string
   private environment: string
   private defaultContext?: FeatureContext
-  private plugins: SupaPlugin[]
+  private plugins: SupashipPlugin[]
   private featureDefinitions: Features<TFeatures>
   private clientId: string
   private sensitiveContextProperties: Set<string>
@@ -31,7 +31,7 @@ export class SupaClient<TFeatures extends FeaturesWithFallbacks> {
   private fetchFn?: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
   private networkConfig: ResolvedNetworkConfig
 
-  constructor(config: SupaClientConfig & { features: TFeatures }) {
+  constructor(config: SupashipClientConfig & { features: TFeatures }) {
     this.sdkKey = config.sdkKey
     this.environment = config.environment
     this.defaultContext = config.context
@@ -127,7 +127,9 @@ export class SupaClient<TFeatures extends FeaturesWithFallbacks> {
   /**
    * Initialize plugins with automatic toolbar plugin in browser environments
    */
-  private initializePlugins(config: SupaClientConfig & { features: TFeatures }): SupaPlugin[] {
+  private initializePlugins(
+    config: SupashipClientConfig & { features: TFeatures }
+  ): SupashipPlugin[] {
     const plugins = config.plugins || []
 
     // Check if we're in a browser environment
@@ -146,7 +148,7 @@ export class SupaClient<TFeatures extends FeaturesWithFallbacks> {
       if (!hasToolbarPlugin) {
         // Add toolbar with user config or defaults
         const toolbarConfig = config.toolbar || { enabled: 'auto' }
-        const toolbarPlugin = new SupaToolbarPlugin(toolbarConfig)
+        const toolbarPlugin = new SupashipToolbarPlugin(toolbarConfig)
         return [toolbarPlugin, ...plugins]
       }
     }

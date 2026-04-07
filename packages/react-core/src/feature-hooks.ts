@@ -1,4 +1,9 @@
-import type { FeatureContext, FeatureValue, Features, SupaClient } from '@supashiphq/javascript-sdk'
+import type {
+  FeatureContext,
+  FeatureValue,
+  Features,
+  SupashipClient,
+} from '@supashiphq/javascript-sdk'
 import type { QueryState, QueryKey, UseQueryOptions } from './query-hooks-factory'
 
 /** Narrow SDK feature definition `{ value: T }` to `T`; otherwise {@link FeatureValue}. */
@@ -26,7 +31,7 @@ export type UseQueryHook = <TData = unknown, TError = Error>(
 /** @internal */
 export type UseClientHook = <
   TFeatures extends Features<Record<string, FeatureValue>>,
->() => SupaClient<TFeatures>
+>() => SupashipClient<TFeatures>
 
 const FEATURE_STALE_MS = 5 * 60 * 1000
 const FEATURE_CACHE_MS = 10 * 60 * 1000

@@ -1,41 +1,41 @@
 import { App, Plugin, inject, InjectionKey } from 'vue'
 import {
-  SupaClient,
-  SupaClientConfig,
+  SupashipClient,
+  SupashipClientConfig,
   FeatureContext,
   FeatureValue,
   FeaturesWithFallbacks,
-  SupaToolbarOverrideChange,
-  SupaToolbarPluginConfig,
+  SupashipToolbarOverrideChange,
+  SupashipToolbarPluginConfig,
 } from '@supashiphq/javascript-sdk'
 import { useQueryClient } from './query'
 
 export type SupashipVuePluginConfig<
   TFeatures extends FeaturesWithFallbacks = FeaturesWithFallbacks,
-> = Omit<SupaClientConfig, 'plugins' | 'toolbar' | 'features'> & {
+> = Omit<SupashipClientConfig, 'plugins' | 'toolbar' | 'features'> & {
   features: TFeatures
 }
 
-export interface SupaContextValue<TFeatures extends FeaturesWithFallbacks> {
-  client: SupaClient<TFeatures>
+export interface SupashipContextValue<TFeatures extends FeaturesWithFallbacks> {
+  client: SupashipClient<TFeatures>
   features: TFeatures
   updateContext: (context: FeatureContext, mergeWithExisting?: boolean) => void
   getContext: () => FeatureContext | undefined
 }
 
 // Injection key for Vue's provide/inject
-const SupashipContextKey: InjectionKey<SupaContextValue<FeaturesWithFallbacks>> =
+const SupashipContextKey: InjectionKey<SupashipContextValue<FeaturesWithFallbacks>> =
   Symbol('SupashipContext')
 
 export interface SupashipVuePluginOptions<
   TFeatures extends FeaturesWithFallbacks = FeaturesWithFallbacks,
 > {
   config: SupashipVuePluginConfig<TFeatures>
-  toolbar?: SupaToolbarPluginConfig | boolean
+  toolbar?: SupashipToolbarPluginConfig | boolean
 }
 
 // Default toolbar config (stable reference)
-const DEFAULT_TOOLBAR_CONFIG: SupaToolbarPluginConfig = { enabled: 'auto' }
+const DEFAULT_TOOLBAR_CONFIG: SupashipToolbarPluginConfig = { enabled: 'auto' }
 
 /**
  * Creates a Vue plugin for Supaship
@@ -56,7 +56,7 @@ export function createSupaship<TFeatures extends FeaturesWithFallbacks>(
 
       // Stable callback for toolbar override changes
       const handleOverrideChange = (
-        featureOverride: SupaToolbarOverrideChange,
+        featureOverride: SupashipToolbarOverrideChange,
         allOverrides: Record<string, FeatureValue>
       ): void => {
         // Call user's onOverrideChange if provided
@@ -89,7 +89,7 @@ export function createSupaship<TFeatures extends FeaturesWithFallbacks>(
               onOverrideChange: handleOverrideChange,
             }
 
-      const client = new SupaClient<TFeatures>({
+      const client = new SupashipClient<TFeatures>({
         ...config,
         toolbar: toolbarConfig,
       })
@@ -102,7 +102,7 @@ export function createSupaship<TFeatures extends FeaturesWithFallbacks>(
         return client.getContext()
       }
 
-      const contextValue: SupaContextValue<TFeatures> = {
+      const contextValue: SupashipContextValue<TFeatures> = {
         client,
         features: config.features,
         updateContext,
@@ -110,7 +110,7 @@ export function createSupaship<TFeatures extends FeaturesWithFallbacks>(
       }
 
       // Provide the context to the app with features type preserved
-      app.provide(SupashipContextKey, contextValue as SupaContextValue<TFeatures>)
+      app.provide(SupashipContextKey, contextValue as SupashipContextValue<TFeatures>)
 
       // Cleanup on app unmount
       app.config.globalProperties.$supaship = client
@@ -125,7 +125,7 @@ export function createSupaship<TFeatures extends FeaturesWithFallbacks>(
  * Composable to access the Supaship client
  * The features type will be inferred from the createSupaship config
  */
-export function useClient(): SupaClient<FeaturesWithFallbacks> {
+export function useClient(): SupashipClient<FeaturesWithFallbacks> {
   const context = inject(SupashipContextKey)
   if (!context) {
     throw new Error(

@@ -1,7 +1,7 @@
 'use client'
 
 export {
-  SupaProvider,
+  SupashipProvider,
   useClient,
   useFeatureContext,
   useQuery,

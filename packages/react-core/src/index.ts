@@ -1,5 +1,5 @@
 export { createSupashipReact } from './create-supaship-react'
-export type { SupaGenericFeatures } from './create-supaship-react'
+export type { SupashipGenericFeatures } from './create-supaship-react'
 export { useWebFocusRefetchEffect } from './focus-web'
 export { createQueryHooks, getInitialQueryState } from './query-hooks-factory'
 export type {

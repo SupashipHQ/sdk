@@ -1,15 +1,15 @@
 import React from 'react'
 import { render } from '@testing-library/react'
-import { SupaProvider, useClient, useFeatureContext } from '../supaship'
-import { SupaClient, FeaturesWithFallbacks } from '@supashiphq/javascript-sdk'
+import { SupashipProvider, useClient, useFeatureContext } from '../supaship'
+import { SupashipClient, FeaturesWithFallbacks } from '@supashiphq/javascript-sdk'
 import { jest, describe, it, expect } from '@jest/globals'
 
-// Mock the SupaClient
+// Mock the SupashipClient
 const mockUpdateContext = jest.fn()
 const mockGetContext = jest.fn()
 const mockGetFeatureFallback = jest.fn()
 jest.mock('@supashiphq/javascript-sdk', () => ({
-  SupaClient: jest.fn().mockImplementation(() => ({
+  SupashipClient: jest.fn().mockImplementation(() => ({
     getFeature: jest.fn(),
     getFeatureFallback: mockGetFeatureFallback,
     updateContext: mockUpdateContext,
@@ -20,7 +20,7 @@ jest.mock('@supashiphq/javascript-sdk', () => ({
   })),
 }))
 
-describe('SupaProvider', () => {
+describe('SupashipProvider', () => {
   const config = {
     baseUrl: 'https://api.test.com',
     sdkKey: 'test-sdk-key',
@@ -35,12 +35,12 @@ describe('SupaProvider', () => {
 
   it('should initialize client with config', () => {
     render(
-      <SupaProvider config={config} toolbar={false}>
+      <SupashipProvider config={config} toolbar={false}>
         <div>Test</div>
-      </SupaProvider>
+      </SupashipProvider>
     )
 
-    expect(SupaClient).toHaveBeenCalledWith({
+    expect(SupashipClient).toHaveBeenCalledWith({
       ...config,
       toolbar: false,
     })
@@ -48,12 +48,12 @@ describe('SupaProvider', () => {
 
   it('should initialize client with default toolbar configuration', () => {
     render(
-      <SupaProvider config={config}>
+      <SupashipProvider config={config}>
         <div>Test</div>
-      </SupaProvider>
+      </SupashipProvider>
     )
 
-    expect(SupaClient).toHaveBeenCalledWith(
+    expect(SupashipClient).toHaveBeenCalledWith(
       expect.objectContaining({
         ...config,
         toolbar: expect.objectContaining({ onOverrideChange: expect.any(Function) }),
@@ -72,7 +72,7 @@ describe('SupaProvider', () => {
     }
 
     const { container } = render(<TestComponent />)
-    expect(container.textContent).toContain('useClient must be used within a SupaProvider')
+    expect(container.textContent).toContain('useClient must be used within a SupashipProvider')
   })
 
   it('should show error when useFeatureContext is used outside provider', () => {
@@ -86,7 +86,9 @@ describe('SupaProvider', () => {
     }
 
     const { container } = render(<TestComponent />)
-    expect(container.textContent).toContain('useFeatureContext must be used within a SupaProvider')
+    expect(container.textContent).toContain(
+      'useFeatureContext must be used within a SupashipProvider'
+    )
   })
 
   it('should provide context update functionality', () => {
@@ -114,9 +116,9 @@ describe('SupaProvider', () => {
     }
 
     const { getByTestId } = render(
-      <SupaProvider config={config} toolbar={false}>
+      <SupashipProvider config={config} toolbar={false}>
         <TestComponent />
-      </SupaProvider>
+      </SupashipProvider>
     )
 
     // Simulate updating context
