@@ -10,8 +10,12 @@ export type { UseFeatureResult, UseFeaturesResult } from '@supashiphq/react-core
 export type {
   SupashipClientConfig as SupashipProviderConfig,
   SupashipPlugin,
+  SupashipPluginConfig,
   FeatureValue,
   FeatureContext,
+  NetworkConfig,
+  RetryConfig,
+  Features as SupashipFeaturesDefinition,
   SupashipToolbarPluginConfig,
   SupashipToolbarPosition,
 } from '@supashiphq/javascript-sdk'

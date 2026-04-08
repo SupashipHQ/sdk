@@ -12,6 +12,16 @@ yarn add @supashiphq/react-sdk
 pnpm add @supashiphq/react-sdk
 ```
 
+You only need this package: it includes the core client and types from `@supashiphq/javascript-sdk` as a dependency. You do **not** have to install the JavaScript SDK separately for normal React or Next.js apps.
+
+### Package exports
+
+| Import path                    | Use                                                                                                                                                                                                                                  |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `@supashiphq/react-sdk`        | Default: `SupashipProvider`, hooks, components, types, `defineSupashipConfig`, `SupashipConfig`, `createSupashipServerClient`, `SupashipClient`, `ToolbarPlugin`                                                                     |
+| `@supashiphq/react-sdk/config` | `defineSupashipConfig` and `SupashipConfig` only (no React). Use in `lib/supaship-config.ts` when that module is imported from **both** Server and Client Components so the server bundle does not pull in hooks.                    |
+| `@supashiphq/react-sdk/server` | `createSupashipServerClient`, `defineSupashipConfig`, plus the full public API of the JavaScript SDK (`SupashipClient`, plugins, types, etc.). Prefer this entry from Route Handlers, Server Components, and other server-only code. |
+
 ## Quick Start
 
 ```tsx
@@ -95,22 +105,48 @@ function MyComponent() {
 
 ## API Reference
 
+### Configuration (client + server)
+
+Use **`defineSupashipConfig`** so the same object is passed to `SupashipProvider` and to **`createSupashipServerClient`** in Server Components or API routes. The shape matches the provider’s `config` prop: everything except `toolbar` and `plugins` (toolbar is configured via the provider’s `toolbar` prop; the server client forces `toolbar: false`).
+
+```ts
+import { defineSupashipConfig } from '@supashiphq/react-sdk/config'
+import { FEATURE_FLAGS } from './features'
+
+export const supashipConfig = defineSupashipConfig({
+  sdkKey: process.env.NEXT_PUBLIC_SUPASHIP_SDK_KEY!,
+  environment: 'production',
+  features: FEATURE_FLAGS,
+  context: { app: 'web' },
+  sensitiveContextProperties: ['email'],
+  networkConfig: {
+    /* optional */
+  },
+})
+```
+
+- **`SupashipConfig`** — TypeScript type for that object.
+- **`createSupashipServerClient(supashipConfig)`** — Returns a **`SupashipClient`** for `await client.getFeature(...)` / `getFeatures(...)` on the server. Import from `@supashiphq/react-sdk/server` (or from the root package if you prefer).
+
+The provider cannot “read back” config on the server; the supported pattern is **one config module** (as above) imported wherever you need it.
+
 ### SupashipProvider
 
 The provider component that makes feature flags available to your React component tree.
 
 ```tsx
-<SupashipProvider config={config}>{children}</SupashipProvider>
+<SupashipProvider config={config} toolbar={optionalToolbar}>
+  {children}
+</SupashipProvider>
 ```
 
 **Props:**
 
-| Prop       | Type                   | Required | Description                  |
-| ---------- | ---------------------- | -------- | ---------------------------- |
-| `config`   | `SupashipClientConfig` | Yes      | Configuration for the client |
-| `children` | `React.ReactNode`      | Yes      | Child components             |
-| `plugins`  | `SupashipPlugin[]`     | No       | Custom plugins               |
-| `toolbar`  | `ToolbarConfig`        | No       | Development toolbar settings |
+| Prop       | Type                         | Required | Description                                                                                   |
+| ---------- | ---------------------------- | -------- | --------------------------------------------------------------------------------------------- |
+| `config`   | `SupashipConfig`             | Yes      | Same fields as `defineSupashipConfig` / `SupashipClientConfig` except `toolbar` and `plugins` |
+| `children` | `React.ReactNode`            | Yes      | Child components                                                                              |
+| `toolbar`  | `boolean` or toolbar options | No       | Dev toolbar (`false` to disable). See [Development Toolbar](#development-toolbar).            |
 
 **Configuration Options:**
 
@@ -448,7 +484,7 @@ const { feature } = useFeature('new-header') // ✅ TypeScript knows this is boo
 const { feature } = useFeature('invalid') // ❌ TypeScript error
 ```
 
-### 3. Use Context for User Targeting
+### 4. Use Context for User Targeting
 
 ```tsx
 function App() {
@@ -473,7 +509,7 @@ function App() {
 }
 ```
 
-### 4. Batch Feature Requests
+### 5. Batch Feature Requests
 
 ```tsx
 // ✅ Good - single API call
@@ -485,7 +521,7 @@ const feature2 = useFeature('feature-2')
 const feature3 = useFeature('feature-3')
 ```
 
-### 5. Handle Loading States
+### 6. Handle Loading States
 
 ```tsx
 function MyComponent() {
@@ -502,7 +538,7 @@ function MyComponent() {
 }
 ```
 
-### 6. Update Context Reactively
+### 7. Update Context Reactively
 
 ```tsx
 function UserDashboard() {
@@ -527,30 +563,48 @@ function UserDashboard() {
 
 ### Next.js App Router (Next.js 13+)
 
-```tsx
-// app/providers.tsx
-'use client'
-import { SupashipProvider, FeaturesWithFallbacks } from '@supashiphq/react-sdk'
+Use a **single config module** with `@supashiphq/react-sdk/config` so Server Components and the client provider stay in sync without duplicating options.
 
-const FEATURE_FLAGS = {
+```tsx
+// lib/features.ts
+import { FeaturesWithFallbacks, InferFeatures } from '@supashiphq/react-sdk'
+
+export const FEATURE_FLAGS = {
   'new-hero': false,
   theme: { mode: 'light' as const },
 } satisfies FeaturesWithFallbacks
 
-export function Providers({ children }: { children: React.ReactNode }) {
-  return (
-    <SupashipProvider
-      config={{
-        sdkKey: process.env.NEXT_PUBLIC_SUPASHIP_SDK_KEY!,
-        environment: process.env.NODE_ENV!,
-        features: FEATURE_FLAGS,
-      }}
-    >
-      {children}
-    </SupashipProvider>
-  )
+declare module '@supashiphq/react-sdk' {
+  interface Features extends InferFeatures<typeof FEATURE_FLAGS> {}
 }
+```
 
+```ts
+// lib/supaship-config.ts  (no 'use client')
+import { defineSupashipConfig } from '@supashiphq/react-sdk/config'
+import { FEATURE_FLAGS } from './features'
+
+export const supashipConfig = defineSupashipConfig({
+  sdkKey: process.env.NEXT_PUBLIC_SUPASHIP_SDK_KEY!,
+  environment: process.env.NODE_ENV ?? 'development',
+  features: FEATURE_FLAGS,
+  context: {},
+})
+```
+
+```tsx
+// app/providers.tsx
+'use client'
+
+import { SupashipProvider } from '@supashiphq/react-sdk'
+import { supashipConfig } from '@/lib/supaship-config'
+
+export function Providers({ children }: { children: React.ReactNode }) {
+  return <SupashipProvider config={supashipConfig}>{children}</SupashipProvider>
+}
+```
+
+```tsx
 // app/layout.tsx
 import { Providers } from './providers'
 
@@ -563,14 +617,34 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     </html>
   )
 }
+```
 
+**Server Component** — evaluate flags with the same config (use a **server-side** SDK key via env if you do not want the client key on the server):
+
+```tsx
 // app/page.tsx
-;('use client')
+import { createSupashipServerClient } from '@supashiphq/react-sdk/server'
+import { supashipConfig } from '@/lib/supaship-config'
+
+export default async function HomePage() {
+  const client = createSupashipServerClient(supashipConfig)
+  const newHero = await client.getFeature('new-hero')
+
+  return <main>{newHero ? <NewHeroSection /> : <OldHeroSection />}</main>
+}
+```
+
+**Client Component** — hooks work as usual inside a client tree wrapped by `SupashipProvider`:
+
+```tsx
+// app/Dashboard.tsx
+'use client'
+
 import { useFeature } from '@supashiphq/react-sdk'
 
-export default function HomePage() {
-  const { feature: newHero } = useFeature('new-hero')
-
+export function Dashboard() {
+  const { feature: newHero, isLoading } = useFeature('new-hero')
+  if (isLoading) return <div>Loading…</div>
   return <main>{newHero ? <NewHeroSection /> : <OldHeroSection />}</main>
 }
 ```

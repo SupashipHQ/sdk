@@ -1,5 +1,3 @@
-'use client'
-
 export {
   SupashipProvider,
   useClient,
@@ -13,3 +11,6 @@ export {
 export * from './hooks'
 export * from './types'
 export * from './components'
+export { defineSupashipConfig, type SupashipConfig } from './config'
+export { createSupashipServerClient } from './server-client'
+export { SupashipClient, ToolbarPlugin } from '@supashiphq/javascript-sdk'
